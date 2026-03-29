@@ -1,4 +1,4 @@
-# 🎯 WISEMARKET COMPLETE SYSTEM OVERVIEW
+# 🎯 GENISEARCH COMPLETE SYSTEM OVERVIEW
 ## Customer Engagement Platform with Enterprise BI & Analytics
 
 **Last Updated:** March 29, 2026  
@@ -13,7 +13,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                    WISEMARKET ECOSYSTEM                          │
+│                    GENISEARCH ECOSYSTEM                          │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                   │
 │ 1. INVENTORY MANAGEMENT                                          │
@@ -154,7 +154,7 @@
    └─ Product management, configuration
    └─ User management, subscription tiers
 
-7. ✅ wisemarket-admin-frontend.jsx (27KB)
+7. ✅ genisearch-admin-frontend.jsx (27KB)
    └─ React admin UI with Material Design
    
 8-12. ✅ Other dashboards & viewers
@@ -163,20 +163,20 @@
 
 ### **BACKEND & LOGIC (5 files)**
 ```
-1. ✅ wisemarket-fashion-agent.js (20KB)
+1. ✅ genisearch-fashion-agent.js (20KB)
    └─ Production Node.js backend
    └─ Claude API integration
    └─ WhatsApp Cloud API integration
    └─ Outfit bundling, lead scoring
    └─ n8n CRM sync
 
-2. ✅ wisemarket-admin-backend.js (21KB)
+2. ✅ genisearch-admin-backend.js (21KB)
    └─ Google OAuth 2.0 implementation
    └─ RBAC (4 roles)
    └─ User management
    └─ Inventory upload handling
 
-3. ✅ wisemarket-whatsapp-agent.js (18KB)
+3. ✅ genisearch-whatsapp-agent.js (18KB)
    └─ WhatsApp integration (fallback)
 
 4. ✅ package.json
@@ -287,9 +287,9 @@ STEP 5: DETAILED ANALYTICS & REPORTING
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │ Level 1: SAAS PLATFORM                                      │
-│ └─ Clicks "WiseMarket" customer                             │
+│ └─ Clicks "GeniSearch" customer                             │
 │        ↓                                                    │
-│ Level 2: TENANT DASHBOARD (WiseMarket metrics)              │
+│ Level 2: TENANT DASHBOARD (GeniSearch metrics)              │
 │ └─ 3 products, $15K revenue, 10.5% reply rate              │
 │ └─ Clicks "Fashion AI" product                              │
 │        ↓                                                    │
@@ -468,7 +468,7 @@ ROI: 40,875% | Payback: <1 day
 
 ## 📞 KEY CONTACTS & RESOURCES
 
-### **For WiseMarket:**
+### **For GeniSearch:**
 - Sohaib Rahman (Operations Director): +92 345 4023068
 - Location: Lake City, Lahore, Pakistan
 

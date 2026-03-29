@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**WiseMarket** — a multi-tenant SaaS platform for WhatsApp-based customer engagement and BI analytics. Businesses upload product inventory, send AI-powered WhatsApp campaigns to targeted customer segments, and analyze responses through cascading drill-down dashboards.
+**GeniSearch** — a multi-tenant SaaS platform for WhatsApp-based customer engagement and BI analytics. Businesses upload product inventory, send AI-powered WhatsApp campaigns to targeted customer segments, and analyze responses through cascading drill-down dashboards.
 
 ## Repository State
 

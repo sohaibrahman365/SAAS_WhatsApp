@@ -11,7 +11,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│         WISEMARKET BI SYSTEM HIERARCHY                  │
+│         GENISEARCH BI SYSTEM HIERARCHY                  │
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
 │ Level 1: SAAS PLATFORM LEVEL                            │
@@ -408,7 +408,7 @@ GET /api/bi/saas-platform/customers
 Response: [
     {
         customer_id: "cust_123",
-        company_name: "WiseMarket",
+        company_name: "GeniSearch",
         subscription_plan: "Pro",
         monthly_revenue: 299,
         product_count: 3,
@@ -427,7 +427,7 @@ Response: [
 GET /api/bi/tenant/:customer_id/dashboard
 Response: {
     customer_info: {
-        company_name: "WiseMarket",
+        company_name: "GeniSearch",
         subscription_plan: "Pro",
         monthly_fee: 299,
         account_created: "2024-01-15",
@@ -469,7 +469,7 @@ Response: {
         product_id: "prod_123",
         product_name: "Fashion AI",
         domain: "Fashion",
-        customer_name: "WiseMarket",
+        customer_name: "GeniSearch",
         created_at: "2024-02-10"
     },
     overview: {

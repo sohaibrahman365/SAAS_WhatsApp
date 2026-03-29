@@ -235,19 +235,19 @@ What You See:
 │  └─ Regional Breakdown (pie chart)
 │
 ├─ Table: Top Customers
-│  ├─ WiseMarket | Pro | $299 | 3 products | 10.5% reply
+│  ├─ GeniSearch | Pro | $299 | 3 products | 10.5% reply
 │  ├─ TechHub | Enterprise | $999 | 8 products | 12.3% reply
 │  └─ [Click any customer name to drill down]
 │
 └─ What to do:
-   └─ Click "WiseMarket" → Drill to Level 2
+   └─ Click "GeniSearch" → Drill to Level 2
 
          ↓ DRILL DOWN
 
-**LEVEL 2: TENANT DASHBOARD** (WiseMarket's metrics)
+**LEVEL 2: TENANT DASHBOARD** (GeniSearch's metrics)
 ```
 What You See:
-├─ WiseMarket Overview
+├─ GeniSearch Overview
 ├─ Subscription: Pro ($299/month)
 ├─ Products: 3
 ├─ Monthly Revenue: $15K
@@ -260,7 +260,7 @@ What You See:
 │  ├─ Products Performance
 │  └─ Campaign Timeline
 │
-├─ Table: WiseMarket's Products
+├─ Table: GeniSearch's Products
 │  ├─ 👗 Fashion AI | Fashion | 15 campaigns | 12.5% reply | 4.0% conversion
 │  ├─ 💻 Tech Store | Electronics | 20 campaigns | 10.2% reply | 2.8% conversion
 │  └─ 🏠 Home Decor | Home | 10 campaigns | 8.5% reply | 1.5% conversion
@@ -273,7 +273,7 @@ What You See:
 **LEVEL 3: PRODUCT DASHBOARD** (Fashion AI's metrics)
 ```
 What You See:
-├─ Fashion AI (owned by WiseMarket)
+├─ Fashion AI (owned by GeniSearch)
 ├─ Total Campaigns: 15
 ├─ Messages Sent: 2,000
 ├─ Reply Rate: 12.5%
@@ -370,7 +370,7 @@ What You See:
 #### 🎯 How to Navigate:
 ```
 BREADCRUMB NAVIGATION (at top of page):
-📊 Dashboard > WiseMarket > Fashion AI > March Sale > Aisha Khan
+📊 Dashboard > GeniSearch > Fashion AI > March Sale > Aisha Khan
 
 Click any link to jump back to that level
 

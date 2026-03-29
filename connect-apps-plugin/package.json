@@ -1,0 +1,28 @@
+{
+  "name": "genisearch-connect-apps-plugin",
+  "version": "1.0.0",
+  "description": "MCP server connecting GeniSearch to WhatsApp, PostgreSQL, n8n, and Claude AI",
+  "type": "module",
+  "bin": {
+    "connect-apps-plugin": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod 755 build/index.js",
+    "dev": "tsc --watch",
+    "start": "node build/index.js"
+  },
+  "files": ["build"],
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "@modelcontextprotocol/sdk": "^1.10.1",
+    "axios": "^1.8.4",
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/pg": "^8.11.11",
+    "typescript": "^5.8.2"
+  }
+}

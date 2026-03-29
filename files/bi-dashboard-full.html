@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiseMarket - Enterprise BI Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #3498db;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+            --border: #ecf0f1;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: var(--light);
+            color: var(--text-primary);
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1.5rem;
+        }
+
+        .sidebar-logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .sidebar-item {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin: 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-item.active {
+            background: rgba(255,255,255,0.15);
+            border-left: 3px solid white;
+            padding-left: calc(1.5rem - 3px);
+            font-weight: 600;
+        }
+
+        /* MAIN */
+        .main {
+            margin-left: 280px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--light);
+        }
+
+        /* HEADER */
+        .header {
+            background: white;
+            padding: 1.5rem 2.5rem;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-left p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .breadcrumb {
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb span {
+            margin: 0 0.5rem;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        input[type="date"],
+        select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        input[type="date"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        /* CONTENT */
+        .content {
+            flex: 1;
+            padding: 2.5rem;
+            overflow-y: auto;
+        }
+
+        /* LEVEL TABS */
+        .level-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .level-tab {
+            padding: 0.75rem 1.5rem;
+            background: var(--light);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-weight: 600;
+        }
+
+        .level-tab:hover {
+            background: white;
+            border-color: var(--primary);
+        }
+
+        .level-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* SECTIONS */
+        .level {
+            display: none;
+        }
+
+        .level.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* KPI CARDS */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--primary);
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-change {
+            font-size: 0.85rem;
+            color: var(--success);
+        }
+
+        .kpi-change.negative {
+            color: var(--danger);
+        }
+
+        /* CHARTS */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* TABLE */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 1.5rem;
+            border-bottom: 2px solid var(--border);
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--light);
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: var(--light);
+            cursor: pointer;
+        }
+
+        .table-row-link {
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .table-row-link:hover {
+            text-decoration: underline;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-completed {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #664d03;
+        }
+
+        .metric-bar {
+            display: inline-block;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        /* DRILL-DOWN BUTTONS */
+        .drill-down-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.25s;
+        }
+
+        .drill-down-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .pagination {
+            padding: 1rem 1.5rem;
+            background: var(--light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .pagination-btn {
+            padding: 0.5rem 0.75rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .pagination-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .comparison-widget {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 2rem;
+        }
+
+        .comparison-title {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .comparison-bars {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .comparison-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .comparison-label {
+            width: 150px;
+            font-weight: 600;
+        }
+
+        .comparison-bar-bg {
+            flex: 1;
+            height: 24px;
+            background: var(--light);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .comparison-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .comparison-value {
+            width: 80px;
+            text-align: right;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .export-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.25s;
+        }
+
+        .export-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 1200px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px;
+            }
+
+            .main {
+                margin-left: 250px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .level-tabs {
+                flex-wrap: wrap;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">📊 WiseMarket BI</div>
+                <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.5rem;">Enterprise Analytics</p>
+            </div>
+
+            <div class="sidebar-item active" onclick="showLevel('level1')">
+                <span>🌐</span> Platform
+            </div>
+            <div class="sidebar-item" onclick="showLevel('level2')">
+                <span>🏢</span> Tenant
+            </div>
+            <div class="sidebar-item" onclick="showLevel('level3')">
+                <span>📦</span> Product
+            </div>
+            <div class="sidebar-item" onclick="showLevel('level4')">
+                <span>📢</span> Campaign
+            </div>
+            <div class="sidebar-item" onclick="showLevel('level5')">
+                <span>👤</span> Customer
+            </div>
+
+            <div style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; padding: 0 1.5rem; margin-bottom: 1rem;">Reports</div>
+                <div class="sidebar-item">
+                    <span>📄</span> Revenue Report
+                </div>
+                <div class="sidebar-item">
+                    <span>📈</span> Growth Trends
+                </div>
+                <div class="sidebar-item">
+                    <span>⚠️</span> Alerts
+                </div>
+                <div class="sidebar-item">
+                    <span>📊</span> Exports
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="main">
+            <!-- HEADER -->
+            <div class="header">
+                <div class="header-left">
+                    <h1 id="pageTitle">SaaS Platform Dashboard</h1>
+                    <div class="breadcrumb" id="breadcrumb">
+                        <span style="color: var(--primary);">📊 Dashboard</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="filter-group">
+                        <input type="date" id="dateFrom" value="2024-03-01">
+                        <span>to</span>
+                        <input type="date" id="dateTo" value="2024-03-29">
+                        <select id="periodSelect" onchange="updateCharts()">
+                            <option value="month">This Month</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="year">This Year</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <button class="export-btn">📥 Export</button>
+                </div>
+            </div>
+
+            <!-- CONTENT -->
+            <div class="content">
+
+                <!-- LEVEL 1: SAAS PLATFORM -->
+                <div id="level1" class="level active">
+                    <div class="level-tabs">
+                        <div class="level-tab active">📊 Platform Overview</div>
+                        <div class="level-tab">🏢 All Tenants</div>
+                        <div class="level-tab">📈 Growth Analytics</div>
+                        <div class="level-tab">💰 Revenue Analysis</div>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Total Customers</div>
+                            <div class="kpi-value">150</div>
+                            <div class="kpi-change">↑ 12 new this month</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #27ae60;">
+                            <div class="kpi-label">Monthly Revenue</div>
+                            <div class="kpi-value">$45K</div>
+                            <div class="kpi-change">↑ 8% from last month</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #f39c12;">
+                            <div class="kpi-label">Total Products</div>
+                            <div class="kpi-value">320</div>
+                            <div class="kpi-change">↑ 45 new products</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #e74c3c;">
+                            <div class="kpi-label">Avg Reply Rate</div>
+                            <div class="kpi-value">8.5%</div>
+                            <div class="kpi-change">↑ 0.3% improvement</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <div class="chart-title">💰 Revenue Trend (SaaS Level)</div>
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">👥 Customer Growth</div>
+                            <div class="chart-container">
+                                <canvas id="customerChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">📊 Campaign Performance (Platform)</div>
+                            <div class="chart-container">
+                                <canvas id="campaignChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">🌍 Regional Breakdown</div>
+                            <div class="chart-container">
+                                <canvas id="regionalChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tenants Table -->
+                    <div class="table-card">
+                        <div class="table-header">Top Customers (Click to Drill Down)</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Company Name</th>
+                                    <th>Subscription</th>
+                                    <th>Monthly Revenue</th>
+                                    <th>Products</th>
+                                    <th>Reply Rate</th>
+                                    <th>Health Score</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr onclick="drillDown('level2', 'WiseMarket')">
+                                    <td class="table-row-link">🎯 WiseMarket</td>
+                                    <td><span class="status-badge status-active">Pro</span></td>
+                                    <td>$299</td>
+                                    <td>3</td>
+                                    <td>10.5% <div class="metric-bar" style="width: 50px;"></div></td>
+                                    <td><span style="color: #27ae60; font-weight: 700;">85/100</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level2', 'WiseMarket')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level2', 'TechHub')">
+                                    <td class="table-row-link">💻 TechHub</td>
+                                    <td><span class="status-badge status-active">Enterprise</span></td>
+                                    <td>$999</td>
+                                    <td>8</td>
+                                    <td>12.3% <div class="metric-bar" style="width: 60px;"></div></td>
+                                    <td><span style="color: #27ae60; font-weight: 700;">92/100</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level2', 'TechHub')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level2', 'BeautyPlus')">
+                                    <td class="table-row-link">💄 BeautyPlus</td>
+                                    <td><span class="status-badge status-completed">Starter</span></td>
+                                    <td>$99</td>
+                                    <td>1</td>
+                                    <td>7.2% <div class="metric-bar" style="width: 35px;"></div></td>
+                                    <td><span style="color: #f39c12; font-weight: 700;">65/100</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level2', 'BeautyPlus')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level2', 'FoodMart')">
+                                    <td class="table-row-link">🍔 FoodMart</td>
+                                    <td><span class="status-badge status-active">Pro</span></td>
+                                    <td>$299</td>
+                                    <td>2</td>
+                                    <td>9.8% <div class="metric-bar" style="width: 48px;"></div></td>
+                                    <td><span style="color: #27ae60; font-weight: 700;">78/100</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level2', 'FoodMart')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level2', 'Fashion Co')">
+                                    <td class="table-row-link">👗 Fashion Co</td>
+                                    <td><span class="status-badge status-pending">Starter</span></td>
+                                    <td>$99</td>
+                                    <td>1</td>
+                                    <td>6.5% <div class="metric-bar" style="width: 32px;"></div></td>
+                                    <td><span style="color: #e74c3c; font-weight: 700;">42/100</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level2', 'Fashion Co')">View</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="pagination">
+                            <span>Showing 5 of 150 customers</span>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn">← Prev</button>
+                                <button class="pagination-btn">Next →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEVEL 2: TENANT -->
+                <div id="level2" class="level">
+                    <div class="level-tabs">
+                        <div class="level-tab active">📊 Tenant Overview</div>
+                        <div class="level-tab">📦 All Products</div>
+                        <div class="level-tab">💰 Revenue Details</div>
+                        <div class="level-tab">👥 Customer Insights</div>
+                    </div>
+
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Products</div>
+                            <div class="kpi-value">3</div>
+                            <div class="kpi-change">↑ 1 new this month</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #27ae60;">
+                            <div class="kpi-label">Monthly Revenue (Tenant)</div>
+                            <div class="kpi-value">$15K</div>
+                            <div class="kpi-change">↑ 5% growth</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #f39c12;">
+                            <div class="kpi-label">Reply Rate</div>
+                            <div class="kpi-value">10.5%</div>
+                            <div class="kpi-change">↑ 0.5% improvement</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #e74c3c;">
+                            <div class="kpi-label">Avg Satisfaction</div>
+                            <div class="kpi-value">4.3/5</div>
+                            <div class="kpi-change">↑ 0.1 points</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <div class="chart-title">📈 Tenant Revenue Trend</div>
+                            <div class="chart-container">
+                                <canvas id="tenantRevenueChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">📦 Products Performance</div>
+                            <div class="chart-container">
+                                <canvas id="productPerfChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Table -->
+                    <div class="table-card">
+                        <div class="table-header">Products (Click to Drill Down)</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Domain</th>
+                                    <th>Campaigns</th>
+                                    <th>Messages</th>
+                                    <th>Reply Rate</th>
+                                    <th>Conversion</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr onclick="drillDown('level3', 'Fashion AI')">
+                                    <td class="table-row-link">👗 Fashion AI</td>
+                                    <td>Fashion</td>
+                                    <td>15</td>
+                                    <td>2,000</td>
+                                    <td>12.5%</td>
+                                    <td>4.0%</td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level3', 'Fashion AI')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level3', 'Tech Store')">
+                                    <td class="table-row-link">💻 Tech Store</td>
+                                    <td>Electronics</td>
+                                    <td>20</td>
+                                    <td>2,500</td>
+                                    <td>10.2%</td>
+                                    <td>2.8%</td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level3', 'Tech Store')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level3', 'Home Decor')">
+                                    <td class="table-row-link">🏠 Home Decor</td>
+                                    <td>Home</td>
+                                    <td>10</td>
+                                    <td>1,200</td>
+                                    <td>8.5%</td>
+                                    <td>1.5%</td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level3', 'Home Decor')">View</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="pagination">
+                            <span>Showing 3 of 3 products</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEVEL 3: PRODUCT -->
+                <div id="level3" class="level">
+                    <div class="level-tabs">
+                        <div class="level-tab active">📊 Product Overview</div>
+                        <div class="level-tab">📢 All Campaigns</div>
+                        <div class="level-tab">👥 Customer Base</div>
+                        <div class="level-tab">💰 ROI Analysis</div>
+                    </div>
+
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Active Campaigns</div>
+                            <div class="kpi-value">15</div>
+                            <div class="kpi-change">↑ 3 this month</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #27ae60;">
+                            <div class="kpi-label">Total Messages</div>
+                            <div class="kpi-value">2K</div>
+                            <div class="kpi-change">↑ 500 new</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #f39c12;">
+                            <div class="kpi-label">Product Reply Rate</div>
+                            <div class="kpi-value">12.5%</div>
+                            <div class="kpi-change">↑ 0.8% vs avg</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #e74c3c;">
+                            <div class="kpi-label">Revenue (Product)</div>
+                            <div class="kpi-value">$8K</div>
+                            <div class="kpi-change">↑ 12% growth</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <div class="chart-title">📈 Campaign Timeline</div>
+                            <div class="chart-container">
+                                <canvas id="campaignTimelineChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">🎯 Conversion Funnel</div>
+                            <div class="chart-container">
+                                <canvas id="funnelChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campaigns Table -->
+                    <div class="table-card">
+                        <div class="table-header">Campaigns (Click to Drill Down)</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Campaign Name</th>
+                                    <th>Sent</th>
+                                    <th>Replies</th>
+                                    <th>Conversions</th>
+                                    <th>Reply Rate</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr onclick="drillDown('level4', 'March Fashion Sale')">
+                                    <td class="table-row-link">March Fashion Sale</td>
+                                    <td>1,000</td>
+                                    <td>125</td>
+                                    <td>35</td>
+                                    <td>12.5%</td>
+                                    <td><span class="status-badge status-completed">Completed</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level4', 'March Fashion Sale')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level4', 'Spring Collection')">
+                                    <td class="table-row-link">Spring Collection</td>
+                                    <td>800</td>
+                                    <td>98</td>
+                                    <td>22</td>
+                                    <td>12.2%</td>
+                                    <td><span class="status-badge status-active">Active</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level4', 'Spring Collection')">View</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level4', 'Women Exclusive')">
+                                    <td class="table-row-link">Women Exclusive</td>
+                                    <td>500</td>
+                                    <td>65</td>
+                                    <td>18</td>
+                                    <td>13.0%</td>
+                                    <td><span class="status-badge status-active">Active</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level4', 'Women Exclusive')">View</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="pagination">
+                            <span>Showing 3 of 15 campaigns</span>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn">← Prev</button>
+                                <button class="pagination-btn">Next →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEVEL 4: CAMPAIGN -->
+                <div id="level4" class="level">
+                    <div class="level-tabs">
+                        <div class="level-tab active">📊 Campaign Overview</div>
+                        <div class="level-tab">👥 Recipients</div>
+                        <div class="level-tab">📊 Demographics</div>
+                        <div class="level-tab">💬 Responses</div>
+                    </div>
+
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Total Sent</div>
+                            <div class="kpi-value">1,000</div>
+                            <div class="kpi-change">Delivered: 950 (95%)</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #27ae60;">
+                            <div class="kpi-label">Replies Received</div>
+                            <div class="kpi-value">125</div>
+                            <div class="kpi-change">Reply Rate: 12.5%</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #f39c12;">
+                            <div class="kpi-label">Conversions</div>
+                            <div class="kpi-value">35</div>
+                            <div class="kpi-change">Conversion: 3.5%</div>
+                        </div>
+                        <div class="kpi-card" style="border-left-color: #3498db;">
+                            <div class="kpi-label">Sentiment</div>
+                            <div class="kpi-value">72%</div>
+                            <div class="kpi-change">Positive replies</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <div class="chart-title">📊 Campaign Funnel</div>
+                            <div class="chart-container">
+                                <canvas id="campaignFunnelChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">📍 Geographic Performance</div>
+                            <div class="chart-container">
+                                <canvas id="geoChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">👥 Age Group Performance</div>
+                            <div class="chart-container">
+                                <canvas id="ageChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">😊 Sentiment Distribution</div>
+                            <div class="chart-container">
+                                <canvas id="sentimentChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recipients Table -->
+                    <div class="table-card">
+                        <div class="table-header">Recipients Who Replied (Click for Details)</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Customer Name</th>
+                                    <th>Phone</th>
+                                    <th>Response</th>
+                                    <th>Sentiment</th>
+                                    <th>Intent</th>
+                                    <th>Priority</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr onclick="drillDown('level5', 'Aisha Khan')">
+                                    <td class="table-row-link">Aisha Khan</td>
+                                    <td>+923001234567</td>
+                                    <td>Interested! Send details</td>
+                                    <td><span style="color: #27ae60; font-weight: 700;">😊 Positive</span></td>
+                                    <td>Interested</td>
+                                    <td><span style="background: #d4edda; padding: 0.3rem 0.6rem; border-radius: 4px; font-weight: 600;">P1</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level5', 'Aisha Khan')">Details</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level5', 'Fatima Ali')">
+                                    <td class="table-row-link">Fatima Ali</td>
+                                    <td>+923009876543</td>
+                                    <td>What's the price?</td>
+                                    <td><span style="color: #f39c12; font-weight: 700;">😐 Neutral</span></td>
+                                    <td>Inquiry</td>
+                                    <td><span style="background: #fff3cd; padding: 0.3rem 0.6rem; border-radius: 4px; font-weight: 600;">P3</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level5', 'Fatima Ali')">Details</button></td>
+                                </tr>
+                                <tr onclick="drillDown('level5', 'Sara Hassan')">
+                                    <td class="table-row-link">Sara Hassan</td>
+                                    <td>+923008765432</td>
+                                    <td>Ordered! Thank you!</td>
+                                    <td><span style="color: #27ae60; font-weight: 700;">😊 Positive</span></td>
+                                    <td>Order</td>
+                                    <td><span style="background: #d4edda; padding: 0.3rem 0.6rem; border-radius: 4px; font-weight: 600;">P1</span></td>
+                                    <td><button class="drill-down-btn" onclick="event.stopPropagation(); drillDown('level5', 'Sara Hassan')">Details</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="pagination">
+                            <span>Showing 3 of 125 replies</span>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn">← Prev</button>
+                                <button class="pagination-btn">Next →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEVEL 5: CUSTOMER RESPONSE -->
+                <div id="level5" class="level">
+                    <div class="level-tabs">
+                        <div class="level-tab active">👤 Response Details</div>
+                        <div class="level-tab">📜 Conversation Thread</div>
+                        <div class="level-tab">📊 Customer History</div>
+                        <div class="level-tab">💡 AI Insights</div>
+                    </div>
+
+                    <!-- Response Card -->
+                    <div class="comparison-widget">
+                        <div class="comparison-title">📝 Customer Response Details</div>
+                        <table style="width: 100%; margin-top: 1rem;">
+                            <tbody>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600; width: 200px;">Customer Name:</td>
+                                    <td style="padding: 0.75rem;">Aisha Khan</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600;">Phone:</td>
+                                    <td style="padding: 0.75rem;">+923001234567</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600;">Campaign:</td>
+                                    <td style="padding: 0.75rem;">March Fashion Sale</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600;">Response:</td>
+                                    <td style="padding: 0.75rem;">I'm interested! Send me more details.</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600;">Received:</td>
+                                    <td style="padding: 0.75rem;">March 10, 2024 at 14:30 (PKT)</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600;">Response Time:</td>
+                                    <td style="padding: 0.75rem;">45 minutes after campaign sent</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600;">AI Sentiment:</td>
+                                    <td style="padding: 0.75rem;"><span style="background: #d4edda; padding: 0.3rem 0.6rem; border-radius: 4px; color: #155724; font-weight: 600;">😊 Positive (0.85)</span></td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem; font-weight: 600;">Intent:</td>
+                                    <td style="padding: 0.75rem;">Interested (Buying Signal)</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.75rem; font-weight: 600;">Priority Score:</td>
+                                    <td style="padding: 0.75rem;"><span style="background: linear-gradient(90deg, #667eea, #764ba2); color: white; padding: 0.3rem 0.8rem; border-radius: 4px; font-weight: 600;">85/100 (P1)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Customer History -->
+                    <div class="comparison-widget">
+                        <div class="comparison-title">📊 Customer Engagement History</div>
+                        <div class="comparison-bars">
+                            <div class="comparison-item">
+                                <div class="comparison-label">Total Campaigns</div>
+                                <div class="comparison-bar-bg">
+                                    <div class="comparison-bar-fill" style="width: 40%;"></div>
+                                </div>
+                                <div class="comparison-value">5</div>
+                            </div>
+                            <div class="comparison-item">
+                                <div class="comparison-label">Total Replies</div>
+                                <div class="comparison-bar-bg">
+                                    <div class="comparison-bar-fill" style="width: 60%;"></div>
+                                </div>
+                                <div class="comparison-value">3</div>
+                            </div>
+                            <div class="comparison-item">
+                                <div class="comparison-label">Reply Rate</div>
+                                <div class="comparison-bar-bg">
+                                    <div class="comparison-bar-fill" style="width: 60%;"></div>
+                                </div>
+                                <div class="comparison-value">60%</div>
+                            </div>
+                            <div class="comparison-item">
+                                <div class="comparison-label">Conversions</div>
+                                <div class="comparison-bar-bg">
+                                    <div class="comparison-bar-fill" style="width: 40%;"></div>
+                                </div>
+                                <div class="comparison-value">2</div>
+                            </div>
+                            <div class="comparison-item">
+                                <div class="comparison-label">Avg Sentiment</div>
+                                <div class="comparison-bar-bg">
+                                    <div class="comparison-bar-fill" style="width: 85%;"></div>
+                                </div>
+                                <div class="comparison-value">0.85</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Insights -->
+                    <div class="comparison-widget">
+                        <div class="comparison-title">💡 AI Insights & Recommendations</div>
+                        <div style="margin-top: 1rem;">
+                            <div style="padding: 0.75rem; background: var(--light); border-radius: 6px; margin-bottom: 1rem;">
+                                <strong>Suggested Next Action:</strong> Send personalized product catalog with focus on formal wear collection
+                            </div>
+                            <div style="padding: 0.75rem; background: var(--light); border-radius: 6px; margin-bottom: 1rem;">
+                                <strong>Key Phrases Detected:</strong> "interested", "details", "catalog"
+                            </div>
+                            <div style="padding: 0.75rem; background: var(--light); border-radius: 6px; margin-bottom: 1rem;">
+                                <strong>Confidence Score:</strong> 92% (High probability of conversion)
+                            </div>
+                            <div style="padding: 0.75rem; background: var(--light); border-radius: 6px;">
+                                <strong>Customer Profile:</strong> High-engagement female customer (26-35), interested in premium fashion, very likely to convert based on response sentiment and engagement history
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Conversation Thread -->
+                    <div class="table-card" style="margin-top: 2rem;">
+                        <div class="table-header">💬 Full Conversation Thread</div>
+                        <div style="padding: 1.5rem;">
+                            <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border-left: 4px solid var(--primary);">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">🤖 AI Agent (March 10, 13:45)</div>
+                                <div>Check out our exclusive March Fashion Sale! 🎉 Get up to 30% off on formal wear, casual outfits, and accessories. Limited time offer!</div>
+                            </div>
+
+                            <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(39, 174, 96, 0.1); border-radius: 8px; border-left: 4px solid var(--success);">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">👤 Customer (March 10, 14:30)</div>
+                                <div>I'm interested! Send me more details.</div>
+                            </div>
+
+                            <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border-left: 4px solid var(--primary);">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">🤖 AI Agent (March 10, 14:35)</div>
+                                <div>Great! I'm sending you our full catalog. Check out these best-sellers in your favorite category:
+                                • Elegant Formal Kurtas (Rs. 3,500-4,500)
+                                • Premium Silk Dupatta Sets (Rs. 1,500-2,000)
+                                • Designer Jewelry Collection (Rs. 500-1,500)
+
+Would you like to place an order now?</div>
+                            </div>
+
+                            <div style="padding: 1rem; background: rgba(39, 174, 96, 0.1); border-radius: 8px; border-left: 4px solid var(--success);">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">👤 Customer (March 10, 15:10)</div>
+                                <div>Yes! I'll take 1 Kurta + 1 Dupatta set. Send invoice please!</div>
+                                <div style="margin-top: 0.75rem; padding: 0.5rem; background: #d4edda; border-radius: 4px; color: #155724; font-weight: 600; font-size: 0.85rem;">✅ CONVERTED TO ORDER</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        // Initialize all charts
+        function initializeCharts() {
+            // Revenue Chart
+            const revenueCtx = document.getElementById('revenueChart')?.getContext('2d');
+            if (revenueCtx) {
+                new Chart(revenueCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Monthly Revenue ($K)',
+                            data: [35, 40, 45, 48, 52, 55],
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Customer Chart
+            const customerCtx = document.getElementById('customerChart')?.getContext('2d');
+            if (customerCtx) {
+                new Chart(customerCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'New Customers',
+                            data: [15, 18, 12, 22, 25, 30],
+                            backgroundColor: '#27ae60',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Campaign Performance Chart
+            const campaignCtx = document.getElementById('campaignChart')?.getContext('2d');
+            if (campaignCtx) {
+                new Chart(campaignCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sent', 'Delivered', 'Read', 'Replied', 'Converted'],
+                        datasets: [{
+                            label: 'Campaign Metrics',
+                            data: [250000, 237500, 200000, 21250, 5625],
+                            backgroundColor: ['#667eea', '#764ba2', '#f39c12', '#27ae60', '#3498db'],
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Regional Chart
+            const regionalCtx = document.getElementById('regionalChart')?.getContext('2d');
+            if (regionalCtx) {
+                new Chart(regionalCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['ASIA', 'EUROPE', 'AMERICAS', 'MIDDLE EAST', 'OCEANIA'],
+                        datasets: [{
+                            data: [45, 25, 15, 10, 5],
+                            backgroundColor: ['#667eea', '#764ba2', '#f39c12', '#e74c3c', '#27ae60']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            // Tenant Revenue Chart
+            const tenantRevenueCtx = document.getElementById('tenantRevenueChart')?.getContext('2d');
+            if (tenantRevenueCtx) {
+                new Chart(tenantRevenueCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Tenant Revenue ($K)',
+                            data: [3.5, 3.8, 4.0, 4.2],
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Product Performance Chart
+            const productPerfCtx = document.getElementById('productPerfChart')?.getContext('2d');
+            if (productPerfCtx) {
+                new Chart(productPerfCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Fashion AI', 'Tech Store', 'Home Decor'],
+                        datasets: [{
+                            label: 'Revenue ($K)',
+                            data: [8, 5, 2],
+                            backgroundColor: ['#667eea', '#764ba2', '#f39c12'],
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Campaign Funnel Chart
+            const funnelCtx = document.getElementById('funnelChart')?.getContext('2d');
+            if (funnelCtx) {
+                new Chart(funnelCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sent', 'Delivered', 'Read', 'Clicked', 'Converted'],
+                        datasets: [{
+                            label: 'Count',
+                            data: [2000, 1900, 1500, 250, 80],
+                            backgroundColor: '#667eea',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Campaign Timeline Chart
+            const campaignTimelineCtx = document.getElementById('campaignTimelineChart')?.getContext('2d');
+            if (campaignTimelineCtx) {
+                new Chart(campaignTimelineCtx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Campaign Performance',
+                            data: [
+                                {x: 1, y: 1000}, {x: 5, y: 800}, {x: 10, y: 500},
+                                {x: 15, y: 125}, {x: 20, y: 35}
+                            ],
+                            backgroundColor: '#667eea',
+                            pointRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // Sentiment Chart
+            const sentimentCtx = document.getElementById('sentimentChart')?.getContext('2d');
+            if (sentimentCtx) {
+                new Chart(sentimentCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Positive', 'Neutral', 'Negative'],
+                        datasets: [{
+                            data: [72, 18, 10],
+                            backgroundColor: ['#27ae60', '#f39c12', '#e74c3c']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            // Geographic Chart
+            const geoCtx = document.getElementById('geoChart')?.getContext('2d');
+            if (geoCtx) {
+                new Chart(geoCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Pakistan', 'Saudi Arabia', 'Australia', 'USA', 'UK'],
+                        datasets: [{
+                            label: 'Reply Rate (%)',
+                            data: [12.5, 10.2, 8.5, 11.3, 9.8],
+                            backgroundColor: '#667eea',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, max: 15 } }
+                    }
+                });
+            }
+
+            // Age Chart
+            const ageCtx = document.getElementById('ageChart')?.getContext('2d');
+            if (ageCtx) {
+                new Chart(ageCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['18-25', '26-35', '36-45', '46-55', '55+'],
+                        datasets: [{
+                            label: 'Reply Rate (%)',
+                            data: [9, 14.5, 12, 8.5, 6],
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            // Campaign Funnel Chart (different view)
+            const campaignFunnelCtx = document.getElementById('campaignFunnelChart')?.getContext('2d');
+            if (campaignFunnelCtx) {
+                new Chart(campaignFunnelCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Sent', 'Delivered', 'Read', 'Replied', 'Converted'],
+                        datasets: [{
+                            label: 'Count',
+                            data: [1000, 950, 800, 125, 35],
+                            backgroundColor: ['#667eea', '#764ba2', '#f39c12', '#27ae60', '#3498db'],
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        // Show/Hide Levels
+        function showLevel(levelId) {
+            document.querySelectorAll('.level').forEach(level => level.classList.remove('active'));
+            document.getElementById(levelId).classList.add('active');
+
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.sidebar-item').classList.add('active');
+
+            const titles = {
+                'level1': 'SaaS Platform Dashboard',
+                'level2': 'Tenant Dashboard - WiseMarket',
+                'level3': 'Product Dashboard - Fashion AI',
+                'level4': 'Campaign Dashboard - March Fashion Sale',
+                'level5': 'Customer Response Details - Aisha Khan'
+            };
+
+            document.getElementById('pageTitle').textContent = titles[levelId];
+            
+            setTimeout(initializeCharts, 100);
+        }
+
+        // Drill Down Function
+        function drillDown(levelId, itemName) {
+            showLevel(levelId);
+            window.scrollTo(0, 0);
+        }
+
+        // Update Breadcrumb
+        function updateBreadcrumb(path) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            breadcrumb.innerHTML = path;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            setTimeout(initializeCharts, 100);
+        });
+    </script>
+</body>
+</html>

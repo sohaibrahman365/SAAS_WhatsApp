@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiseMarket - Customer Engagement Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+            --border: #ecf0f1;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: var(--light);
+            color: var(--text-primary);
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar-item {
+            padding: 0.875rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-item.active {
+            background: rgba(255,255,255,0.15);
+            border-left: 3px solid white;
+            padding-left: calc(1.5rem - 3px);
+        }
+
+        /* MAIN */
+        .main {
+            margin-left: 280px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: white;
+            padding: 1.5rem 2.5rem;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .content {
+            flex: 1;
+            padding: 2.5rem;
+            overflow-y: auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--danger);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab {
+            padding: 0.875rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            transition: all 0.25s;
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+
+        .feedback-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feedback-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--primary);
+        }
+
+        .rating-stars {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .star {
+            font-size: 1.25rem;
+            color: var(--warning);
+        }
+
+        .star.empty {
+            color: var(--border);
+        }
+
+        .sentiment-badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.75rem;
+        }
+
+        .sentiment-positive {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sentiment-neutral {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .sentiment-negative {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .segment-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .segment-btn {
+            padding: 1rem;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+        }
+
+        .segment-btn:hover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .segment-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .segment-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .segment-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .segment-count {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .message-composer {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        textarea,
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.25s;
+        }
+
+        textarea:focus,
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .message-preview {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .message-preview-text {
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+
+        .personalization-hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .ai-suggestions {
+            background: rgba(102, 126, 234, 0.05);
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+        }
+
+        .suggestion-item {
+            padding: 0.75rem;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .suggestion-item:hover {
+            background: var(--light);
+            border-left: 3px solid var(--primary);
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.25s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .priority-1 {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .priority-2 {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .priority-3 {
+            background: #fff3cd;
+            color: #664d03;
+        }
+
+        .priority-4 {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .priority-5 {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .word {
+            padding: 0.5rem 1rem;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 20px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px;
+            }
+
+            .main {
+                margin-left: 250px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feedback-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .segment-selector {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">📊 WiseMarket</div>
+                <p style="font-size: 0.8rem; opacity: 0.8;">Engagement Hub</p>
+            </div>
+
+            <div class="sidebar-item active" onclick="showSection('analytics')">
+                <span>📈</span> Analytics
+            </div>
+            <div class="sidebar-item" onclick="showSection('feedback')">
+                <span>💬</span> Feedback & Reviews
+            </div>
+            <div class="sidebar-item" onclick="showSection('messaging')">
+                <span>📱</span> Smart Messaging
+            </div>
+            <div class="sidebar-item" onclick="showSection('customers')">
+                <span>👥</span> Customer Segments
+            </div>
+            <div class="sidebar-item" onclick="showSection('reports')">
+                <span>📋</span> Reports
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="main">
+            <!-- HEADER -->
+            <div class="header">
+                <h1 id="pageTitle">Campaign Analytics</h1>
+                <p id="pageSubtitle">Track responses, engagement, and customer behavior</p>
+            </div>
+
+            <!-- CONTENT -->
+            <div class="content">
+
+                <!-- ANALYTICS SECTION -->
+                <div id="analytics" class="section active">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">📤 Messages Sent</div>
+                            <div class="stat-value">1,000</div>
+                            <div class="stat-change">↑ 12% from last campaign</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">💬 Replies Received</div>
+                            <div class="stat-value">100</div>
+                            <div class="stat-change">↑ 10% reply rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">✅ Conversions</div>
+                            <div class="stat-value">25</div>
+                            <div class="stat-change">↑ 2.5% conversion</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">😊 Avg Sentiment</div>
+                            <div class="stat-value">70%</div>
+                            <div class="stat-change">↑ Positive responses</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="card">
+                        <div class="card-title">📊 Campaign Performance</div>
+                        <div class="tabs">
+                            <div class="tab active" onclick="switchTab(event, 'chart1')">Response Rate</div>
+                            <div class="tab" onclick="switchTab(event, 'chart2')">Sentiment</div>
+                            <div class="tab" onclick="switchTab(event, 'chart3')">By Demographics</div>
+                        </div>
+
+                        <!-- Chart 1: Response Rate -->
+                        <div id="chart1" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="responseChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: Sentiment -->
+                        <div id="chart2" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="sentimentChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 3: Demographics -->
+                        <div id="chart3" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="demographicsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Priority Distribution -->
+                    <div class="card">
+                        <div class="card-title">🎯 Customer Priority Segments</div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">🥇 Priority 1</div>
+                                <div class="stat-value">100</div>
+                                <div class="stat-change">High-value (Replied + Converted)</div>
+                                <span class="priority-badge priority-1">Send First</span>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">🥈 Priority 2</div>
+                                <div class="stat-value">50</div>
+                                <div class="stat-change">Engaged (Replied, Neutral/Positive)</div>
+                                <span class="priority-badge priority-2">Send Second</span>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">🥉 Priority 3</div>
+                                <div class="stat-value">200</div>
+                                <div class="stat-change">Potential (Neutral response)</div>
+                                <span class="priority-badge priority-3">Test New Msg</span>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">⚠️ Priority 4+</div>
+                                <div class="stat-value">650</div>
+                                <div class="stat-change">Low engagement (No reply/Negative)</div>
+                                <span class="priority-badge priority-4">Avoid/Re-engage</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FEEDBACK SECTION -->
+                <div id="feedback" class="section">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">⭐ Avg Rating</div>
+                            <div class="stat-value">4.3/5</div>
+                            <div class="stat-change">↑ 0.2 from last month</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">😊 Positive</div>
+                            <div class="stat-value">78%</div>
+                            <div class="stat-change">↑ Customer satisfied</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">😐 Neutral</div>
+                            <div class="stat-value">15%</div>
+                            <div class="stat-change">→ Stable</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">😢 Negative</div>
+                            <div class="stat-value">7%</div>
+                            <div class="stat-change">↑ Needs attention</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">📝 Customer Feedback Overview</div>
+                        
+                        <!-- Tabs -->
+                        <div class="tabs">
+                            <div class="tab active" onclick="switchFeedbackTab(event, 'ratings')">Ratings</div>
+                            <div class="tab" onclick="switchFeedbackTab(event, 'wordcloud')">Word Cloud</div>
+                            <div class="tab" onclick="switchFeedbackTab(event, 'details')">Detailed</div>
+                        </div>
+
+                        <!-- Ratings Tab -->
+                        <div id="ratings" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="ratingsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Word Cloud Tab -->
+                        <div id="wordcloud" class="tab-content">
+                            <div style="margin-bottom: 1rem;">
+                                <h3 style="margin-bottom: 1rem;">Most Mentioned Terms</h3>
+                            </div>
+                            <div class="word-cloud">
+                                <div class="word">Fast Delivery 🚚</div>
+                                <div class="word">Friendly Service 😊</div>
+                                <div class="word">Good Quality ⭐</div>
+                                <div class="word">Great Price 💰</div>
+                                <div class="word">Professional 👔</div>
+                                <div class="word">Recommend 👍</div>
+                                <div class="word">Excellent 🎯</div>
+                                <div class="word">Quick Response ⚡</div>
+                                <div class="word">Reliable 🤝</div>
+                                <div class="word">Would Return 🔄</div>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Tab -->
+                        <div id="details" class="tab-content">
+                            <div class="feedback-grid">
+                                <div class="feedback-card">
+                                    <div class="rating-stars">
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                    </div>
+                                    <p><strong>Aisha Khan</strong></p>
+                                    <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                        "Amazing quality! Fast delivery and excellent service. Will definitely order again!"
+                                    </p>
+                                    <span class="sentiment-badge sentiment-positive">😊 Positive</span>
+                                </div>
+
+                                <div class="feedback-card">
+                                    <div class="rating-stars">
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star empty">⭐</span>
+                                    </div>
+                                    <p><strong>Fatima Ali</strong></p>
+                                    <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                        "Good products but shipping took longer than expected."
+                                    </p>
+                                    <span class="sentiment-badge sentiment-neutral">😐 Neutral</span>
+                                </div>
+
+                                <div class="feedback-card">
+                                    <div class="rating-stars">
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star">⭐</span>
+                                        <span class="star empty">⭐</span>
+                                        <span class="star empty">⭐</span>
+                                    </div>
+                                    <p><strong>Sara Hassan</strong></p>
+                                    <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                        "Product quality was below expectations. Need to improve."
+                                    </p>
+                                    <span class="sentiment-badge sentiment-negative">😢 Negative</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MESSAGING SECTION -->
+                <div id="messaging" class="section">
+                    <div class="card">
+                        <div class="card-title">🤖 AI-Powered Message Composer</div>
+
+                        <div class="form-group">
+                            <label>Select Customer Segment</label>
+                            <div class="segment-selector">
+                                <div class="segment-btn active" onclick="selectSegment(this, 'high-value')">
+                                    <div class="segment-icon">🥇</div>
+                                    <div class="segment-name">High-Value</div>
+                                    <div class="segment-count">100 customers</div>
+                                </div>
+                                <div class="segment-btn" onclick="selectSegment(this, 'frequent')">
+                                    <div class="segment-icon">🔄</div>
+                                    <div class="segment-name">Frequent Buyers</div>
+                                    <div class="segment-count">50 customers</div>
+                                </div>
+                                <div class="segment-btn" onclick="selectSegment(this, 'inactive')">
+                                    <div class="segment-icon">😴</div>
+                                    <div class="segment-name">Inactive</div>
+                                    <div class="segment-count">200 customers</div>
+                                </div>
+                                <div class="segment-btn" onclick="selectSegment(this, 'price-sensitive')">
+                                    <div class="segment-icon">💰</div>
+                                    <div class="segment-name">Price-Sensitive</div>
+                                    <div class="segment-count">150 customers</div>
+                                </div>
+                                <div class="segment-btn" onclick="selectSegment(this, 'brand-advocates')">
+                                    <div class="segment-icon">💬</div>
+                                    <div class="segment-name">Brand Advocates</div>
+                                    <div class="segment-count">80 customers</div>
+                                </div>
+                                <div class="segment-btn" onclick="selectSegment(this, 'custom')">
+                                    <div class="segment-icon">⚙️</div>
+                                    <div class="segment-name">Create Custom</div>
+                                    <div class="segment-count">Build your own</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Suggestions -->
+                        <div class="ai-suggestions">
+                            <div style="font-weight: 600; margin-bottom: 0.75rem;">💡 AI Suggestions for High-Value Customers:</div>
+                            <div class="suggestion-item" onclick="useTemplate(this)">
+                                <strong>Exclusive VIP Offer:</strong> "As our valued customer, get exclusive early access to our new collection..."
+                            </div>
+                            <div class="suggestion-item" onclick="useTemplate(this)">
+                                <strong>Premium Service:</strong> "Thank you for being a loyal customer! Here's a special gift for you..."
+                            </div>
+                            <div class="suggestion-item" onclick="useTemplate(this)">
+                                <strong>Personalized Recommendation:</strong> "Hi {{customer_name}}, we think you'll love these items based on your preferences..."
+                            </div>
+                        </div>
+
+                        <!-- Message Composer -->
+                        <div class="form-group">
+                            <label>Craft Your Message</label>
+                            <textarea id="messageText" placeholder="Start typing or click an AI suggestion above...&#10;&#10;Use {{customer_name}}, {{product_name}}, {{discount}} for personalization"></textarea>
+                            <div class="personalization-hint">
+                                💡 Use {{customer_name}}, {{product_name}}, {{discount}}, {{preference}} for dynamic content
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.75rem;">📝 Message Preview</label>
+                            <div class="message-preview">
+                                <div class="message-preview-text">
+                                    Hi Aisha,<br><br>
+                                    Check out our exclusive VIP offer! As our most valued customer, you get early access to our spring collection with 20% off!<br><br>
+                                    Limited time offer - Valid until March 31<br><br>
+                                    Shop Now: wisemarket.com
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    👤 Will be sent to: 100 High-Value customers<br>
+                                    ⏰ Scheduled for: Tomorrow at 9 AM (PKT)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Options -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div class="form-group">
+                                <label>Add Offer/Discount (Optional)</label>
+                                <input type="text" placeholder="e.g., 20% OFF or Free Shipping">
+                            </div>
+                            <div class="form-group">
+                                <label>Schedule Send Time</label>
+                                <input type="text" placeholder="Tomorrow at 9 AM">
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="btn-group">
+                            <button class="btn btn-secondary">🔄 Reset</button>
+                            <button class="btn btn-primary">📤 Send to 100 Customers</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CUSTOMERS SECTION -->
+                <div id="customers" class="section">
+                    <div class="card">
+                        <div class="card-title">👥 Customer Segments & Priority</div>
+                        
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--light); border-bottom: 2px solid var(--border);">
+                                        <th style="padding: 1rem; text-align: left;">Segment</th>
+                                        <th style="padding: 1rem; text-align: left;">Count</th>
+                                        <th style="padding: 1rem; text-align: left;">Reply Rate</th>
+                                        <th style="padding: 1rem; text-align: left;">Conversion</th>
+                                        <th style="padding: 1rem; text-align: left;">Avg Sentiment</th>
+                                        <th style="padding: 1rem; text-align: left;">Priority</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="padding: 1rem;">🥇 High-Value Customers</td>
+                                        <td style="padding: 1rem;">100</td>
+                                        <td style="padding: 1rem; color: var(--success);">75%</td>
+                                        <td style="padding: 1rem; color: var(--success);">35%</td>
+                                        <td style="padding: 1rem;">Positive 😊</td>
+                                        <td style="padding: 1rem;"><span class="priority-badge priority-1">P1</span></td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="padding: 1rem;">🔄 Frequent Buyers</td>
+                                        <td style="padding: 1rem;">50</td>
+                                        <td style="padding: 1rem; color: var(--primary);">68%</td>
+                                        <td style="padding: 1rem; color: var(--primary);">28%</td>
+                                        <td style="padding: 1rem;">Positive 😊</td>
+                                        <td style="padding: 1rem;"><span class="priority-badge priority-2">P2</span></td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="padding: 1rem;">💰 Price-Sensitive</td>
+                                        <td style="padding: 1rem;">150</td>
+                                        <td style="padding: 1rem; color: var(--warning);">45%</td>
+                                        <td style="padding: 1rem; color: var(--warning);">15%</td>
+                                        <td style="padding: 1rem;">Neutral 😐</td>
+                                        <td style="padding: 1rem;"><span class="priority-badge priority-3">P3</span></td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="padding: 1rem;">😴 Inactive Users</td>
+                                        <td style="padding: 1rem;">200</td>
+                                        <td style="padding: 1rem; color: var(--danger);">15%</td>
+                                        <td style="padding: 1rem; color: var(--danger);">2%</td>
+                                        <td style="padding: 1rem;">Negative 😢</td>
+                                        <td style="padding: 1rem;"><span class="priority-badge priority-4">P4</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 1rem;">⚠️ Do Not Contact</td>
+                                        <td style="padding: 1rem;">30</td>
+                                        <td style="padding: 1rem;">0%</td>
+                                        <td style="padding: 1rem;">0%</td>
+                                        <td style="padding: 1rem;">N/A</td>
+                                        <td style="padding: 1rem;"><span class="priority-badge priority-5">P5</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORTS SECTION -->
+                <div id="reports" class="section">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">📊 Total Campaigns</div>
+                            <div class="stat-value">12</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📈 Avg Reply Rate</div>
+                            <div class="stat-value">8.5%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">💰 Total Revenue</div>
+                            <div class="stat-value">Rs. 2.5M</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📉 Churn Rate</div>
+                            <div class="stat-value">3.2%</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">📋 Generate Reports</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                            <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                📊 Campaign Performance Report
+                            </button>
+                            <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                👥 Customer Segmentation Report
+                            </button>
+                            <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                💬 Feedback & Sentiment Report
+                            </button>
+                            <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                💰 ROI & Revenue Report
+                            </button>
+                            <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                📈 Trends & Predictions
+                            </button>
+                            <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                📥 Export as PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Charts
+        const ctx1 = document.getElementById('responseChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: ['Sent', 'Delivered', 'Read', 'Replied', 'Converted'],
+                datasets: [{
+                    label: 'Count',
+                    data: [1000, 950, 800, 100, 25],
+                    backgroundColor: ['#667eea', '#764ba2', '#f39c12', '#27ae60', '#2980b9'],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        const ctx2 = document.getElementById('sentimentChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Neutral', 'Negative'],
+                datasets: [{
+                    data: [70, 20, 10],
+                    backgroundColor: ['#27ae60', '#f39c12', '#e74c3c']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        const ctx3 = document.getElementById('demographicsChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'radar',
+            data: {
+                labels: ['18-25', '26-35', '36-45', '46-55', '55+'],
+                datasets: [{
+                    label: 'Reply Rate %',
+                    data: [65, 78, 72, 58, 45],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        const ctx4 = document.getElementById('ratingsChart').getContext('2d');
+        new Chart(ctx4, {
+            type: 'bar',
+            data: {
+                labels: ['5 Stars', '4 Stars', '3 Stars', '2 Stars', '1 Star'],
+                datasets: [{
+                    label: 'Number of Reviews',
+                    data: [250, 180, 60, 25, 15],
+                    backgroundColor: ['#27ae60', '#2ecc71', '#f39c12', '#e67e22', '#e74c3c'],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.sidebar-item').classList.add('active');
+            
+            const titles = {
+                analytics: 'Campaign Analytics',
+                feedback: 'Feedback & Reviews',
+                messaging: 'Smart Messaging',
+                customers: 'Customer Segments',
+                reports: 'Reports & Insights'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionId];
+        }
+
+        function switchTab(event, tabId) {
+            const container = event.target.closest('.card');
+            container.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            container.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            container.querySelector('#' + tabId).classList.add('active');
+        }
+
+        function switchFeedbackTab(event, tabId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function selectSegment(element, segment) {
+            document.querySelectorAll('.segment-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function useTemplate(element) {
+            const template = element.textContent.split(':')[1].trim();
+            document.getElementById('messageText').value = template;
+        }
+    </script>
+</body>
+</html>

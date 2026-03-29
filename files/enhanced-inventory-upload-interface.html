@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiseMarket - Enhanced Inventory Upload</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5568d3;
+            --secondary: #764ba2;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+            --border: #ecf0f1;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 14px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 14px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .form-section {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid var(--light);
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-icon {
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .required {
+            color: var(--danger);
+            margin-left: 0.25rem;
+        }
+
+        .form-hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.25s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="file"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-full {
+            grid-column: 1 / -1;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .checkbox-item:hover {
+            background: var(--light);
+            border-color: var(--primary);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .file-upload-area {
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .file-upload-area:hover {
+            background: rgba(102, 126, 234, 0.05);
+            border-color: var(--primary-dark);
+        }
+
+        .file-upload-area.active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: var(--primary);
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .upload-text {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .upload-text strong {
+            color: var(--primary);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2.5rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--light);
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            border-color: var(--primary);
+        }
+
+        .form-progress {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.85rem;
+        }
+
+        .progress-step {
+            flex: 1;
+            padding: 0.75rem;
+            background: var(--light);
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .progress-step.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-box {
+            background: rgba(102, 126, 234, 0.05);
+            border-left: 4px solid var(--primary);
+            padding: 1rem 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .info-box strong {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .form-row,
+            .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .checkbox-group {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📦 Enhanced Inventory Upload</h1>
+            <p>Upload your products with multi-category, demographic, and regional targeting</p>
+        </div>
+
+        <!-- FORM -->
+        <div class="form-container">
+            <form id="inventoryForm" onsubmit="submitForm(event)">
+                <!-- SUCCESS MESSAGE -->
+                <div id="successMessage" class="success-message">
+                    ✅ Inventory uploaded successfully! Web search started across Meta, TikTok, Google, and LinkedIn.
+                </div>
+
+                <!-- PROGRESS TRACKER -->
+                <div class="form-progress">
+                    <div class="progress-step active">1. Basic Info</div>
+                    <div class="progress-step">2. Categories</div>
+                    <div class="progress-step">3. Location</div>
+                    <div class="progress-step">4. Demographics</div>
+                    <div class="progress-step">5. Activity</div>
+                </div>
+
+                <!-- SECTION 1: BASIC INFORMATION -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-icon">📋</span>
+                        SECTION 1: BASIC INFORMATION
+                    </div>
+
+                    <div class="info-box">
+                        <strong>💡 Tip:</strong> Upload your CSV with product columns: name, price, stock, rating, category
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Inventory Name <span class="required">*</span></label>
+                            <input type="text" id="inventoryName" required placeholder="e.g., March 2026 Fashion Collection">
+                            <div class="form-hint">Used for reference in your dashboard</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Total Products <span class="required">*</span></label>
+                            <input type="number" id="totalProducts" required placeholder="150" min="1">
+                            <div class="form-hint">Expected product count in CSV</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group form-full">
+                        <label>Inventory File (CSV) <span class="required">*</span></label>
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <div class="upload-icon">📤</div>
+                            <div class="upload-text">
+                                <strong>Choose CSV file</strong> or drag & drop here<br>
+                                <span style="font-size: 0.85rem;">Columns: name, price, stock, rating, category</span>
+                            </div>
+                            <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                        </div>
+                        <div id="fileNameDisplay" style="margin-top: 0.75rem; color: var(--text-secondary); font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: PRODUCT CATEGORIES (NEW!) -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-icon">🏷️</span>
+                        SECTION 2: PRODUCT CATEGORIES ⭐ NEW!
+                    </div>
+
+                    <div class="info-box">
+                        <strong>🔍 How It Works:</strong> Each category triggers separate web searches on Meta, TikTok, Google, and LinkedIn. This helps AI identify relevant trending products in your market.
+                    </div>
+
+                    <div class="form-group form-full">
+                        <label>Product Categories (Comma-Separated) <span class="required">*</span></label>
+                        <textarea id="categories" required placeholder="Example: Fashion, Electronics, Home Decor&#10;OR: Women's Clothing, Accessories, Footwear&#10;&#10;These will be searched separately on all platforms."></textarea>
+                        <div class="form-hint">Separate categories with commas • Each triggers independent web search • Max 10 categories</div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: GEOGRAPHIC TARGETING (NEW!) -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-icon">🌍</span>
+                        SECTION 3: GEOGRAPHIC TARGETING ⭐ NEW!
+                    </div>
+
+                    <div class="info-box">
+                        <strong>📍 Location-Based:</strong> Your AI agent will be optimized for the selected region and city. Messages will be scheduled based on local timezone.
+                    </div>
+
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label>Region <span class="required">*</span></label>
+                            <select id="region" required onchange="updateCountries()">
+                                <option value="">Select Region...</option>
+                                <option value="ASIA">🌏 ASIA</option>
+                                <option value="EUROPE">🌍 EUROPE</option>
+                                <option value="NORTH AMERICA">🌎 NORTH AMERICA</option>
+                                <option value="SOUTH AMERICA">🌎 SOUTH AMERICA</option>
+                                <option value="AFRICA">🌍 AFRICA</option>
+                                <option value="OCEANIA">🌏 OCEANIA</option>
+                                <option value="MIDDLE EAST">🌍 MIDDLE EAST</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Country <span class="required">*</span></label>
+                            <select id="country" required onchange="updateProvinces()">
+                                <option value="">Select Country...</option>
+                                <option value="Pakistan">Pakistan 🇵🇰</option>
+                                <option value="Saudi Arabia">Saudi Arabia 🇸🇦</option>
+                                <option value="Australia">Australia 🇦🇺</option>
+                                <option value="USA">USA 🇺🇸</option>
+                                <option value="Canada">Canada 🇨🇦</option>
+                                <option value="UK">UK 🇬🇧</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Province/State <span class="required">*</span></label>
+                            <select id="province" required onchange="updateCities()">
+                                <option value="">Select Province...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>City <span class="required">*</span></label>
+                            <select id="city" required onchange="updateTimezone()">
+                                <option value="">Select City...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Timezone (Auto-filled)</label>
+                            <input type="text" id="timezone" readonly placeholder="PKT (UTC+5)">
+                            <div class="form-hint">Automatically set based on selected city</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: DEMOGRAPHIC TARGETING (NEW!) -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-icon">👥</span>
+                        SECTION 4: DEMOGRAPHIC TARGETING ⭐ NEW!
+                    </div>
+
+                    <div class="info-box">
+                        <strong>🎯 Targeting:</strong> Your campaigns will be customized for these specific demographics. AI will recommend products and craft messages accordingly.
+                    </div>
+
+                    <!-- Age Range -->
+                    <div class="form-group form-full">
+                        <label>Target Age Range <span class="required">*</span></label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age1" name="ageRange" value="18-25" checked>
+                                <label for="age1">18-25 years</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age2" name="ageRange" value="26-35" checked>
+                                <label for="age2">26-35 years</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age3" name="ageRange" value="36-45" checked>
+                                <label for="age3">36-45 years</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age4" name="ageRange" value="46-55" checked>
+                                <label for="age4">46-55 years</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age5" name="ageRange" value="56-65" checked>
+                                <label for="age5">56-65 years</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="age6" name="ageRange" value="65+" checked>
+                                <label for="age6">65+ years</label>
+                            </div>
+                        </div>
+                        <div class="form-hint">Select all age groups you want to target</div>
+                    </div>
+
+                    <!-- Gender -->
+                    <div class="form-group form-full">
+                        <label>Target Gender <span class="required">*</span></label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="genderMale" name="gender" value="Male" checked>
+                                <label for="genderMale">Male</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="genderFemale" name="gender" value="Female" checked>
+                                <label for="genderFemale">Female</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="genderOther" name="gender" value="Non-binary" checked>
+                                <label for="genderOther">Non-binary / Other</label>
+                            </div>
+                        </div>
+                        <div class="form-hint">Select all genders you want to target</div>
+                    </div>
+
+                    <!-- Preferences -->
+                    <div class="form-group form-full">
+                        <label>Customer Preferences (Optional)</label>
+                        <textarea id="preferences" placeholder="Example: Premium, Eco-friendly, Trending&#10;OR: Budget-friendly, Sustainable, Minimalist&#10;&#10;These help AI understand your customer's buying style."></textarea>
+                        <div class="form-hint">Comma-separated preferences for personalization • Optional but recommended</div>
+                    </div>
+                </div>
+
+                <!-- SECTION 5: ACTIVITY FILTER (NEW!) -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-icon">⏰</span>
+                        SECTION 5: CUSTOMER ACTIVITY FILTER ⭐ NEW!
+                    </div>
+
+                    <div class="info-box">
+                        <strong>📊 Recency Filter:</strong> Only target customers who have been active within the selected timeframe. More recent = higher engagement.
+                    </div>
+
+                    <div class="form-group form-full">
+                        <label>Target Customers Active Since <span class="required">*</span></label>
+                        <select id="activeSince" required>
+                            <option value="24">📱 Last 24 hours (Very recent)</option>
+                            <option value="48">📱 Last 48 hours (Recent)</option>
+                            <option value="72">📱 Last 3 days (Very active)</option>
+                            <option value="168" selected>📱 Last 7 days (Active)</option>
+                            <option value="720">📱 Last 30 days (Somewhat active)</option>
+                            <option value="0">📱 All time (No filter)</option>
+                        </select>
+                        <div class="form-hint">Only customers active in this timeframe will receive your campaign</div>
+                    </div>
+                </div>
+
+                <!-- BUTTONS -->
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                        <span>🔄</span> Clear Form
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <span>🚀</span> Upload & Analyze
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Geographic Data
+        const geoData = {
+            "ASIA": {
+                "Pakistan": {
+                    "Punjab": ["Lahore", "Faisalabad", "Gujranwala", "Multan", "Okara", "Sialkot"],
+                    "Sindh": ["Karachi", "Hyderabad", "Sukkur", "Mirpur Khas", "Larkana"],
+                    "Khyber Pakhtunkhwa": ["Peshawar", "Quetta", "Abbottabad", "Swat"],
+                    "Balochistan": ["Quetta", "Gwadar", "Zhob", "Khuzdar"]
+                },
+                "Saudi Arabia": {
+                    "Riyadh": ["Riyadh", "Kharj", "Dilam"],
+                    "Jeddah": ["Jeddah", "Rabigh"],
+                    "Dammam": ["Dammam", "Khobar", "Dhahran"],
+                    "Medina": ["Medina", "Yanbu"],
+                    "Mecca": ["Mecca", "Jeddah"]
+                }
+            },
+            "OCEANIA": {
+                "Australia": {
+                    "New South Wales": ["Sydney", "Newcastle", "Wollongong", "Central Coast"],
+                    "Victoria": ["Melbourne", "Geelong", "Ballarat"],
+                    "Queensland": ["Brisbane", "Gold Coast", "Sunshine Coast"],
+                    "Western Australia": ["Perth", "Fremantle"],
+                    "South Australia": ["Adelaide", "Mount Gambier"]
+                }
+            },
+            "NORTH AMERICA": {
+                "USA": {
+                    "California": ["San Francisco", "Los Angeles", "San Diego", "Sacramento"],
+                    "Texas": ["Houston", "Dallas", "Austin", "San Antonio"],
+                    "New York": ["New York City", "Buffalo", "Rochester"],
+                    "Florida": ["Miami", "Orlando", "Tampa"]
+                },
+                "Canada": {
+                    "Ontario": ["Toronto", "Ottawa", "Hamilton"],
+                    "British Columbia": ["Vancouver", "Victoria", "Surrey"],
+                    "Quebec": ["Montreal", "Quebec City"]
+                }
+            }
+        };
+
+        const timezones = {
+            "Lahore": "PKT (UTC+5)",
+            "Karachi": "PKT (UTC+5)",
+            "Peshawar": "PKT (UTC+5)",
+            "Quetta": "PKT (UTC+5)",
+            "Riyadh": "AST (UTC+3)",
+            "Jeddah": "AST (UTC+3)",
+            "Dammam": "AST (UTC+3)",
+            "Sydney": "AEDT (UTC+11)",
+            "Melbourne": "AEDT (UTC+11)",
+            "Brisbane": "AEST (UTC+10)",
+            "Perth": "AWST (UTC+8)",
+            "San Francisco": "PST (UTC-8)",
+            "Los Angeles": "PST (UTC-8)",
+            "New York": "EST (UTC-5)",
+            "Toronto": "EST (UTC-5)",
+            "Vancouver": "PST (UTC-8)"
+        };
+
+        // File Upload
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const csvFile = document.getElementById('csvFile');
+
+        fileUploadArea.addEventListener('click', () => csvFile.click());
+        
+        csvFile.addEventListener('change', function() {
+            document.getElementById('fileNameDisplay').textContent = 
+                '✅ Selected: ' + this.files[0].name;
+        });
+
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('active');
+        });
+
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('active');
+        });
+
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('active');
+            csvFile.files = e.dataTransfer.files;
+            document.getElementById('fileNameDisplay').textContent = 
+                '✅ Selected: ' + csvFile.files[0].name;
+        });
+
+        // Update dropdowns
+        function updateCountries() {
+            const region = document.getElementById('region').value;
+            const countrySelect = document.getElementById('country');
+            const provinceSelect = document.getElementById('province');
+            
+            countrySelect.innerHTML = '<option value="">Select Country...</option>';
+            provinceSelect.innerHTML = '<option value="">Select Province...</option>';
+            
+            if (region && geoData[region]) {
+                Object.keys(geoData[region]).forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country;
+                    option.textContent = country;
+                    countrySelect.appendChild(option);
+                });
+            }
+        }
+
+        function updateProvinces() {
+            const region = document.getElementById('region').value;
+            const country = document.getElementById('country').value;
+            const provinceSelect = document.getElementById('province');
+            
+            provinceSelect.innerHTML = '<option value="">Select Province...</option>';
+            
+            if (region && country && geoData[region] && geoData[region][country]) {
+                Object.keys(geoData[region][country]).forEach(province => {
+                    const option = document.createElement('option');
+                    option.value = province;
+                    option.textContent = province;
+                    provinceSelect.appendChild(option);
+                });
+            }
+        }
+
+        function updateCities() {
+            const region = document.getElementById('region').value;
+            const country = document.getElementById('country').value;
+            const province = document.getElementById('province').value;
+            const citySelect = document.getElementById('city');
+            
+            citySelect.innerHTML = '<option value="">Select City...</option>';
+            
+            if (region && country && province && 
+                geoData[region] && geoData[region][country] && 
+                geoData[region][country][province]) {
+                geoData[region][country][province].forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+            }
+        }
+
+        function updateTimezone() {
+            const city = document.getElementById('city').value;
+            const timezoneInput = document.getElementById('timezone');
+            timezoneInput.value = timezones[city] || 'Select a city first';
+        }
+
+        // Form Submission
+        function submitForm(event) {
+            event.preventDefault();
+            
+            const formData = {
+                inventoryName: document.getElementById('inventoryName').value,
+                totalProducts: document.getElementById('totalProducts').value,
+                csvFile: document.getElementById('csvFile').files[0]?.name,
+                categories: document.getElementById('categories').value,
+                region: document.getElementById('region').value,
+                country: document.getElementById('country').value,
+                province: document.getElementById('province').value,
+                city: document.getElementById('city').value,
+                timezone: document.getElementById('timezone').value,
+                ageRange: Array.from(document.querySelectorAll('input[name="ageRange"]:checked')).map(el => el.value),
+                gender: Array.from(document.querySelectorAll('input[name="gender"]:checked')).map(el => el.value),
+                preferences: document.getElementById('preferences').value,
+                activeSince: document.getElementById('activeSince').value
+            };
+            
+            console.log('Form Data:', formData);
+            
+            // Show success message
+            const successMsg = document.getElementById('successMessage');
+            successMsg.classList.add('show');
+            
+            alert(`✅ Inventory Uploaded Successfully!\n\n
+📊 Summary:
+- Inventory: ${formData.inventoryName}
+- Products: ${formData.totalProducts}
+- Categories: ${formData.categories}
+- Location: ${formData.city}, ${formData.province}, ${formData.country}
+- Timezone: ${formData.timezone}
+- Age Groups: ${formData.ageRange.join(', ')}
+- Gender: ${formData.gender.join(', ')}
+- Active Since: ${formData.activeSince} hours
+  
+🌐 Web Search Starting:
+✓ Meta/Facebook (${formData.categories})
+✓ TikTok (#${formData.categories.split(',').join(', #')})
+✓ Google (${formData.city}, ${formData.country})
+✓ LinkedIn (Business profiles)
+  
+⏳ Estimated Time: 15-30 minutes`);
+            
+            setTimeout(() => {
+                successMsg.classList.remove('show');
+            }, 5000);
+        }
+
+        function resetForm() {
+            document.getElementById('inventoryForm').reset();
+            document.getElementById('fileNameDisplay').textContent = '';
+            document.getElementById('timezone').value = '';
+        }
+    </script>
+</body>
+</html>

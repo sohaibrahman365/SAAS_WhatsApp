@@ -15,10 +15,10 @@ router.get('/', async (req, res) => {
     dbStatus = 'unreachable';
   }
 
-  const status = dbStatus === 'ok' ? 200 : 503;
+  const ok = dbStatus === 'ok';
 
-  res.status(status).json({
-    status:  dbStatus === 'ok' ? 'ok' : 'degraded',
+  res.status(ok ? 200 : 503).json({
+    status:  ok ? 'ok' : 'degraded',
     version: '1.0.0',
     env:     process.env.NODE_ENV || 'development',
     db:      { status: dbStatus, latency_ms: dbLatency },

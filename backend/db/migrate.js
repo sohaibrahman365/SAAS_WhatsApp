@@ -6,6 +6,6 @@ const runSQLFiles = require('./run-sql-files');
 runSQLFiles(pool, path.join(__dirname, 'migrations'), 'migrate')
   .then(() => pool.end())
   .catch(err => {
-    console.error('[migrate] FAILED:', err.message);
+    console.error('[migrate] FAILED:', err.stack || err.message || err);
     pool.end().finally(() => process.exit(1));
   });

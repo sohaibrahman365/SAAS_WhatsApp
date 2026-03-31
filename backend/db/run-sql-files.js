@@ -11,7 +11,12 @@ async function runSQLFiles(pool, dir, label) {
   for (const file of files) {
     const sql = fs.readFileSync(path.join(dir, file), 'utf8');
     console.log(`[${label}] → ${file}`);
-    await pool.query(sql);
+    try {
+      await pool.query(sql);
+    } catch (err) {
+      console.error(`[${label}] ERROR in ${file}:`, err.stack || err.message || err);
+      throw err;
+    }
     console.log(`[${label}] ✓ ${file} done`);
   }
   console.log(`[${label}] All complete.`);

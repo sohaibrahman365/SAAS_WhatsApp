@@ -60,13 +60,18 @@ router.post('/register', async (req, res, next) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const isSuperAdmin =
+      normalizedEmail === (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase();
+    const role = isSuperAdmin ? 'super_admin' : tenantId ? 'admin' : 'analyst';
 
     const { rows } = await pool.query(
       `INSERT INTO users (email, name, password_hash, role, tenant_id)
        VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name
+       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name, role = EXCLUDED.role
        RETURNING id, email, name, role, tenant_id`,
-      [email.toLowerCase().trim(), name, passwordHash, tenantId ? 'admin' : 'analyst', tenantId || null]
+      [normalizedEmail, name, passwordHash, role, tenantId || null]
     );
 
     res.status(201).json({

@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeniSearch — Campaign Management</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    /* ── Campaign-specific styles ── */
+    .campaign-name-cell { font-weight: 600; }
+    .campaign-name-cell small {
+      display: block;
+      font-weight: 400;
+      font-size: .75rem;
+      color: var(--text-muted);
+      margin-top: .1rem;
+    }
+
+    .metrics-cell { min-width: 160px; }
+    .metrics-nums {
+      display: flex;
+      gap: .35rem;
+      align-items: baseline;
+      margin-bottom: .35rem;
+      font-size: .8rem;
+    }
+    .metrics-nums .m-sent   { font-weight: 600; color: var(--text-primary); }
+    .metrics-nums .m-sep    { color: var(--text-muted); }
+    .metrics-nums .m-reply  { color: var(--info); font-weight: 600; }
+    .metrics-nums .m-conv   { color: var(--success); font-weight: 600; }
+    .metrics-nums .m-label  { font-size: .7rem; color: var(--text-muted); }
+
+    .sentiment-dots {
+      display: flex;
+      gap: .3rem;
+      align-items: center;
+    }
+    .s-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: .2rem;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+    .s-dot::before {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .s-dot.pos::before  { background: var(--success); }
+    .s-dot.neu::before  { background: var(--warning); }
+    .s-dot.neg::before  { background: var(--danger); }
+    .s-dot.pos { color: var(--success); }
+    .s-dot.neu { color: var(--warning); }
+    .s-dot.neg { color: var(--danger); }
+
+    .action-btns { display: flex; gap: .35rem; white-space: nowrap; }
+
+    .progress-reply { width: 100%; }
+
+    /* Topbar filter row */
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .75rem 1.5rem;
+      border-bottom: 1px solid var(--light-2);
+      gap: 1rem;
+    }
+    .table-toolbar-left { display: flex; align-items: center; gap: .75rem; }
+    .table-toolbar-right { display: flex; align-items: center; gap: .75rem; }
+
+    .search-input-wrap {
+      display: flex;
+      align-items: center;
+      background: var(--light);
+      border: 1px solid var(--light-2);
+      border-radius: 20px;
+      padding: .35rem .9rem;
+      gap: .4rem;
+      font-size: .85rem;
+      color: var(--text-secondary);
+    }
+    .search-input-wrap input {
+      border: none;
+      background: none;
+      outline: none;
+      font-size: .85rem;
+      color: var(--text-primary);
+      width: 200px;
+    }
+
+    /* ── Modal wider for campaign form ── */
+    #createCampaignModal .modal { max-width: 640px; }
+
+    .template-hints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      margin-top: .5rem;
+    }
+    .placeholder-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .25rem;
+      padding: .2rem .55rem;
+      background: var(--info-light);
+      color: var(--info);
+      border-radius: 4px;
+      font-size: .72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--t);
+      font-family: 'Courier New', monospace;
+    }
+    .placeholder-chip:hover {
+      background: var(--info);
+      color: var(--white);
+    }
+
+    .schedule-box {
+      background: var(--light);
+      border: 1px solid var(--light-2);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+    }
+
+    .lang-group {
+      display: flex;
+      gap: .75rem;
+    }
+    .lang-option {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .65rem 1rem;
+      border: 1.5px solid var(--light-2);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--t);
+      font-size: .875rem;
+    }
+    .lang-option:has(input:checked) {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .lang-option input { accent-color: var(--primary); }
+
+    /* Section divider inside modal */
+    .form-section-title {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: .75rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--light-2);
+    }
+
+    /* Tab with count badges */
+    .tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px; height: 18px;
+      background: var(--light-2);
+      border-radius: 20px;
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-left: .35rem;
+    }
+    .tab.active .tab-count {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    /* Empty filtered state */
+    .empty-filter-row td {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+      font-size: .875rem;
+    }
+
+    /* Reply rate mini progress */
+    .reply-rate-bar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .75rem;
+    }
+    .reply-rate-bar span { min-width: 36px; font-weight: 600; color: var(--text-secondary); }
+    .reply-rate-bar .progress { flex: 1; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">&#127760;</div>
+      <div>
+        <div class="logo-text">GeniSearch</div>
+        <div class="logo-sub">Super Admin</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Main</div>
+      <a href="index.html"         class="nav-item"><span class="nav-icon">&#9962;</span> Dashboard</a>
+      <a href="inventory.html"     class="nav-item"><span class="nav-icon">&#128230;</span> Inventory</a>
+      <a href="campaigns.html"     class="nav-item"><span class="nav-icon">&#128228;</span> Campaigns</a>
+      <a href="engagement.html"    class="nav-item"><span class="nav-icon">&#128172;</span> Engagement</a>
+      <div class="sidebar-section">Analytics</div>
+      <a href="bi.html"            class="nav-item"><span class="nav-icon">&#128202;</span> BI Analytics</a>
+      <a href="conversations.html" class="nav-item"><span class="nav-icon">&#128489;</span> Conversations <span class="nav-badge">12</span></a>
+      <a href="reports.html"       class="nav-item"><span class="nav-icon">&#128196;</span> Reports</a>
+      <div class="sidebar-section">System</div>
+      <a href="settings.html"      class="nav-item"><span class="nav-icon">&#9881;</span> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar avatar-sm">S</div>
+        <div class="user-info">
+          <div class="user-name">Sohaib R.</div>
+          <div class="user-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title">Campaign Management</div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span>&#128269;</span>
+          <input type="text" id="globalSearch" placeholder="Search campaigns…" oninput="filterTable()">
+        </div>
+        <button class="topbar-btn" title="Notifications">
+          &#128276;
+          <span class="badge">5</span>
+        </button>
+        <div class="topbar-avatar" title="sohaib365@gmail.com">S</div>
+      </div>
+    </header>
+
+    <!-- Page -->
+    <div class="page">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>&#128228; Campaigns</h1>
+          <p>Manage and monitor all WhatsApp campaigns across every tenant</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="exportCampaigns()">
+            &#128196; Export CSV
+          </button>
+          <button class="btn btn-primary" onclick="openModal('createCampaignModal')">
+            &#43; Create Campaign
+          </button>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon purple">&#128228;</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Campaigns</div>
+            <div class="stat-value">386</div>
+            <div class="stat-change up">&#9650; 12% vs last month</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">&#9889;</div>
+          <div class="stat-info">
+            <div class="stat-label">Active Now</div>
+            <div class="stat-value">12</div>
+            <div class="stat-change up">&#9650; 4 since yesterday</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">&#128172;</div>
+          <div class="stat-info">
+            <div class="stat-label">Avg Reply Rate</div>
+            <div class="stat-value">11.4%</div>
+            <div class="stat-change up">&#9650; +1.2% this week</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">&#128232;</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Messages Sent</div>
+            <div class="stat-value">1.2M</div>
+            <div class="stat-change up">&#9650; 87K this week</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaigns card -->
+      <div class="card">
+
+        <!-- Tabs + toolbar -->
+        <div style="padding: 0 1.5rem; border-bottom: 1px solid var(--light-2);">
+          <div class="tabs" id="campaignTabs" style="border-bottom: none; margin-bottom: 0;">
+            <button class="tab active" data-filter="all">
+              All <span class="tab-count" id="cnt-all">8</span>
+            </button>
+            <button class="tab" data-filter="active">
+              Active <span class="tab-count" id="cnt-active">3</span>
+            </button>
+            <button class="tab" data-filter="scheduled">
+              Scheduled <span class="tab-count" id="cnt-scheduled">2</span>
+            </button>
+            <button class="tab" data-filter="completed">
+              Completed <span class="tab-count" id="cnt-completed">2</span>
+            </button>
+            <button class="tab" data-filter="draft">
+              Draft <span class="tab-count" id="cnt-draft">1</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search + sort toolbar -->
+        <div class="table-toolbar">
+          <div class="table-toolbar-left">
+            <div class="search-input-wrap">
+              <span>&#128269;</span>
+              <input type="text" id="tableSearch" placeholder="Filter campaigns…" oninput="filterTable()">
+            </div>
+            <select class="form-control" id="tenantFilter" style="width:170px;padding:.4rem .75rem;font-size:.8rem;" onchange="filterTable()">
+              <option value="">All Tenants</option>
+              <option value="Zara Fashion PK">Zara Fashion PK</option>
+              <option value="FreshMart Grocery">FreshMart Grocery</option>
+              <option value="MediPlus Pharma">MediPlus Pharma</option>
+              <option value="TechGadgets PK">TechGadgets PK</option>
+              <option value="EduBridge Academy">EduBridge Academy</option>
+              <option value="AutoZone Motors">AutoZone Motors</option>
+              <option value="HomeDecor Studios">HomeDecor Studios</option>
+            </select>
+          </div>
+          <div class="table-toolbar-right">
+            <span id="rowCount" style="font-size:.8rem;color:var(--text-muted);">Showing 8 campaigns</span>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+          <table id="campaignTable">
+            <thead>
+              <tr>
+                <th>Campaign Name</th>
+                <th>Tenant</th>
+                <th style="min-width:180px;">Sent / Replies / Conv.</th>
+                <th>Sentiment</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="campaignTbody">
+              <!-- Rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card-footer" id="tableFooter">
+          Showing <strong id="footerCount">8</strong> of <strong>386</strong> campaigns across all tenants
+          &nbsp;·&nbsp;
+          <a href="bi.html" style="color:var(--primary);">View full BI analytics</a>
+        </div>
+      </div>
+
+    </div><!-- /page -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════
+     Create Campaign Modal
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="createCampaignModal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <h3>&#128228; Create New Campaign</h3>
+      <button class="modal-close" onclick="closeModal('createCampaignModal')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Basic info -->
+      <div class="form-section-title">Campaign Details</div>
+
+      <div class="form-group">
+        <label class="form-label">Campaign Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" class="form-control" id="f-name" placeholder="e.g. Spring Sale 2026 — Dresses">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Select Tenant <span style="color:var(--danger)">*</span></label>
+          <select class="form-control" id="f-tenant" onchange="populateProducts()">
+            <option value="">— Choose tenant —</option>
+            <option value="Zara Fashion PK">Zara Fashion PK</option>
+            <option value="FreshMart Grocery">FreshMart Grocery</option>
+            <option value="MediPlus Pharma">MediPlus Pharma</option>
+            <option value="TechGadgets PK">TechGadgets PK</option>
+            <option value="EduBridge Academy">EduBridge Academy</option>
+            <option value="AutoZone Motors">AutoZone Motors</option>
+            <option value="HomeDecor Studios">HomeDecor Studios</option>
+            <option value="SkyFoods Catering">SkyFoods Catering</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Select Product <span style="color:var(--danger)">*</span></label>
+          <select class="form-control" id="f-product">
+            <option value="">— Select tenant first —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Message template -->
+      <div class="form-group mt-2">
+        <label class="form-label">
+          Message Template <span style="color:var(--danger)">*</span>
+        </label>
+        <textarea class="form-control" id="f-message" rows="4"
+          placeholder="Hi {{customer_name}}, check out our new {{product_name}} — get {{discount}} off today only!&#10;&#10;Reply YES to order or DETAILS for more info."></textarea>
+        <div class="form-hint">Click a placeholder to insert it at the cursor position:</div>
+        <div class="template-hints">
+          <span class="placeholder-chip" onclick="insertPlaceholder('{{customer_name}}')">{{customer_name}}</span>
+          <span class="placeholder-chip" onclick="insertPlaceholder('{{product_name}}')">{{product_name}}</span>
+          <span class="placeholder-chip" onclick="insertPlaceholder('{{discount}}')">{{discount}}</span>
+          <span class="placeholder-chip" onclick="insertPlaceholder('{{business_name}}')">{{business_name}}</span>
+          <span class="placeholder-chip" onclick="insertPlaceholder('{{price}}')">{{price}}</span>
+        </div>
+      </div>
+
+      <!-- Targeting -->
+      <div class="form-section-title mt-2">Targeting &amp; Scheduling</div>
+
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Target Segment <span style="color:var(--danger)">*</span></label>
+          <select class="form-control" id="f-segment">
+            <option value="all">All Customers</option>
+            <option value="high_priority">High Priority (score 70+)</option>
+            <option value="new">New Customers (last 30d)</option>
+            <option value="inactive">Inactive 30d+</option>
+            <option value="vip">VIP Tier</option>
+          </select>
+          <div class="form-hint" id="segmentHint">Targets all registered customers for this tenant.</div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Language</label>
+          <div class="lang-group">
+            <label class="lang-option">
+              <input type="radio" name="f-lang" value="en" checked>
+              &#127468;&#127463; English
+            </label>
+            <label class="lang-option">
+              <input type="radio" name="f-lang" value="ur">
+              &#127477;&#127472; Urdu
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule -->
+      <div class="form-group mt-2">
+        <label class="form-label">Schedule</label>
+        <div class="schedule-box">
+          <div class="radio-group" style="margin-bottom:.75rem;">
+            <label class="radio-label">
+              <input type="radio" name="f-schedule" value="now" checked onchange="toggleSchedule(this)">
+              &#9889; Send Immediately
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="f-schedule" value="later" onchange="toggleSchedule(this)">
+              &#128197; Schedule for Later
+            </label>
+          </div>
+          <div id="scheduleDateTime" style="display:none;">
+            <input type="datetime-local" class="form-control" id="f-datetime"
+              min="2026-03-30T00:00">
+            <div class="form-hint">Pakistan Standard Time (PKT, UTC+5)</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /modal-body -->
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('createCampaignModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="launchCampaign()">
+        &#128640; Launch Campaign
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   Mock campaign data
+══════════════════════════════════════════════════════ */
+const CAMPAIGNS = [
+  {
+    id: 1,
+    name: 'Spring Eid Collection 2026',
+    subline: 'Dresses & Suits — Targeted campaign',
+    tenant: 'Zara Fashion PK',
+    tenantColor: '#667eea',
+    tenantInitial: 'Z',
+    sent: 1200,
+    replies: 186,
+    conversions: 42,
+    sentiment: { pos: 68, neu: 22, neg: 10 },
+    status: 'active',
+    created: '2026-03-28',
+    segment: 'High Priority',
+    language: 'English',
+  },
+  {
+    id: 2,
+    name: 'Ramadan Grocery Bundle',
+    subline: 'Family packs — All customers',
+    tenant: 'FreshMart Grocery',
+    tenantColor: '#27ae60',
+    tenantInitial: 'F',
+    sent: 3400,
+    replies: 312,
+    conversions: 97,
+    sentiment: { pos: 74, neu: 18, neg: 8 },
+    status: 'active',
+    created: '2026-03-27',
+    segment: 'All Customers',
+    language: 'Urdu',
+  },
+  {
+    id: 3,
+    name: 'Diabetic Care Awareness',
+    subline: 'Insulin & glucometers — Inactive users',
+    tenant: 'MediPlus Pharma',
+    tenantColor: '#e74c3c',
+    tenantInitial: 'M',
+    sent: 820,
+    replies: 104,
+    conversions: 29,
+    sentiment: { pos: 55, neu: 35, neg: 10 },
+    status: 'completed',
+    created: '2026-03-20',
+    segment: 'Inactive 30d+',
+    language: 'Urdu',
+  },
+  {
+    id: 4,
+    name: 'Galaxy S26 Pre-Order',
+    subline: 'New arrivals — High priority segment',
+    tenant: 'TechGadgets PK',
+    tenantColor: '#3498db',
+    tenantInitial: 'T',
+    sent: 950,
+    replies: 141,
+    conversions: 38,
+    sentiment: { pos: 81, neu: 14, neg: 5 },
+    status: 'active',
+    created: '2026-03-29',
+    segment: 'High Priority',
+    language: 'English',
+  },
+  {
+    id: 5,
+    name: 'Summer Crash Course Promo',
+    subline: 'IELTS & O-Levels — New customers',
+    tenant: 'EduBridge Academy',
+    tenantColor: '#764ba2',
+    tenantInitial: 'E',
+    sent: 0,
+    replies: 0,
+    conversions: 0,
+    sentiment: { pos: 0, neu: 0, neg: 0 },
+    status: 'scheduled',
+    created: '2026-03-30',
+    segment: 'New Customers',
+    language: 'English',
+  },
+  {
+    id: 6,
+    name: 'Engine Oil Flash Sale',
+    subline: '25% off Mobil 1 — All customers',
+    tenant: 'AutoZone Motors',
+    tenantColor: '#f39c12',
+    tenantInitial: 'A',
+    sent: 670,
+    replies: 52,
+    conversions: 14,
+    sentiment: { pos: 60, neu: 28, neg: 12 },
+    status: 'completed',
+    created: '2026-03-15',
+    segment: 'All Customers',
+    language: 'Urdu',
+  },
+  {
+    id: 7,
+    name: 'Eid Interior Refresh Deals',
+    subline: 'Cushions & drapes — VIP tier',
+    tenant: 'HomeDecor Studios',
+    tenantColor: '#1abc9c',
+    tenantInitial: 'H',
+    sent: 0,
+    replies: 0,
+    conversions: 0,
+    sentiment: { pos: 0, neu: 0, neg: 0 },
+    status: 'scheduled',
+    created: '2026-03-30',
+    segment: 'VIP Tier',
+    language: 'English',
+  },
+  {
+    id: 8,
+    name: 'Corporate Iftar Catering',
+    subline: 'Bulk packages — Draft review pending',
+    tenant: 'SkyFoods Catering',
+    tenantColor: '#e67e22',
+    tenantInitial: 'S',
+    sent: 0,
+    replies: 0,
+    conversions: 0,
+    sentiment: { pos: 0, neu: 0, neg: 0 },
+    status: 'draft',
+    created: '2026-03-30',
+    segment: 'All Customers',
+    language: 'Urdu',
+  },
+];
+
+/* ══════════════════════════════════════════════════════
+   Status helpers
+══════════════════════════════════════════════════════ */
+const STATUS_MAP = {
+  active:    { cls: 'badge-success', label: 'Active',    icon: '&#9889;' },
+  scheduled: { cls: 'badge-info',    label: 'Scheduled', icon: '&#128197;' },
+  completed: { cls: 'badge-neutral', label: 'Completed', icon: '&#9989;' },
+  draft:     { cls: 'badge-warning', label: 'Draft',     icon: '&#128196;' },
+};
+
+function replyRate(c) {
+  return c.sent > 0 ? ((c.replies / c.sent) * 100).toFixed(1) : '0.0';
+}
+
+function sentimentHtml(c) {
+  if (c.sent === 0) return '<span style="color:var(--text-muted);font-size:.75rem;">—</span>';
+  return `
+    <div class="sentiment-dots">
+      <span class="s-dot pos">${c.sentiment.pos}%</span>
+      <span style="color:var(--light-2);font-size:.7rem;">|</span>
+      <span class="s-dot neu">${c.sentiment.neu}%</span>
+      <span style="color:var(--light-2);font-size:.7rem;">|</span>
+      <span class="s-dot neg">${c.sentiment.neg}%</span>
+    </div>
+  `;
+}
+
+function buildRow(c) {
+  const status  = STATUS_MAP[c.status] || STATUS_MAP.draft;
+  const rate    = replyRate(c);
+  const rateNum = parseFloat(rate);
+  const barColor = rateNum >= 12 ? 'green' : rateNum >= 6 ? '' : 'red';
+
+  return `
+    <tr data-status="${c.status}" data-tenant="${c.tenant}" data-name="${c.name.toLowerCase()}">
+      <td class="campaign-name-cell">
+        ${c.name}
+        <small>${c.subline}</small>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.55rem;">
+          <div class="avatar avatar-sm" style="background:${c.tenantColor};width:26px;height:26px;font-size:.65rem;">${c.tenantInitial}</div>
+          <span style="font-size:.82rem;font-weight:500;">${c.tenant}</span>
+        </div>
+      </td>
+      <td class="metrics-cell">
+        <div class="metrics-nums">
+          <span class="m-sent">${fmtNum(c.sent)}</span>
+          <span class="m-sep">/</span>
+          <span class="m-reply">${fmtNum(c.replies)}</span>
+          <span class="m-sep">/</span>
+          <span class="m-conv">${fmtNum(c.conversions)}</span>
+        </div>
+        <div class="reply-rate-bar">
+          <span>${rate}%</span>
+          <div class="progress" style="flex:1;height:5px;">
+            <div class="progress-bar ${barColor}" style="width:${Math.min(rateNum * 4, 100)}%;"></div>
+          </div>
+        </div>
+      </td>
+      <td>${sentimentHtml(c)}</td>
+      <td>
+        <span class="badge ${status.cls} badge-dot">${status.label}</span>
+      </td>
+      <td style="white-space:nowrap;font-size:.82rem;color:var(--text-secondary);">
+        ${fmtDate(c.created)}
+      </td>
+      <td>
+        <div class="action-btns" style="justify-content:flex-end;">
+          <button class="btn btn-ghost btn-sm" title="View analytics" onclick="viewCampaign(${c.id})">&#128202;</button>
+          ${c.status === 'active' ?
+            `<button class="btn btn-ghost btn-sm" title="Pause campaign" onclick="pauseCampaign(${c.id})">&#9646;&#9646;</button>` :
+            c.status === 'scheduled' ?
+            `<button class="btn btn-ghost btn-sm" title="Cancel schedule" onclick="pauseCampaign(${c.id})">&#10005;</button>` :
+            c.status === 'draft' ?
+            `<button class="btn btn-ghost btn-sm" title="Launch draft" onclick="launchDraft(${c.id})" style="color:var(--success);">&#128640;</button>` :
+            `<button class="btn btn-ghost btn-sm" title="Duplicate" onclick="duplicateCampaign(${c.id})">&#128203;</button>`
+          }
+          <button class="btn btn-ghost btn-sm" title="Delete campaign" onclick="deleteCampaign(${c.id})" style="color:var(--danger);">&#128465;</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+/* ══════════════════════════════════════════════════════
+   Render & filter
+══════════════════════════════════════════════════════ */
+let activeFilter = 'all';
+
+function renderTable(data) {
+  const tbody = document.getElementById('campaignTbody');
+  if (!data.length) {
+    tbody.innerHTML = `
+      <tr class="empty-filter-row">
+        <td colspan="7">
+          <div style="font-size:2rem;opacity:.3;margin-bottom:.5rem;">&#128228;</div>
+          No campaigns match your current filters.
+        </td>
+      </tr>`;
+    document.getElementById('footerCount').textContent = '0';
+    document.getElementById('rowCount').textContent = 'No campaigns found';
+    return;
+  }
+  tbody.innerHTML = data.map(buildRow).join('');
+  document.getElementById('footerCount').textContent = data.length;
+  document.getElementById('rowCount').textContent = `Showing ${data.length} campaign${data.length !== 1 ? 's' : ''}`;
+}
+
+function filterTable() {
+  const search     = (document.getElementById('tableSearch').value || document.getElementById('globalSearch').value || '').toLowerCase();
+  const tenantVal  = document.getElementById('tenantFilter').value;
+
+  const filtered = CAMPAIGNS.filter(c => {
+    const matchTab    = activeFilter === 'all' || c.status === activeFilter;
+    const matchSearch = !search || c.name.toLowerCase().includes(search) || c.tenant.toLowerCase().includes(search) || c.subline.toLowerCase().includes(search);
+    const matchTenant = !tenantVal || c.tenant === tenantVal;
+    return matchTab && matchSearch && matchTenant;
+  });
+
+  renderTable(filtered);
+}
+
+function updateTabCounts() {
+  const counts = { all: CAMPAIGNS.length, active: 0, scheduled: 0, completed: 0, draft: 0 };
+  CAMPAIGNS.forEach(c => { if (counts[c.status] !== undefined) counts[c.status]++; });
+  Object.entries(counts).forEach(([k, v]) => {
+    const el = document.getElementById(`cnt-${k}`);
+    if (el) el.textContent = v;
+  });
+}
+
+// Tab click handler
+document.getElementById('campaignTabs').querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('#campaignTabs .tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeFilter = tab.dataset.filter;
+    filterTable();
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   Action handlers
+══════════════════════════════════════════════════════ */
+function viewCampaign(id) {
+  const c = CAMPAIGNS.find(x => x.id === id);
+  if (c) toast(`Opening analytics for "${c.name}"…`, 'info');
+}
+
+function pauseCampaign(id) {
+  const c = CAMPAIGNS.find(x => x.id === id);
+  if (!c) return;
+  if (c.status === 'active') {
+    c.status = 'scheduled';
+    toast(`Campaign "${c.name}" paused.`, 'info');
+  } else if (c.status === 'scheduled') {
+    c.status = 'draft';
+    toast(`Campaign "${c.name}" schedule cancelled.`, 'info');
+  }
+  updateTabCounts();
+  filterTable();
+}
+
+function launchDraft(id) {
+  const c = CAMPAIGNS.find(x => x.id === id);
+  if (!c) return;
+  c.status = 'active';
+  c.created = new Date().toISOString().split('T')[0];
+  toast(`Campaign "${c.name}" launched successfully!`);
+  updateTabCounts();
+  filterTable();
+}
+
+function duplicateCampaign(id) {
+  const c = CAMPAIGNS.find(x => x.id === id);
+  if (!c) return;
+  const copy = {
+    ...c,
+    id: CAMPAIGNS.length + 1,
+    name: c.name + ' (Copy)',
+    status: 'draft',
+    sent: 0, replies: 0, conversions: 0,
+    sentiment: { pos: 0, neu: 0, neg: 0 },
+    created: new Date().toISOString().split('T')[0],
+  };
+  CAMPAIGNS.push(copy);
+  toast(`Campaign duplicated as draft.`, 'info');
+  updateTabCounts();
+  filterTable();
+}
+
+function deleteCampaign(id) {
+  const idx = CAMPAIGNS.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const name = CAMPAIGNS[idx].name;
+  CAMPAIGNS.splice(idx, 1);
+  toast(`Campaign "${name}" deleted.`, 'error');
+  updateTabCounts();
+  filterTable();
+}
+
+function exportCampaigns() {
+  toast('Exporting campaigns as CSV…', 'info');
+}
+
+/* ══════════════════════════════════════════════════════
+   Tenant → Product mapping
+══════════════════════════════════════════════════════ */
+const TENANT_PRODUCTS = {
+  'Zara Fashion PK':    ['Eid Lawn Dresses 2026', 'Summer Kurtis Collection', 'Designer Suits Bundle', 'Chiffon Scarves Pack'],
+  'FreshMart Grocery':  ['Ramadan Grocery Bundle', 'Organic Vegetable Box', 'Dry Fruits Family Pack', 'Rice & Pulses Kit'],
+  'MediPlus Pharma':    ['Glucometer Pro Kit', 'Vitamin C + Zinc Combo', 'Blood Pressure Monitor', 'Diabetic Care Pack'],
+  'TechGadgets PK':     ['Samsung Galaxy S26', 'JBL Tune 770NC', 'MacBook Air M4', 'Apple Watch Series 10'],
+  'EduBridge Academy':  ['IELTS Crash Course', 'O-Level Math Booster', 'SAT Prep Bundle', 'English Speaking Pro'],
+  'AutoZone Motors':    ['Mobil 1 Engine Oil 5W-30', 'Car AC Recharge Kit', 'Michelin Tyres Set', 'Wiper Blades Pack'],
+  'HomeDecor Studios':  ['Eid Living Room Set', 'Velvet Cushion Pack', 'LED Fairy Lights 10m', 'Wall Art Collection'],
+  'SkyFoods Catering':  ['Corporate Iftar Package', 'Daig Catering 50 pax', 'BBQ Platter Deal', 'Wedding Dessert Box'],
+};
+
+function populateProducts() {
+  const tenant  = document.getElementById('f-tenant').value;
+  const select  = document.getElementById('f-product');
+  select.innerHTML = '';
+  if (!tenant) {
+    select.innerHTML = '<option value="">— Select tenant first —</option>';
+    return;
+  }
+  const products = TENANT_PRODUCTS[tenant] || [];
+  select.innerHTML = '<option value="">— Choose product —</option>' +
+    products.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════
+   Segment hint
+══════════════════════════════════════════════════════ */
+const SEGMENT_HINTS = {
+  all:           'Targets all registered customers for this tenant.',
+  high_priority: 'Customers with engagement score ≥ 70. Typically 15–25% of base.',
+  new:           'Customers who signed up or were imported in the last 30 days.',
+  inactive:      'Customers with no interaction in 30+ days. Re-engagement focus.',
+  vip:           'Top 5% customers by lifetime value and conversion history.',
+};
+
+document.getElementById('f-segment').addEventListener('change', function () {
+  document.getElementById('segmentHint').textContent = SEGMENT_HINTS[this.value] || '';
+});
+
+/* ══════════════════════════════════════════════════════
+   Schedule toggle
+══════════════════════════════════════════════════════ */
+function toggleSchedule(radio) {
+  document.getElementById('scheduleDateTime').style.display =
+    radio.value === 'later' ? '' : 'none';
+}
+
+/* ══════════════════════════════════════════════════════
+   Placeholder insertion
+══════════════════════════════════════════════════════ */
+function insertPlaceholder(placeholder) {
+  const ta = document.getElementById('f-message');
+  const start = ta.selectionStart;
+  const end   = ta.selectionEnd;
+  const val   = ta.value;
+  ta.value = val.substring(0, start) + placeholder + val.substring(end);
+  ta.selectionStart = ta.selectionEnd = start + placeholder.length;
+  ta.focus();
+}
+
+/* ══════════════════════════════════════════════════════
+   Launch campaign (modal submit)
+══════════════════════════════════════════════════════ */
+function launchCampaign() {
+  const name     = document.getElementById('f-name').value.trim();
+  const tenant   = document.getElementById('f-tenant').value;
+  const product  = document.getElementById('f-product').value;
+  const message  = document.getElementById('f-message').value.trim();
+  const segment  = document.getElementById('f-segment').value;
+  const langEl   = document.querySelector('input[name="f-lang"]:checked');
+  const schedEl  = document.querySelector('input[name="f-schedule"]:checked');
+  const language = langEl ? langEl.value : 'en';
+  const schedMode= schedEl ? schedEl.value : 'now';
+
+  // Validation
+  if (!name)    { toast('Please enter a campaign name.', 'error'); return; }
+  if (!tenant)  { toast('Please select a tenant.', 'error'); return; }
+  if (!product) { toast('Please select a product.', 'error'); return; }
+  if (!message) { toast('Please write a message template.', 'error'); return; }
+
+  if (schedMode === 'later') {
+    const dt = document.getElementById('f-datetime').value;
+    if (!dt) { toast('Please set a schedule date and time.', 'error'); return; }
+  }
+
+  const segLabels = {
+    all: 'All Customers', high_priority: 'High Priority',
+    new: 'New Customers', inactive: 'Inactive 30d+', vip: 'VIP Tier',
+  };
+  const langLabel  = language === 'en' ? 'English' : 'Urdu';
+  const status     = schedMode === 'now' ? 'active' : 'scheduled';
+  const initials   = tenant.split(' ').map(w => w[0]).slice(0, 2).join('');
+  const colorPalette = ['#667eea','#27ae60','#e74c3c','#3498db','#764ba2','#f39c12','#1abc9c','#e67e22'];
+
+  const newCampaign = {
+    id:             CAMPAIGNS.length + 1,
+    name,
+    subline:        `${product} — ${segLabels[segment] || 'All Customers'}`,
+    tenant,
+    tenantColor:    colorPalette[CAMPAIGNS.length % colorPalette.length],
+    tenantInitial:  initials,
+    sent:           status === 'active' ? Math.floor(Math.random() * 200 + 50) : 0,
+    replies:        0,
+    conversions:    0,
+    sentiment:      { pos: 0, neu: 0, neg: 0 },
+    status,
+    created:        new Date().toISOString().split('T')[0],
+    segment:        segLabels[segment] || 'All Customers',
+    language:       langLabel,
+  };
+
+  CAMPAIGNS.unshift(newCampaign);
+  closeModal('createCampaignModal');
+  toast(`Campaign "${name}" ${status === 'active' ? 'launched' : 'scheduled'} successfully!`);
+
+  // Reset form
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-tenant').value = '';
+  document.getElementById('f-product').innerHTML = '<option value="">— Select tenant first —</option>';
+  document.getElementById('f-message').value = '';
+  document.getElementById('f-segment').value = 'all';
+  document.getElementById('scheduleDateTime').style.display = 'none';
+  document.querySelector('input[name="f-schedule"][value="now"]').checked = true;
+
+  // Switch to the right tab to show new campaign
+  if (status !== 'all') {
+    document.querySelectorAll('#campaignTabs .tab').forEach(t => {
+      t.classList.remove('active');
+      if (t.dataset.filter === 'all') t.classList.add('active');
+    });
+    activeFilter = 'all';
+  }
+
+  updateTabCounts();
+  filterTable();
+}
+
+/* ══════════════════════════════════════════════════════
+   Init
+══════════════════════════════════════════════════════ */
+updateTabCounts();
+filterTable();
+</script>
+</body>
+</html>

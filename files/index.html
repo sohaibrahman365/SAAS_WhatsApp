@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeniSearch — Super Admin Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .tenant-row td:first-child { font-weight: 600; }
+    .health-bar { display: flex; flex-direction: column; gap: .3rem; }
+    .health-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--text-secondary); }
+    .platform-hero {
+      background: var(--gradient);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      color: var(--white);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .platform-hero h2 { font-size: 1.3rem; font-weight: 700; }
+    .platform-hero p  { opacity: .85; font-size: .875rem; margin-top: .25rem; }
+    .platform-hero-stats { display: flex; gap: 2rem; }
+    .hero-stat { text-align: center; }
+    .hero-stat .v { font-size: 1.8rem; font-weight: 700; }
+    .hero-stat .l { font-size: .75rem; opacity: .8; }
+    .activity-item {
+      display: flex; align-items: flex-start; gap: .9rem;
+      padding: .75rem 0;
+      border-bottom: 1px solid var(--light-2);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-top: .45rem; flex-shrink: 0;
+    }
+    .activity-item .time { font-size: .75rem; color: var(--text-muted); white-space: nowrap; }
+    .activity-item p { font-size: .85rem; line-height: 1.4; flex: 1; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">&#127760;</div>
+      <div>
+        <div class="logo-text">GeniSearch</div>
+        <div class="logo-sub">Super Admin</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Main</div>
+      <a href="index.html"         class="nav-item"><span class="nav-icon">&#9962;</span> Dashboard</a>
+      <a href="inventory.html"     class="nav-item"><span class="nav-icon">&#128230;</span> Inventory</a>
+      <a href="campaigns.html"     class="nav-item"><span class="nav-icon">&#128228;</span> Campaigns</a>
+      <a href="engagement.html"    class="nav-item"><span class="nav-icon">&#128172;</span> Engagement</a>
+
+      <div class="sidebar-section">Analytics</div>
+      <a href="bi.html"            class="nav-item"><span class="nav-icon">&#128202;</span> BI Analytics</a>
+      <a href="conversations.html" class="nav-item"><span class="nav-icon">&#128489;</span> Conversations <span class="nav-badge">12</span></a>
+      <a href="reports.html"       class="nav-item"><span class="nav-icon">&#128196;</span> Reports</a>
+
+      <div class="sidebar-section">System</div>
+      <a href="settings.html"      class="nav-item"><span class="nav-icon">&#9881;</span> Settings</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar avatar-sm">S</div>
+        <div class="user-info">
+          <div class="user-name">Sohaib R.</div>
+          <div class="user-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">Platform Overview</div>
+      <div class="topbar-actions">
+        <div class="topbar-search">
+          <span>&#128269;</span>
+          <input type="text" placeholder="Search tenants, campaigns…">
+        </div>
+        <button class="topbar-btn" title="Notifications">
+          &#128276;
+          <span class="badge">5</span>
+        </button>
+        <div class="topbar-avatar" title="sohaib365@gmail.com">S</div>
+      </div>
+    </header>
+
+    <div class="page">
+
+      <!-- Hero banner -->
+      <div class="platform-hero">
+        <div>
+          <h2>Welcome back, Sohaib &#128075;</h2>
+          <p>sohaib365@gmail.com &nbsp;·&nbsp; Super Admin &nbsp;·&nbsp; March 30, 2026</p>
+        </div>
+        <div class="platform-hero-stats">
+          <div class="hero-stat"><div class="v">24</div><div class="l">Tenants</div></div>
+          <div class="hero-stat"><div class="v">1.2M</div><div class="l">Messages Sent</div></div>
+          <div class="hero-stat"><div class="v">PKR 8.4M</div><div class="l">Platform MRR</div></div>
+        </div>
+      </div>
+
+      <!-- KPI stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon purple">&#127968;</div>
+          <div class="stat-info">
+            <div class="stat-label">Active Tenants</div>
+            <div class="stat-value">24</div>
+            <div class="stat-change up">&#9650; 3 this month</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">&#128228;</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Campaigns</div>
+            <div class="stat-value">386</div>
+            <div class="stat-change up">&#9650; 12% vs last month</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">&#128101;</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Customers</div>
+            <div class="stat-value">142K</div>
+            <div class="stat-change up">&#9650; 8.3K new</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">&#128200;</div>
+          <div class="stat-info">
+            <div class="stat-label">Avg Reply Rate</div>
+            <div class="stat-value">11.4%</div>
+            <div class="stat-change up">&#9650; +1.2% this week</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">&#128178;</div>
+          <div class="stat-info">
+            <div class="stat-label">Platform MRR</div>
+            <div class="stat-value">PKR 8.4M</div>
+            <div class="stat-change up">&#9650; 18% MoM</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon purple">&#129302;</div>
+          <div class="stat-info">
+            <div class="stat-label">AI Analyses Run</div>
+            <div class="stat-value">94.2K</div>
+            <div class="stat-change up">&#9650; +5K this week</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid-2 mb-3">
+        <div class="card">
+          <div class="card-header">
+            <h3>&#128202; Platform Activity (Last 30 Days)</h3>
+            <button class="btn btn-secondary btn-sm">Export</button>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap" style="height:220px">
+              <canvas id="activityChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>&#128178; Revenue by Tenant (Top 6)</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap" style="height:220px">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tenant table + Activity feed -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3>&#127968; All Tenants</h3>
+            <div style="display:flex;gap:.5rem">
+              <input type="text" class="form-control" placeholder="Search…" style="width:160px;padding:.35rem .7rem;font-size:.8rem;">
+              <a href="bi.html" class="btn btn-primary btn-sm">BI Drill-Down</a>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Plan</th>
+                  <th>Campaigns</th>
+                  <th>Reply Rate</th>
+                  <th>MRR</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tenantTableBody"></tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            Showing 10 of 24 tenants · <a href="bi.html" style="color:var(--primary)">View all in BI</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>&#9889; Recent Platform Activity</h3>
+            <span class="badge badge-success badge-dot">Live</span>
+          </div>
+          <div class="card-body" id="activityFeed"></div>
+        </div>
+      </div>
+
+    </div><!-- /page -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script src="shared.js"></script>
+<script>
+/* ── Mock data ── */
+const tenants = [
+  { name: 'Zara Fashion PK',      plan: 'Enterprise', campaigns: 48, replyRate: 14.2, mrr: 85000,  status: 'active' },
+  { name: 'FreshMart Grocery',    plan: 'Pro',        campaigns: 31, replyRate: 10.8, mrr: 45000,  status: 'active' },
+  { name: 'AutoZone Motors',      plan: 'Pro',        campaigns: 22, replyRate: 8.4,  mrr: 45000,  status: 'active' },
+  { name: 'MediPlus Pharma',      plan: 'Business',   campaigns: 19, replyRate: 12.1, mrr: 25000,  status: 'active' },
+  { name: 'TechGadgets PK',       plan: 'Pro',        campaigns: 27, replyRate: 9.7,  mrr: 45000,  status: 'active' },
+  { name: 'EduBridge Academy',    plan: 'Business',   campaigns: 14, replyRate: 15.3, mrr: 25000,  status: 'active' },
+  { name: 'HomeDecor Studios',    plan: 'Starter',    campaigns: 8,  replyRate: 7.2,  mrr: 12000,  status: 'active' },
+  { name: 'SkyFoods Catering',    plan: 'Business',   campaigns: 17, replyRate: 11.5, mrr: 25000,  status: 'active' },
+  { name: 'RealEstate Hub PK',    plan: 'Enterprise', campaigns: 39, replyRate: 6.8,  mrr: 85000,  status: 'active' },
+  { name: 'StyleKraft Boutique',  plan: 'Starter',    campaigns: 5,  replyRate: 4.1,  mrr: 12000,  status: 'trial'  },
+];
+
+const planColors = { Enterprise: 'purple', Pro: 'info', Business: 'success', Starter: 'warning' };
+
+const tbody = document.getElementById('tenantTableBody');
+tenants.forEach(t => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${t.name}</td>
+    <td><span class="badge badge-${planColors[t.plan]}">${t.plan}</span></td>
+    <td>${t.campaigns}</td>
+    <td>${fmtPct(t.replyRate)}</td>
+    <td>${fmtPKR(t.mrr)}</td>
+    <td><span class="badge badge-${t.status === 'active' ? 'success' : 'warning'} badge-dot">${t.status}</span></td>
+  `;
+  tbody.appendChild(tr);
+});
+
+/* ── Activity feed ── */
+const activities = [
+  { color: '#27ae60', msg: 'Zara Fashion PK launched <b>Spring Sale 2026</b> campaign — 1,200 messages sent', time: '2m ago' },
+  { color: '#667eea', msg: 'New tenant <b>StyleKraft Boutique</b> signed up (Starter plan)', time: '18m ago' },
+  { color: '#3498db', msg: 'FreshMart Grocery: 94 replies received, AI analysis complete', time: '45m ago' },
+  { color: '#f39c12', msg: 'EduBridge Academy: reply rate spike to <b>18.4%</b> detected', time: '1h ago' },
+  { color: '#e74c3c', msg: 'AutoZone Motors: delivery failure on 23 messages (invalid numbers)', time: '2h ago' },
+  { color: '#27ae60', msg: 'Platform crossed <b>1.2M messages sent</b> milestone', time: '3h ago' },
+  { color: '#764ba2', msg: 'MediPlus Pharma upgraded from Business to Enterprise plan', time: '5h ago' },
+];
+
+const feed = document.getElementById('activityFeed');
+activities.forEach(a => {
+  feed.innerHTML += `
+    <div class="activity-item">
+      <div class="activity-dot" style="background:${a.color}"></div>
+      <p>${a.msg}</p>
+      <span class="time">${a.time}</span>
+    </div>
+  `;
+});
+
+/* ── Activity chart ── */
+const days = Array.from({length:30}, (_,i) => {
+  const d = new Date('2026-03-30');
+  d.setDate(d.getDate() - (29 - i));
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short'});
+});
+const sentData    = days.map(() => Math.floor(Math.random()*8000+15000));
+const repliesData = days.map((_,i) => Math.floor(sentData[i] * (0.09 + Math.random()*.05)));
+
+const actCtx = document.getElementById('activityChart').getContext('2d');
+new Chart(actCtx, {
+  type: 'line',
+  data: {
+    labels: days,
+    datasets: [
+      {
+        label: 'Messages Sent',
+        data: sentData,
+        borderColor: GS.primary,
+        backgroundColor: GS.gradientFill(actCtx, GS.primary),
+        tension: .4, fill: true, pointRadius: 0,
+      },
+      {
+        label: 'Replies',
+        data: repliesData,
+        borderColor: GS.success,
+        backgroundColor: 'transparent',
+        tension: .4, pointRadius: 0, borderDash: [4,3],
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { position: 'top' } },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+      y: { grid: { color: '#f0f0f0' }, ticks: { callback: v => fmtNum(v) } },
+    },
+  },
+});
+
+/* ── Revenue doughnut ── */
+const revCtx = document.getElementById('revenueChart').getContext('2d');
+new Chart(revCtx, {
+  type: 'bar',
+  data: {
+    labels: tenants.slice(0,6).map(t => t.name.split(' ')[0]),
+    datasets: [{
+      label: 'MRR (PKR)',
+      data: tenants.slice(0,6).map(t => t.mrr),
+      backgroundColor: GS.palette.slice(0,6).map(c => c + 'cc'),
+      borderColor:     GS.palette.slice(0,6),
+      borderWidth: 2,
+      borderRadius: 6,
+    }],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: '#f0f0f0' }, ticks: { callback: v => fmtPKR(v) } },
+    },
+  },
+});
+</script>
+</body>
+</html>

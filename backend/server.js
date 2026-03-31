@@ -21,7 +21,7 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/health', require('./routes/health'));
 
 // Phase 2 — Auth
-// app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', require('./routes/auth'));
 
 // Phase 3 — Core CRUD
 // app.use('/api/tenants',   require('./routes/tenants'));

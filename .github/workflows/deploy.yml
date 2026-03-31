@@ -1,4 +1,4 @@
-name: Deploy GeniSearch to GitHub Pages
+name: Deploy SAAS_WhatsApp to GitHub Pages
 
 on:
   push:

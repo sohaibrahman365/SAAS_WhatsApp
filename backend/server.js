@@ -24,13 +24,13 @@ app.use('/api/health', require('./routes/health'));
 app.use('/api/auth', require('./routes/auth'));
 
 // Phase 3 — Core CRUD
-// app.use('/api/tenants',   require('./routes/tenants'));
-// app.use('/api/products',  require('./routes/products'));
-// app.use('/api/customers', require('./routes/customers'));
-// app.use('/api/campaigns', require('./routes/campaigns'));
+app.use('/api/tenants',   require('./routes/tenants'));
+app.use('/api/products',  require('./routes/products'));
+app.use('/api/customers', require('./routes/customers'));
+app.use('/api/campaigns', require('./routes/campaigns'));
 
 // Phase 4 — WhatsApp
-// app.use('/api/whatsapp', require('./routes/whatsapp'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // Phase 5 — AI Analysis
 // app.use('/api/ai', require('./routes/ai'));

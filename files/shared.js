@@ -508,7 +508,8 @@ function initTabs(containerSelector) {
         });
         tab.classList.add('active');
         // Hide/show panels
-        var panelGroup = tab.closest('[data-tab-group]') || document;
+        var tabGroup = tab.closest('[data-tab-group]');
+        var panelGroup = tabGroup ? tabGroup.parentElement : document;
         panelGroup.querySelectorAll('[data-panel]').forEach(function (p) {
           p.style.display = p.dataset.panel === target ? '' : 'none';
         });

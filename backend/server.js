@@ -41,6 +41,10 @@ app.use('/api/bi', require('./routes/bi'));
 // Phase 7 — n8n Webhooks
 app.use('/api/webhooks', require('./routes/webhooks'));
 
+// Phase 8 — Multi-tenant Settings & Team Management
+app.use('/api/tenant-settings', require('./routes/tenantSettings'));
+app.use('/api/team', require('./routes/team'));
+
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
@@ -54,12 +58,37 @@ app.use((err, req, res, _next) => {
   });
 });
 
+// ── Auto-migrate on startup ──────────────────────────────
+const fs   = require('fs');
+const path = require('path');
+const pool = require('./config/db');
+
+async function runMigrations() {
+  const migDir = path.join(__dirname, 'db', 'migrations');
+  if (!fs.existsSync(migDir)) return;
+  const files = fs.readdirSync(migDir).filter(f => f.endsWith('.sql')).sort();
+  for (const file of files) {
+    try {
+      const sql = fs.readFileSync(path.join(migDir, file), 'utf8');
+      await pool.query(sql);
+      console.log(`[migrate] ${file} ✓`);
+    } catch (err) {
+      // Ignore "already exists" errors, log others
+      if (!err.message.includes('already exists') && !err.message.includes('duplicate')) {
+        console.error(`[migrate] ${file} — ${err.message}`);
+      }
+    }
+  }
+}
+
 // ── Start ─────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`[server] GeniSearch backend running on http://localhost:${PORT}`);
-  console.log(`[server] ENV: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`[server] Health: http://localhost:${PORT}/api/health`);
+runMigrations().then(() => {
+  app.listen(PORT, () => {
+    console.log(`[server] GeniSearch backend running on http://localhost:${PORT}`);
+    console.log(`[server] ENV: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`[server] Health: http://localhost:${PORT}/api/health`);
+  });
 });
 
 module.exports = app;

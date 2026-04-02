@@ -1,5 +1,8 @@
 // Claude AI Analysis Service
-// Runs in stub mode when ANTHROPIC_API_KEY is missing or starts with 'xxx'
+// Supports per-tenant credentials and custom AI prompts
+// Falls back to platform env vars, then stub mode
+
+const { getAICredentials } = require('./tenantSettings');
 
 function isStubMode() {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -7,14 +10,26 @@ function isStubMode() {
 }
 
 // Analyze a WhatsApp reply — returns sentiment, intent, key phrases, suggested reply
-async function analyzeResponse(responseText, campaignContext) {
-  if (isStubMode()) {
+async function analyzeResponse(responseText, campaignContext, tenantId) {
+  const creds = tenantId
+    ? await getAICredentials(tenantId)
+    : { apiKey: process.env.ANTHROPIC_API_KEY, promptContext: '', model: 'claude-haiku-4-5-20250401' };
+
+  const apiKey = creds.apiKey;
+
+  if (!apiKey || apiKey.startsWith('xxx')) {
     console.log(`[ai:stub] Analyzing: "${responseText.slice(0, 60)}"`);
     return stubAnalysis(responseText);
   }
 
-  const prompt = `You are analyzing a customer's WhatsApp reply to a marketing campaign.
+  // Build prompt with optional tenant-specific business context
+  let businessContext = '';
+  if (creds.promptContext) {
+    businessContext = `\nBusiness context: ${creds.promptContext}\n`;
+  }
 
+  const prompt = `You are analyzing a customer's WhatsApp reply to a marketing campaign.
+${businessContext}
 Campaign context:
 - Campaign: ${campaignContext.campaignName || 'N/A'}
 - Product: ${campaignContext.productName || 'N/A'}
@@ -36,12 +51,12 @@ Analyze and return ONLY valid JSON (no markdown, no code fences):
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20250401',
+      model: creds.model || 'claude-haiku-4-5-20250401',
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -50,7 +65,6 @@ Analyze and return ONLY valid JSON (no markdown, no code fences):
   const json = await res.json();
   if (!res.ok) {
     console.error('[ai] Anthropic API error:', json.error?.message || res.status);
-    // Fall back to stub analysis instead of crashing
     return stubAnalysis(responseText);
   }
 

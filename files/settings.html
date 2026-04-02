@@ -6,6 +6,71 @@
   <title>Settings — GeniSearch</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared.css">
+  <style>
+    /* ── Accordion ── */
+    .accordion { border:1px solid var(--light-2); border-radius:var(--radius); overflow:hidden; }
+    .accordion + .accordion { margin-top:12px; }
+    .accordion-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px; cursor:pointer; background:var(--white);
+      font-weight:600; font-size:.95rem; color:var(--text-primary);
+      transition: background var(--t);
+      user-select:none;
+    }
+    .accordion-header:hover { background:var(--light); }
+    .accordion-chevron {
+      width:20px; height:20px; transition:transform var(--t);
+      color:var(--text-muted); flex-shrink:0;
+    }
+    .accordion.open .accordion-chevron { transform:rotate(180deg); }
+    .accordion-body {
+      max-height:0; overflow:hidden; transition:max-height 0.3s ease;
+      background:var(--white);
+    }
+    .accordion.open .accordion-body { max-height:1200px; }
+    .accordion-content { padding:0 20px 20px 20px; }
+
+    /* ── Password toggle ── */
+    .input-group { position:relative; }
+    .input-group .form-control { padding-right:44px; }
+    .input-group .toggle-vis {
+      position:absolute; right:8px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; color:var(--text-muted);
+      padding:4px; display:flex; align-items:center; justify-content:center;
+    }
+    .input-group .toggle-vis:hover { color:var(--text-primary); }
+
+    /* ── Source badge ── */
+    .source-badge {
+      display:inline-block; font-size:.7rem; font-weight:600; text-transform:uppercase;
+      padding:2px 8px; border-radius:4px; margin-top:6px;
+      background:var(--primary-light); color:var(--primary);
+    }
+    .source-badge.platform { background:var(--info-light); color:var(--info-dark); }
+    .source-badge.none { background:var(--light); color:var(--text-muted); }
+
+    /* ── Status card center content ── */
+    .status-card-body { text-align:center; padding:24px; }
+    .status-card-body .icon { font-size:2rem; margin-bottom:8px; }
+
+    /* ── Team table actions ── */
+    .team-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .team-actions select { font-size:.8rem; padding:4px 8px; border-radius:var(--radius-sm); border:1px solid var(--light-2); }
+    .team-actions .btn { font-size:.75rem; padding:4px 10px; }
+
+    /* ── Tenant selector for super_admin ── */
+    .tenant-selector {
+      display:flex; align-items:center; gap:12px;
+      padding:12px 16px; margin-bottom:16px;
+      background:var(--primary-light); border-radius:var(--radius);
+      border:1px solid rgba(var(--primary-rgb), 0.15);
+    }
+    .tenant-selector label { font-weight:600; font-size:.85rem; color:var(--primary-dark); white-space:nowrap; }
+    .tenant-selector select { flex:1; max-width:360px; }
+
+    /* ── Section save row ── */
+    .section-save { display:flex; justify-content:flex-end; margin-top:16px; }
+  </style>
 </head>
 <body>
 <div class="app">
@@ -16,6 +81,7 @@
   </div>
 </div>
 
+<!-- Add Tenant Modal -->
 <div class="modal-overlay" id="addTenantModal">
   <div class="modal">
     <div class="modal-header"><h3>Add Tenant</h3><button class="modal-close" onclick="closeModal('addTenantModal')">&times;</button></div>
@@ -31,118 +97,566 @@
   </div>
 </div>
 
+<!-- Invite Team Member Modal -->
+<div class="modal-overlay" id="inviteMemberModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Invite Team Member</h3><button class="modal-close" onclick="closeModal('inviteMemberModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Name *</label><input id="mName" class="form-control" required placeholder="Jane Doe"></div>
+      <div class="form-group"><label>Email *</label><input id="mEmail" class="form-control" type="email" required placeholder="jane@company.com"></div>
+      <div class="form-group"><label>Password *</label><input id="mPassword" class="form-control" type="password" required placeholder="Minimum 8 characters"></div>
+      <div class="form-group"><label>Role *</label>
+        <select id="mRole" class="form-control">
+          <option value="admin">Admin</option>
+          <option value="manager" selected>Manager</option>
+          <option value="analyst">Analyst</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('inviteMemberModal')">Cancel</button><button class="btn btn-primary" onclick="submitInvite()">Send Invite</button></div>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 <script src="shared.js"></script>
 <script>
+/* ============================================================
+   SETTINGS PAGE
+   ============================================================ */
+
+let currentUser = null;
+let isSuperAdmin = false;
+let isAdmin = false;
+let tenantSettingsData = {};
+let tenantsList = [];
+
 document.addEventListener('DOMContentLoaded', () => {
-  const user = requireLogin(); if (!user) return;
+  currentUser = requireLogin();
+  if (!currentUser) return;
   document.getElementById('sidebar').innerHTML = sidebarHTML('settings.html');
   document.getElementById('topbar').innerHTML = topbarHTML('Settings');
   initPage('Settings');
+  isSuperAdmin = currentUser && currentUser.role === 'super_admin';
+  isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin');
   renderSettings();
 });
 
+/* ── Mask sensitive keys: show first 4 + **** + last 4 ── */
+function maskKey(val) {
+  if (!val || val.length < 12) return val ? '********' : '';
+  return val.substring(0, 4) + '****' + val.substring(val.length - 4);
+}
+
+/* ── Toggle password visibility ── */
+function toggleVis(btn) {
+  const input = btn.parentElement.querySelector('input');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  } else {
+    input.type = 'password';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  }
+}
+
+/* ── Accordion toggle ── */
+function toggleAccordion(header) {
+  const acc = header.closest('.accordion');
+  acc.classList.toggle('open');
+}
+
+/* ── Chevron SVG ── */
+const chevronSVG = '<svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+/* ── Password input with toggle ── */
+function passwordInput(id, placeholder, value) {
+  const masked = maskKey(value);
+  return '<div class="input-group">' +
+    '<input id="' + id + '" class="form-control" type="password" placeholder="' + escapeHtml(placeholder) + '"' +
+    (masked ? ' value="' + escapeHtml(masked) + '"' : '') +
+    ' onfocus="if(this.value.indexOf(\'****\')!==-1)this.value=\'\'">' +
+    '<button type="button" class="toggle-vis" onclick="toggleVis(this)" title="Toggle visibility">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+    '</button>' +
+  '</div>';
+}
+
+/* ── Source badge ── */
+function sourceBadge(source) {
+  if (!source || source === 'none') return '<div class="source-badge none">No Config</div>';
+  if (source === 'platform') return '<div class="source-badge platform">Platform</div>';
+  return '<div class="source-badge">Tenant</div>';
+}
+
+/* ============================================================
+   MAIN RENDER
+   ============================================================ */
+
 async function renderSettings() {
   const page = document.getElementById('page-body');
-  const user = getUser();
-  const isSA = user && user.role === 'super_admin';
 
   try {
-    const [me, waStatus, aiStatus, whStatus] = await Promise.all([
-      apiGet('/auth/me'),
-      apiGet('/whatsapp/status').catch(() => ({ configured:false, stub_mode:true })),
-      apiGet('/ai/status').catch(() => ({ configured:false, stub_mode:true })),
-      apiGet('/webhooks/status').catch(() => ({ configured:false, stub_mode:true }))
+    const [me] = await Promise.all([
+      apiGet('/auth/me')
     ]);
 
+    // Build tab buttons
+    let teamTab = '';
     let tenantsTab = '';
-    if (isSA) {
+    if (isAdmin) {
+      teamTab = '<button class="tab" data-tab="team">Team</button>';
+    }
+    if (isSuperAdmin) {
       tenantsTab = '<button class="tab" data-tab="tenants">Tenants</button>';
     }
 
-    page.innerHTML = `
-      <div class="page-header"><div class="page-header-left"><h1>Settings</h1></div></div>
+    page.innerHTML =
+      '<div class="page-header"><div class="page-header-left"><h1>Settings</h1></div></div>' +
 
-      <div class="tabs" data-tab-group>
-        <button class="tab active" data-tab="profile">Profile</button>
-        <button class="tab" data-tab="api">API Configuration</button>
-        ${tenantsTab}
-      </div>
+      '<div data-tab-group>' +
+        '<div class="tabs">' +
+          '<button class="tab active" data-tab="profile">Profile</button>' +
+          '<button class="tab" data-tab="api">API Configuration</button>' +
+          teamTab +
+          tenantsTab +
+        '</div>' +
 
-      <!-- Profile Tab -->
-      <div data-panel="profile">
-        <div class="card">
-          <div class="card-header"><h3>Your Profile</h3></div>
-          <div class="card-body">
-            <div class="form-row">
-              <div class="form-group"><label>Name</label><input class="form-control" value="${escapeHtml(me.name||'')}" disabled></div>
-              <div class="form-group"><label>Email</label><input class="form-control" value="${escapeHtml(me.email||'')}" disabled></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Role</label><div style="margin-top:6px">${roleBadge(me.role)}</div></div>
-              <div class="form-group"><label>Member Since</label><input class="form-control" value="${fmtDate(me.created_at)}" disabled></div>
-            </div>
-            ${me.tenant_id ? '<div class="form-group"><label>Tenant ID</label><input class="form-control" value="'+me.tenant_id+'" disabled></div>' : ''}
-          </div>
-        </div>
-        <div class="card mt-2">
-          <div class="card-header"><h3>Security</h3></div>
-          <div class="card-body">
-            <p class="text-muted mb-2">Your JWT token is valid for 7 days. To change your password, register again with the same email.</p>
-            <button class="btn btn-danger" onclick="logout()">Sign Out</button>
-          </div>
-        </div>
-      </div>
+        '<!-- Profile Tab -->' +
+        '<div data-panel="profile">' +
+          '<div class="card">' +
+            '<div class="card-header"><h3>Your Profile</h3></div>' +
+            '<div class="card-body">' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Name</label><input class="form-control" value="' + escapeHtml(me.name || '') + '" disabled></div>' +
+                '<div class="form-group"><label>Email</label><input class="form-control" value="' + escapeHtml(me.email || '') + '" disabled></div>' +
+              '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Role</label><div style="margin-top:6px">' + roleBadge(me.role) + '</div></div>' +
+                '<div class="form-group"><label>Member Since</label><input class="form-control" value="' + fmtDate(me.created_at) + '" disabled></div>' +
+              '</div>' +
+              (me.tenant_id ? '<div class="form-group"><label>Tenant ID</label><input class="form-control" value="' + escapeHtml(me.tenant_id) + '" disabled></div>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="card mt-2">' +
+            '<div class="card-header"><h3>Security</h3></div>' +
+            '<div class="card-body">' +
+              '<p class="text-muted mb-2">Your JWT token is valid for 7 days. To change your password, register again with the same email.</p>' +
+              '<button class="btn btn-danger" onclick="logout()">Sign Out</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
 
-      <!-- API Tab -->
-      <div data-panel="api" style="display:none">
-        <div class="grid-3 mb-3">
-          <div class="card">
-            <div class="card-body" style="text-align:center;padding:24px">
-              <div style="font-size:2rem;margin-bottom:8px">&#128172;</div>
-              <h3>WhatsApp API</h3>
-              <div class="mt-2">${waStatus.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>'}</div>
-              ${waStatus.phone_number_id ? '<p class="text-muted mt-1">Phone: '+escapeHtml(waStatus.phone_number_id)+'</p>' : ''}
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-body" style="text-align:center;padding:24px">
-              <div style="font-size:2rem;margin-bottom:8px">&#129302;</div>
-              <h3>Claude AI</h3>
-              <div class="mt-2">${aiStatus.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>'}</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-body" style="text-align:center;padding:24px">
-              <div style="font-size:2rem;margin-bottom:8px">&#128232;</div>
-              <h3>n8n Webhooks</h3>
-              <div class="mt-2">${whStatus.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>'}</div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><h3>Configuration Guide</h3></div>
-          <div class="card-body">
-            <p class="mb-2">Add these environment variables in <strong>Railway Variables</strong> to activate each service:</p>
-            <table><thead><tr><th>Variable</th><th>Service</th><th>Where to Get</th></tr></thead><tbody>
-              <tr><td class="fw-600">WHATSAPP_API_TOKEN</td><td>WhatsApp</td><td>Meta Developer Portal → WhatsApp → Getting Started</td></tr>
-              <tr><td class="fw-600">WHATSAPP_PHONE_NUMBER_ID</td><td>WhatsApp</td><td>Same page — Phone Number ID</td></tr>
-              <tr><td class="fw-600">WHATSAPP_VERIFY_TOKEN</td><td>WhatsApp Webhook</td><td>You create this (any random string)</td></tr>
-              <tr><td class="fw-600">ANTHROPIC_API_KEY</td><td>AI Analysis</td><td>console.anthropic.com → API Keys</td></tr>
-              <tr><td class="fw-600">N8N_WEBHOOK_URL</td><td>n8n Automations</td><td>Your n8n instance webhook URL</td></tr>
-            </tbody></table>
-          </div>
-        </div>
-      </div>
+        '<!-- API Configuration Tab -->' +
+        '<div data-panel="api" style="display:none" id="apiPanel"><div class="loading-spinner">Loading configuration...</div></div>' +
 
-      <!-- Tenants Tab (super_admin only) -->
-      ${isSA ? '<div data-panel="tenants" style="display:none" id="tenantsPanel"></div>' : ''}
-    `;
+        '<!-- Team Tab -->' +
+        (isAdmin ? '<div data-panel="team" style="display:none" id="teamPanel"><div class="loading-spinner">Loading team...</div></div>' : '') +
+
+        '<!-- Tenants Tab -->' +
+        (isSuperAdmin ? '<div data-panel="tenants" style="display:none" id="tenantsPanel"><div class="loading-spinner">Loading tenants...</div></div>' : '') +
+      '</div>';
 
     initTabs();
-    if (isSA) loadTenants();
-  } catch(e) { page.innerHTML = '<div class="empty-state"><p>'+escapeHtml(e.message)+'</p><button class="btn btn-primary mt-2" onclick="renderSettings()">Retry</button></div>'; }
+
+    // Load API config immediately
+    loadApiConfig();
+
+    // Preload tenants list for super_admin (needed for tenant selector)
+    if (isSuperAdmin) {
+      loadTenantsList();
+      loadTenants();
+    }
+    if (isAdmin) {
+      loadTeam();
+    }
+
+  } catch (e) {
+    page.innerHTML = '<div class="empty-state"><p>' + escapeHtml(e.message) + '</p><button class="btn btn-primary mt-2" onclick="renderSettings()">Retry</button></div>';
+  }
 }
+
+/* ============================================================
+   TAB 2: API CONFIGURATION
+   ============================================================ */
+
+let selectedTenantId = null;
+
+async function loadTenantsList() {
+  try {
+    tenantsList = await apiGet('/tenants');
+  } catch (e) {
+    tenantsList = [];
+  }
+}
+
+async function loadApiConfig(tenantId) {
+  const panel = document.getElementById('apiPanel');
+  if (!panel) return;
+  panel.innerHTML = '<div class="loading-spinner">Loading configuration...</div>';
+
+  try {
+    const statusPath = tenantId ? '/tenant-settings/status?tenantId=' + tenantId : '/tenant-settings/status';
+    const settingsPath = tenantId ? '/tenant-settings?tenantId=' + tenantId : '/tenant-settings';
+
+    const [statusData, settings] = await Promise.all([
+      apiGet(statusPath).catch(() => ({
+        whatsapp: { configured: false, stub_mode: true, source: 'none' },
+        ai: { configured: false, stub_mode: true, source: 'none' },
+        n8n: { configured: false, stub_mode: true, source: 'none' }
+      })),
+      apiGet(settingsPath).catch(() => ({}))
+    ]);
+
+    tenantSettingsData = settings || {};
+
+    const wa = statusData.whatsapp || statusData.wa || { configured: false, stub_mode: true, source: 'none' };
+    const ai = statusData.ai || statusData.claude || { configured: false, stub_mode: true, source: 'none' };
+    const n8n = statusData.n8n || statusData.webhooks || { configured: false, stub_mode: true, source: 'none' };
+
+    // Tenant selector for super_admin
+    let tenantSelector = '';
+    if (isSuperAdmin) {
+      let tenantOptions = '<option value="">-- My Tenant / Platform --</option>';
+      tenantsList.forEach(t => {
+        const sel = (tenantId && String(t.id) === String(tenantId)) ? ' selected' : '';
+        tenantOptions += '<option value="' + escapeHtml(t.id) + '"' + sel + '>' + escapeHtml(t.name) + ' (' + escapeHtml(t.email) + ')</option>';
+      });
+      tenantSelector =
+        '<div class="tenant-selector">' +
+          '<label>Configure for Tenant:</label>' +
+          '<select class="form-control" id="tenantSwitcher" onchange="onTenantSwitch()">' + tenantOptions + '</select>' +
+        '</div>';
+    }
+
+    // Status cards
+    const statusCards =
+      '<div class="grid-3 mb-3">' +
+        '<div class="card"><div class="status-card-body">' +
+          '<div class="icon">&#128172;</div>' +
+          '<h3>WhatsApp API</h3>' +
+          '<div class="mt-2">' + (wa.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>') + '</div>' +
+          sourceBadge(wa.source) +
+        '</div></div>' +
+        '<div class="card"><div class="status-card-body">' +
+          '<div class="icon">&#129302;</div>' +
+          '<h3>Claude AI</h3>' +
+          '<div class="mt-2">' + (ai.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>') + '</div>' +
+          sourceBadge(ai.source) +
+        '</div></div>' +
+        '<div class="card"><div class="status-card-body">' +
+          '<div class="icon">&#128232;</div>' +
+          '<h3>n8n Webhooks</h3>' +
+          '<div class="mt-2">' + (n8n.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>') + '</div>' +
+          sourceBadge(n8n.source) +
+        '</div></div>' +
+      '</div>';
+
+    // Configuration form (accordions)
+    const s = tenantSettingsData;
+
+    const configForm =
+      '<div class="card">' +
+        '<div class="card-header"><h3>Integration Configuration</h3></div>' +
+        '<div class="card-body">' +
+
+          // WhatsApp
+          '<div class="accordion open">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>WhatsApp Configuration</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<div class="form-group"><label>WhatsApp API Token</label>' + passwordInput('cfgWaToken', 'Enter WhatsApp API token', s.whatsapp_api_token) + '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Phone Number ID</label><input id="cfgWaPhone" class="form-control" placeholder="e.g. 1234567890" value="' + escapeHtml(s.whatsapp_phone_number_id || '') + '"></div>' +
+                '<div class="form-group"><label>Verify Token</label><input id="cfgWaVerify" class="form-control" placeholder="Any random string" value="' + escapeHtml(s.whatsapp_verify_token || '') + '"></div>' +
+              '</div>' +
+              '<div class="form-group"><label>Business Name</label><input id="cfgWaBiz" class="form-control" placeholder="Your WhatsApp Business name" value="' + escapeHtml(s.whatsapp_business_name || '') + '"></div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveWhatsApp()">Save WhatsApp Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+          // AI
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>AI Configuration</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<div class="form-group"><label>Anthropic API Key</label>' + passwordInput('cfgAiKey', 'Enter Anthropic API key (sk-ant-...)', s.anthropic_api_key) + '</div>' +
+              '<div class="form-group"><label>Custom AI Prompt Context</label><textarea id="cfgAiContext" class="form-control" rows="3" placeholder="Describe your business so AI can provide better analysis...">' + escapeHtml(s.ai_prompt_context || '') + '</textarea></div>' +
+              '<div class="form-group"><label>AI Model</label>' +
+                '<select id="cfgAiModel" class="form-control">' +
+                  '<option value="claude-haiku-4-5-20250401"' + (s.ai_model === 'claude-haiku-4-5-20250401' || !s.ai_model ? ' selected' : '') + '>Claude Haiku (claude-haiku-4-5-20250401)</option>' +
+                '</select>' +
+              '</div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveAI()">Save AI Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+          // n8n
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>n8n Webhooks</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<div class="form-group"><label>Webhook URL</label><input id="cfgN8nUrl" class="form-control" placeholder="https://your-n8n.example.com/webhook/..." value="' + escapeHtml(s.n8n_webhook_url || '') + '"></div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveN8n()">Save Webhook Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+          // Business Info
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>Business Information</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Business Domain</label><input id="cfgBizDomain" class="form-control" placeholder="yourbusiness.com" value="' + escapeHtml(s.business_domain || '') + '"></div>' +
+                '<div class="form-group"><label>Logo URL</label><input id="cfgBizLogo" class="form-control" placeholder="https://..." value="' + escapeHtml(s.logo_url || '') + '"></div>' +
+              '</div>' +
+              '<div class="form-group"><label>Business Description</label><textarea id="cfgBizDesc" class="form-control" rows="3" placeholder="Brief description of your business...">' + escapeHtml(s.business_description || '') + '</textarea></div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Meta Page ID</label><input id="cfgMetaPage" class="form-control" placeholder="Facebook/Meta Page ID" value="' + escapeHtml(s.meta_page_id || '') + '"></div>' +
+                '<div class="form-group"><label>Google Analytics ID</label><input id="cfgGaId" class="form-control" placeholder="G-XXXXXXXXXX" value="' + escapeHtml(s.google_analytics_id || '') + '"></div>' +
+              '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Default Language</label>' +
+                  '<select id="cfgLang" class="form-control">' +
+                    '<option value="en"' + (s.default_language === 'en' || !s.default_language ? ' selected' : '') + '>English</option>' +
+                    '<option value="ur"' + (s.default_language === 'ur' ? ' selected' : '') + '>Urdu</option>' +
+                    '<option value="ar"' + (s.default_language === 'ar' ? ' selected' : '') + '>Arabic</option>' +
+                    '<option value="hi"' + (s.default_language === 'hi' ? ' selected' : '') + '>Hindi</option>' +
+                    '<option value="fr"' + (s.default_language === 'fr' ? ' selected' : '') + '>French</option>' +
+                    '<option value="es"' + (s.default_language === 'es' ? ' selected' : '') + '>Spanish</option>' +
+                    '<option value="de"' + (s.default_language === 'de' ? ' selected' : '') + '>German</option>' +
+                    '<option value="zh"' + (s.default_language === 'zh' ? ' selected' : '') + '>Chinese</option>' +
+                  '</select>' +
+                '</div>' +
+                '<div class="form-group"><label>Timezone</label>' +
+                  '<select id="cfgTz" class="form-control">' +
+                    '<option value="Asia/Karachi"' + (s.timezone === 'Asia/Karachi' || !s.timezone ? ' selected' : '') + '>Asia/Karachi (PKT)</option>' +
+                    '<option value="UTC"' + (s.timezone === 'UTC' ? ' selected' : '') + '>UTC</option>' +
+                    '<option value="America/New_York"' + (s.timezone === 'America/New_York' ? ' selected' : '') + '>America/New_York (EST)</option>' +
+                    '<option value="America/Chicago"' + (s.timezone === 'America/Chicago' ? ' selected' : '') + '>America/Chicago (CST)</option>' +
+                    '<option value="America/Los_Angeles"' + (s.timezone === 'America/Los_Angeles' ? ' selected' : '') + '>America/Los_Angeles (PST)</option>' +
+                    '<option value="Europe/London"' + (s.timezone === 'Europe/London' ? ' selected' : '') + '>Europe/London (GMT)</option>' +
+                    '<option value="Europe/Berlin"' + (s.timezone === 'Europe/Berlin' ? ' selected' : '') + '>Europe/Berlin (CET)</option>' +
+                    '<option value="Asia/Dubai"' + (s.timezone === 'Asia/Dubai' ? ' selected' : '') + '>Asia/Dubai (GST)</option>' +
+                    '<option value="Asia/Kolkata"' + (s.timezone === 'Asia/Kolkata' ? ' selected' : '') + '>Asia/Kolkata (IST)</option>' +
+                    '<option value="Asia/Shanghai"' + (s.timezone === 'Asia/Shanghai' ? ' selected' : '') + '>Asia/Shanghai (CST)</option>' +
+                    '<option value="Asia/Tokyo"' + (s.timezone === 'Asia/Tokyo' ? ' selected' : '') + '>Asia/Tokyo (JST)</option>' +
+                    '<option value="Australia/Sydney"' + (s.timezone === 'Australia/Sydney' ? ' selected' : '') + '>Australia/Sydney (AEST)</option>' +
+                  '</select>' +
+                '</div>' +
+              '</div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveBusinessInfo()">Save Business Info</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+        '</div>' +
+      '</div>';
+
+    panel.innerHTML = tenantSelector + statusCards + configForm;
+
+  } catch (e) {
+    panel.innerHTML = '<div class="empty-state"><p>' + escapeHtml(e.message) + '</p><button class="btn btn-primary mt-2" onclick="loadApiConfig()">Retry</button></div>';
+  }
+}
+
+function onTenantSwitch() {
+  const sel = document.getElementById('tenantSwitcher');
+  selectedTenantId = sel.value || null;
+  loadApiConfig(selectedTenantId);
+}
+
+/* ── Get a field value, ignoring masked placeholders ── */
+function getField(id) {
+  const el = document.getElementById(id);
+  if (!el) return undefined;
+  const val = el.value.trim();
+  if (val.indexOf('****') !== -1) return undefined; // masked, not changed
+  return val || undefined;
+}
+
+function buildTenantParam() {
+  return selectedTenantId ? '?tenantId=' + selectedTenantId : '';
+}
+
+async function saveWhatsApp() {
+  const body = {};
+  const token = getField('cfgWaToken');
+  const phone = getField('cfgWaPhone');
+  const verify = getField('cfgWaVerify');
+  const biz = getField('cfgWaBiz');
+  if (token !== undefined) body.whatsapp_api_token = token;
+  if (phone !== undefined) body.whatsapp_phone_number_id = phone;
+  if (verify !== undefined) body.whatsapp_verify_token = verify;
+  if (biz !== undefined) body.whatsapp_business_name = biz;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('WhatsApp settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function saveAI() {
+  const body = {};
+  const key = getField('cfgAiKey');
+  const ctx = getField('cfgAiContext');
+  const model = getField('cfgAiModel');
+  if (key !== undefined) body.anthropic_api_key = key;
+  if (ctx !== undefined) body.ai_prompt_context = ctx;
+  if (model !== undefined) body.ai_model = model;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('AI settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function saveN8n() {
+  const body = {};
+  const url = getField('cfgN8nUrl');
+  if (url !== undefined) body.n8n_webhook_url = url;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('Webhook settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function saveBusinessInfo() {
+  const body = {};
+  const domain = getField('cfgBizDomain');
+  const logo = getField('cfgBizLogo');
+  const desc = getField('cfgBizDesc');
+  const meta = getField('cfgMetaPage');
+  const ga = getField('cfgGaId');
+  const lang = getField('cfgLang');
+  const tz = getField('cfgTz');
+  if (domain !== undefined) body.business_domain = domain;
+  if (logo !== undefined) body.logo_url = logo;
+  if (desc !== undefined) body.business_description = desc;
+  if (meta !== undefined) body.meta_page_id = meta;
+  if (ga !== undefined) body.google_analytics_id = ga;
+  if (lang !== undefined) body.default_language = lang;
+  if (tz !== undefined) body.timezone = tz;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('Business info saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+/* ============================================================
+   TAB 3: TEAM
+   ============================================================ */
+
+async function loadTeam() {
+  const panel = document.getElementById('teamPanel');
+  if (!panel) return;
+
+  try {
+    const teamPath = isSuperAdmin && selectedTenantId ? '/team?tenantId=' + selectedTenantId : '/team';
+    const members = await apiGet(teamPath);
+
+    let rows = '';
+    if (Array.isArray(members) && members.length > 0) {
+      members.forEach(m => {
+        const statusCls = m.status === 'active' ? 'badge-success badge-dot' : 'badge-warning';
+        const statusLabel = m.status ? m.status.charAt(0).toUpperCase() + m.status.slice(1) : 'Active';
+        const toggleLabel = m.status === 'suspended' ? 'Activate' : 'Suspend';
+        const toggleCls = m.status === 'suspended' ? 'btn-success' : 'btn-warning';
+
+        rows += '<tr>' +
+          '<td class="fw-600">' + escapeHtml(m.name || '-') + '</td>' +
+          '<td>' + escapeHtml(m.email || '-') + '</td>' +
+          '<td>' + roleBadge(m.role) + '</td>' +
+          '<td><span class="badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></td>' +
+          '<td>' + fmtDate(m.created_at || m.joined_at) + '</td>' +
+          '<td>' +
+            '<div class="team-actions">' +
+              '<select onchange="changeRole(\'' + escapeHtml(m.id) + '\', this.value)" title="Change role">' +
+                '<option value=""' + (!m.role ? ' selected' : '') + '>Role...</option>' +
+                '<option value="admin"' + (m.role === 'admin' ? ' selected' : '') + '>Admin</option>' +
+                '<option value="manager"' + (m.role === 'manager' ? ' selected' : '') + '>Manager</option>' +
+                '<option value="analyst"' + (m.role === 'analyst' ? ' selected' : '') + '>Analyst</option>' +
+              '</select>' +
+              '<button class="btn ' + toggleCls + '" onclick="toggleMemberStatus(\'' + escapeHtml(m.id) + '\', \'' + escapeHtml(m.status || 'active') + '\')">' + toggleLabel + '</button>' +
+              '<button class="btn btn-danger" onclick="removeMember(\'' + escapeHtml(m.id) + '\', \'' + escapeHtml(m.name || m.email) + '\')">Remove</button>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+      });
+    }
+
+    panel.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+        '<h2 style="font-size:1.1rem;font-weight:600">Team Members</h2>' +
+        '<button class="btn btn-primary" onclick="openModal(\'inviteMemberModal\')">+ Invite Member</button>' +
+      '</div>' +
+      '<div class="card"><div class="table-wrap"><table>' +
+        '<thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>' +
+        '<tbody>' + (rows || '<tr><td colspan="6" class="text-center text-muted">No team members found</td></tr>') + '</tbody>' +
+      '</table></div></div>';
+
+  } catch (e) {
+    panel.innerHTML = '<div class="empty-state"><p>' + escapeHtml(e.message) + '</p><button class="btn btn-primary mt-2" onclick="loadTeam()">Retry</button></div>';
+  }
+}
+
+async function submitInvite() {
+  const name = document.getElementById('mName').value.trim();
+  const email = document.getElementById('mEmail').value.trim();
+  const password = document.getElementById('mPassword').value;
+  const role = document.getElementById('mRole').value;
+  if (!name || !email || !password) { toast('Name, email and password are required', 'error'); return; }
+  if (password.length < 8) { toast('Password must be at least 8 characters', 'error'); return; }
+  try {
+    await apiPost('/team/invite', { name, email, password, role });
+    toast('Team member invited successfully', 'success');
+    closeModal('inviteMemberModal');
+    document.getElementById('mName').value = '';
+    document.getElementById('mEmail').value = '';
+    document.getElementById('mPassword').value = '';
+    document.getElementById('mRole').value = 'manager';
+    loadTeam();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function changeRole(userId, newRole) {
+  if (!newRole) return;
+  try {
+    await apiPatch('/team/' + userId, { role: newRole });
+    toast('Role updated', 'success');
+    loadTeam();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function toggleMemberStatus(userId, currentStatus) {
+  const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+  try {
+    await apiPatch('/team/' + userId, { status: newStatus });
+    toast('Member ' + (newStatus === 'suspended' ? 'suspended' : 'activated'), 'success');
+    loadTeam();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function removeMember(userId, name) {
+  if (!confirm('Remove ' + name + ' from the team? This cannot be undone.')) return;
+  try {
+    await apiDelete('/team/' + userId);
+    toast('Member removed', 'success');
+    loadTeam();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+/* ============================================================
+   TAB 4: TENANTS (super_admin only)
+   ============================================================ */
 
 async function loadTenants() {
   const panel = document.getElementById('tenantsPanel');
@@ -151,27 +665,40 @@ async function loadTenants() {
     const tenants = await apiGet('/tenants');
     let rows = '';
     tenants.forEach(t => {
-      rows += '<tr><td class="fw-600">'+escapeHtml(t.name)+'</td><td>'+escapeHtml(t.email)+'</td><td>'+escapeHtml(t.phone||'-')+'</td><td><span class="badge badge-primary">'+escapeHtml(t.plan)+'</span></td><td>'+fmtCurrency(t.mrr)+'</td><td>'+statusBadge(t.status)+'</td></tr>';
+      rows += '<tr>' +
+        '<td class="fw-600">' + escapeHtml(t.name) + '</td>' +
+        '<td>' + escapeHtml(t.email) + '</td>' +
+        '<td>' + escapeHtml(t.phone || '-') + '</td>' +
+        '<td><span class="badge badge-primary">' + escapeHtml(t.plan) + '</span></td>' +
+        '<td>' + fmtCurrency(t.mrr) + '</td>' +
+        '<td>' + statusBadge(t.status) + '</td>' +
+      '</tr>';
     });
-    panel.innerHTML = `
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-primary" onclick="openModal('addTenantModal')">+ Add Tenant</button></div>
-      <div class="card"><div class="table-wrap"><table>
-        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Plan</th><th>MRR</th><th>Status</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="6" class="text-center text-muted">No tenants</td></tr>'}</tbody>
-      </table></div></div>`;
-  } catch(e) { panel.innerHTML = '<p class="text-danger">'+escapeHtml(e.message)+'</p>'; }
+    panel.innerHTML =
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-primary" onclick="openModal(\'addTenantModal\')">+ Add Tenant</button></div>' +
+      '<div class="card"><div class="table-wrap"><table>' +
+        '<thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Plan</th><th>MRR</th><th>Status</th></tr></thead>' +
+        '<tbody>' + (rows || '<tr><td colspan="6" class="text-center text-muted">No tenants</td></tr>') + '</tbody>' +
+      '</table></div></div>';
+  } catch (e) {
+    panel.innerHTML = '<p class="text-danger">' + escapeHtml(e.message) + '</p>';
+  }
 }
 
 async function submitTenant() {
   const name = document.getElementById('tName').value.trim();
   const email = document.getElementById('tEmail').value.trim();
-  if (!name || !email) { toast('Name and email required','error'); return; }
+  if (!name || !email) { toast('Name and email required', 'error'); return; }
   try {
-    await apiPost('/tenants', { name, email, phone:document.getElementById('tPhone').value.trim()||undefined, plan:document.getElementById('tPlan').value });
-    toast('Tenant added!','success');
+    await apiPost('/tenants', { name, email, phone: document.getElementById('tPhone').value.trim() || undefined, plan: document.getElementById('tPlan').value });
+    toast('Tenant added!', 'success');
     closeModal('addTenantModal');
+    document.getElementById('tName').value = '';
+    document.getElementById('tEmail').value = '';
+    document.getElementById('tPhone').value = '';
     loadTenants();
-  } catch(e) { toast(e.message,'error'); }
+    loadTenantsList(); // refresh the tenant selector dropdown too
+  } catch (e) { toast(e.message, 'error'); }
 }
 </script>
 </body>

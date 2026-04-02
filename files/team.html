@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Management — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+    .page-header-left h1 { font-size:1.6rem; font-weight:700; color:var(--text-primary); }
+    .page-header-left p { color:var(--text-secondary); font-size:0.85rem; margin-top:0.15rem; }
+    .page-header-actions { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; }
+
+    /* Tenant selector for super_admin */
+    .tenant-selector { display:none; }
+    .tenant-selector select { min-width:200px; }
+
+    /* Stats grid */
+    .team-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+    .team-stat-card {
+      background:var(--white); border-radius:var(--radius); padding:1.25rem 1.5rem;
+      box-shadow:var(--shadow); display:flex; align-items:center; gap:1rem;
+    }
+    .team-stat-icon {
+      width:44px; height:44px; border-radius:var(--radius-sm);
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .team-stat-icon svg { width:22px; height:22px; }
+    .team-stat-icon.purple  { background:var(--primary-light); color:var(--primary); }
+    .team-stat-icon.blue    { background:var(--info-light); color:var(--info-dark); }
+    .team-stat-icon.teal    { background:var(--accent-light); color:var(--accent-dark); }
+    .team-stat-icon.neutral { background:var(--light); color:var(--mid); }
+    .team-stat-label { font-size:0.75rem; color:var(--text-secondary); font-weight:500; text-transform:uppercase; letter-spacing:0.04em; }
+    .team-stat-value { font-size:1.5rem; font-weight:700; color:var(--text-primary); margin-top:0.1rem; }
+
+    /* Table card */
+    .team-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+    .team-card-header {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:1rem 1.5rem; border-bottom:1px solid var(--light-2);
+    }
+    .team-card-header h3 { font-size:1rem; font-weight:600; }
+    .team-search { position:relative; }
+    .team-search input {
+      padding:0.5rem 0.75rem 0.5rem 2.25rem; border:1px solid var(--light-2);
+      border-radius:var(--radius-sm); font-size:0.85rem; width:260px;
+      background:var(--light); transition:var(--t);
+    }
+    .team-search input:focus { outline:none; border-color:var(--primary); background:var(--white); }
+    .team-search svg { position:absolute; left:0.65rem; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; }
+
+    /* Table */
+    .table-wrap { overflow-x:auto; }
+    .team-table { width:100%; border-collapse:collapse; }
+    .team-table th { padding:0.75rem 1.25rem; text-align:left; font-size:0.7rem; font-weight:600;
+      text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);
+      background:var(--light); border-bottom:1px solid var(--light-2); }
+    .team-table td { padding:0.85rem 1.25rem; border-bottom:1px solid var(--light); font-size:0.88rem; vertical-align:middle; }
+    .team-table tbody tr:hover { background:rgba(108,92,231,0.02); }
+
+    /* Member cell */
+    .member-cell { display:flex; align-items:center; gap:0.75rem; }
+    .member-avatar {
+      width:36px; height:36px; border-radius:50%; display:flex; align-items:center;
+      justify-content:center; font-weight:600; font-size:0.85rem; color:var(--white);
+      background:linear-gradient(135deg, var(--primary), var(--accent)); flex-shrink:0;
+    }
+    .member-name { font-weight:600; color:var(--text-primary); }
+    .member-email { font-size:0.78rem; color:var(--text-secondary); }
+
+    /* Role dropdown in table */
+    .role-select {
+      padding:0.3rem 0.5rem; border:1px solid var(--light-2); border-radius:var(--radius-sm);
+      font-size:0.82rem; background:var(--white); cursor:pointer; font-weight:500;
+      color:var(--text-primary); transition:var(--t);
+    }
+    .role-select:focus { outline:none; border-color:var(--primary); }
+
+    /* Status badge */
+    .status-active { display:inline-flex; align-items:center; gap:0.35rem; font-size:0.8rem; font-weight:500; color:var(--success-dark); }
+    .status-active::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--success); }
+    .status-suspended { display:inline-flex; align-items:center; gap:0.35rem; font-size:0.8rem; font-weight:500; color:var(--danger-dark); }
+    .status-suspended::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--danger); }
+
+    /* Action buttons */
+    .action-btns { display:flex; gap:0.5rem; align-items:center; }
+    .btn-toggle {
+      padding:0.35rem 0.7rem; border-radius:var(--radius-sm); font-size:0.78rem;
+      font-weight:500; border:1px solid var(--light-2); background:var(--white);
+      color:var(--text-primary); cursor:pointer; transition:var(--t);
+    }
+    .btn-toggle:hover { border-color:var(--primary); color:var(--primary); }
+    .btn-remove {
+      padding:0.35rem 0.7rem; border-radius:var(--radius-sm); font-size:0.78rem;
+      font-weight:500; border:1px solid var(--danger-light); background:var(--danger-light);
+      color:var(--danger-dark); cursor:pointer; transition:var(--t);
+    }
+    .btn-remove:hover { background:var(--danger); color:var(--white); border-color:var(--danger); }
+
+    /* Empty state */
+    .empty-state { text-align:center; padding:4rem 2rem; }
+    .empty-state .empty-icon { font-size:3rem; margin-bottom:1rem; }
+    .empty-state h3 { font-size:1.1rem; font-weight:600; margin-bottom:0.5rem; }
+    .empty-state p { color:var(--text-secondary); font-size:0.9rem; }
+
+    /* Modal form styles */
+    .form-group { margin-bottom:1rem; }
+    .form-group label { display:block; font-size:0.82rem; font-weight:600; color:var(--text-primary); margin-bottom:0.35rem; }
+    .form-group input, .form-group select {
+      width:100%; padding:0.6rem 0.85rem; border:1px solid var(--light-2);
+      border-radius:var(--radius-sm); font-size:0.88rem; background:var(--white);
+      transition:var(--t);
+    }
+    .form-group input:focus, .form-group select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(var(--primary-rgb),0.08); }
+    .form-note {
+      background:var(--info-light); border:1px solid var(--info); border-radius:var(--radius-sm);
+      padding:0.75rem 1rem; font-size:0.82rem; color:var(--info-dark); line-height:1.5; margin-top:0.5rem;
+    }
+
+    @media (max-width:900px) {
+      .team-stats { grid-template-columns:repeat(2,1fr); }
+    }
+    @media (max-width:600px) {
+      .team-stats { grid-template-columns:1fr; }
+      .team-search input { width:100%; }
+      .page-header { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page" id="page-body"><div class="loading-spinner">Loading team...</div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="inviteModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3>Invite Team Member</h3>
+      <button class="modal-close" onclick="closeModal('inviteModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="inviteForm" onsubmit="return false">
+        <div class="form-group">
+          <label>Name</label>
+          <input id="invName" class="form-control" placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input id="invEmail" class="form-control" type="email" required placeholder="john@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password *</label>
+          <input id="invPassword" class="form-control" type="password" required placeholder="Min 6 characters" minlength="6">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="invRole" class="form-control">
+            <option value="admin">Admin</option>
+            <option value="manager" selected>Manager</option>
+            <option value="analyst">Analyst</option>
+          </select>
+        </div>
+        <div class="form-note">
+          <strong>Role permissions:</strong><br>
+          Admins can manage products, campaigns, and team.<br>
+          Managers can create campaigns.<br>
+          Analysts have view-only access.
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('inviteModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitInvite()">Invite Member</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="shared.js"></script>
+<script>
+let allMembers = [];
+let currentTenantId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireLogin();
+  if (!user) return;
+  document.getElementById('sidebar').innerHTML = sidebarHTML('team.html');
+  document.getElementById('topbar').innerHTML = topbarHTML('Team Management');
+  initPage('Team Management');
+  loadTeam();
+});
+
+async function loadTeam() {
+  try {
+    const user = getUser();
+    let path = '/team';
+    if (user && user.role === 'super_admin' && currentTenantId) {
+      path = '/team?tenantId=' + encodeURIComponent(currentTenantId);
+    }
+    allMembers = await apiGet(path);
+    if (!Array.isArray(allMembers)) allMembers = [];
+    renderPage(allMembers);
+  } catch (e) {
+    document.getElementById('page-body').innerHTML =
+      '<div class="empty-state"><p>' + escapeHtml(e.message) + '</p>' +
+      '<button class="btn btn-primary" style="margin-top:1rem" onclick="loadTeam()">Retry</button></div>';
+  }
+}
+
+function countByRole(list, role) {
+  return list.filter(m => (m.role || '').toLowerCase() === role).length;
+}
+
+function renderPage(list) {
+  const user = getUser();
+  const isSuperAdmin = user && user.role === 'super_admin';
+
+  // Build tenant selector HTML for super_admin
+  let tenantSelectorHtml = '';
+  if (isSuperAdmin) {
+    tenantSelectorHtml =
+      '<div class="tenant-selector" id="tenantSelector" style="display:flex">' +
+        '<select id="tenantSelect" class="form-control" onchange="switchTenant(this.value)" style="min-width:200px">' +
+          '<option value="">All Tenants</option>' +
+        '</select>' +
+      '</div>';
+  }
+
+  // Stats
+  const total = list.length;
+  const admins = countByRole(list, 'admin');
+  const managers = countByRole(list, 'manager');
+  const analysts = countByRole(list, 'analyst');
+
+  // Rows
+  let rows = '';
+  list.forEach(m => {
+    const name = m.name || m.email || 'Unknown';
+    const initial = name.charAt(0).toUpperCase();
+    const email = m.email || '-';
+    const role = (m.role || 'analyst').toLowerCase();
+    const status = (m.status || 'active').toLowerCase();
+    const joined = fmtDate(m.created_at);
+    const isActive = status === 'active';
+
+    const statusHtml = isActive
+      ? '<span class="status-active">Active</span>'
+      : '<span class="status-suspended">Suspended</span>';
+
+    const toggleLabel = isActive ? 'Suspend' : 'Activate';
+
+    // Role select (don't allow changing super_admin role)
+    let roleHtml;
+    if (role === 'super_admin') {
+      roleHtml = roleBadge('Super Admin');
+    } else {
+      roleHtml =
+        '<select class="role-select" onchange="changeRole(\'' + m.id + '\', this.value)">' +
+          '<option value="admin"' + (role === 'admin' ? ' selected' : '') + '>Admin</option>' +
+          '<option value="manager"' + (role === 'manager' ? ' selected' : '') + '>Manager</option>' +
+          '<option value="analyst"' + (role === 'analyst' ? ' selected' : '') + '>Analyst</option>' +
+        '</select>';
+    }
+
+    // Actions (don't show actions for super_admin or self)
+    let actionsHtml = '';
+    if (role !== 'super_admin' && (!user || m.id !== user.id)) {
+      actionsHtml =
+        '<div class="action-btns">' +
+          '<button class="btn-toggle" onclick="toggleStatus(\'' + m.id + '\', \'' + status + '\')">' + toggleLabel + '</button>' +
+          '<button class="btn-remove" onclick="removeMember(\'' + m.id + '\', \'' + escapeHtml(name) + '\')">Remove</button>' +
+        '</div>';
+    }
+
+    rows +=
+      '<tr>' +
+        '<td><div class="member-cell"><div class="member-avatar">' + escapeHtml(initial) + '</div><div><div class="member-name">' + escapeHtml(name) + '</div><div class="member-email">' + escapeHtml(email) + '</div></div></div></td>' +
+        '<td>' + roleHtml + '</td>' +
+        '<td>' + statusHtml + '</td>' +
+        '<td>' + joined + '</td>' +
+        '<td>' + actionsHtml + '</td>' +
+      '</tr>';
+  });
+
+  const emptyRow = !list.length
+    ? '<tr><td colspan="5" style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">No team members found.</td></tr>'
+    : '';
+
+  const p = document.getElementById('page-body');
+  p.innerHTML =
+    '<div class="page-header">' +
+      '<div class="page-header-left">' +
+        '<h1>Team Management</h1>' +
+        '<p>Manage your team members and access controls</p>' +
+      '</div>' +
+      '<div class="page-header-actions">' +
+        tenantSelectorHtml +
+        '<button class="btn btn-primary" onclick="openModal(\'inviteModal\')">+ Invite Member</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="team-stats">' +
+      '<div class="team-stat-card">' +
+        '<div class="team-stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>' +
+        '<div><div class="team-stat-label">Total Members</div><div class="team-stat-value">' + fmtNum(total) + '</div></div>' +
+      '</div>' +
+      '<div class="team-stat-card">' +
+        '<div class="team-stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>' +
+        '<div><div class="team-stat-label">Admins</div><div class="team-stat-value">' + fmtNum(admins) + '</div></div>' +
+      '</div>' +
+      '<div class="team-stat-card">' +
+        '<div class="team-stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>' +
+        '<div><div class="team-stat-label">Managers</div><div class="team-stat-value">' + fmtNum(managers) + '</div></div>' +
+      '</div>' +
+      '<div class="team-stat-card">' +
+        '<div class="team-stat-icon neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>' +
+        '<div><div class="team-stat-label">Analysts</div><div class="team-stat-value">' + fmtNum(analysts) + '</div></div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="team-card">' +
+      '<div class="team-card-header">' +
+        '<h3>Team Members</h3>' +
+        '<div class="team-search">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+          '<input type="text" placeholder="Search members..." oninput="filterMembers(this.value)">' +
+        '</div>' +
+      '</div>' +
+      '<div class="table-wrap">' +
+        '<table class="team-table">' +
+          '<thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>' +
+          '<tbody>' + (rows || emptyRow) + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+
+  // Load tenants list if super_admin
+  if (isSuperAdmin) {
+    loadTenants();
+  }
+}
+
+async function loadTenants() {
+  try {
+    const tenants = await apiGet('/tenants');
+    const sel = document.getElementById('tenantSelect');
+    if (!sel) return;
+    tenants.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name || t.id;
+      if (t.id === currentTenantId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    // Tenants not available — ignore
+  }
+}
+
+function switchTenant(tenantId) {
+  currentTenantId = tenantId || null;
+  document.getElementById('page-body').innerHTML = '<div class="loading-spinner">Loading team...</div>';
+  loadTeam();
+}
+
+function filterMembers(q) {
+  const lower = q.toLowerCase();
+  const filtered = allMembers.filter(m =>
+    (m.name || '').toLowerCase().includes(lower) ||
+    (m.email || '').toLowerCase().includes(lower) ||
+    (m.role || '').toLowerCase().includes(lower)
+  );
+  renderPage(filtered);
+}
+
+async function changeRole(memberId, newRole) {
+  try {
+    await apiPatch('/team/' + memberId + '/role', { role: newRole });
+    toast('Role updated successfully', 'success');
+    loadTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+    loadTeam(); // reload to reset select
+  }
+}
+
+async function toggleStatus(memberId, currentStatus) {
+  const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+  try {
+    await apiPatch('/team/' + memberId + '/status', { status: newStatus });
+    toast('Member ' + (newStatus === 'active' ? 'activated' : 'suspended'), 'success');
+    loadTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function removeMember(memberId, name) {
+  if (!confirm('Are you sure you want to remove ' + name + ' from the team? This action cannot be undone.')) return;
+  try {
+    await apiDelete('/team/' + memberId);
+    toast('Member removed', 'success');
+    loadTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function submitInvite() {
+  const email = document.getElementById('invEmail').value.trim();
+  const password = document.getElementById('invPassword').value;
+  const name = document.getElementById('invName').value.trim();
+  const role = document.getElementById('invRole').value;
+
+  if (!email) { toast('Email is required', 'error'); return; }
+  if (!password || password.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
+
+  const body = { email: email, password: password, role: role };
+  if (name) body.name = name;
+
+  try {
+    await apiPost('/team/invite', body);
+    toast('Invitation sent successfully!', 'success');
+    closeModal('inviteModal');
+    document.getElementById('inviteForm').reset();
+    loadTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

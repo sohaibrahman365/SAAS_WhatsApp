@@ -41,7 +41,7 @@ Analyze and return ONLY valid JSON (no markdown, no code fences):
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5-20250401',
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -49,7 +49,9 @@ Analyze and return ONLY valid JSON (no markdown, no code fences):
 
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json.error?.message || `Anthropic API error ${res.status}`);
+    console.error('[ai] Anthropic API error:', json.error?.message || res.status);
+    // Fall back to stub analysis instead of crashing
+    return stubAnalysis(responseText);
   }
 
   const text = json.content?.[0]?.text || '{}';

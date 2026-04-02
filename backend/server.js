@@ -36,7 +36,10 @@ app.use('/api/whatsapp', require('./routes/whatsapp'));
 app.use('/api/ai', require('./routes/ai'));
 
 // Phase 6 — BI Analytics
-// app.use('/api/bi', require('./routes/bi'));
+app.use('/api/bi', require('./routes/bi'));
+
+// Phase 7 — n8n Webhooks
+app.use('/api/webhooks', require('./routes/webhooks'));
 
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {

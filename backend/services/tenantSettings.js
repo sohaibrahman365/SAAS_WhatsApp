@@ -43,12 +43,19 @@ async function getWhatsAppCredentials(tenantId) {
   };
 }
 
-// Get AI credentials for a tenant (falls back to platform env vars)
+// Get AI credentials + knowledge base for a tenant (falls back to platform env vars)
 async function getAICredentials(tenantId) {
   const ts = await getTenantSettings(tenantId);
   return {
     apiKey: ts?.anthropic_api_key || process.env.ANTHROPIC_API_KEY,
     promptContext: ts?.ai_prompt_context || '',
+    businessSemantics: ts?.ai_business_semantics || '',
+    replyTone: ts?.ai_reply_tone || 'professional',
+    industry: ts?.ai_industry || '',
+    targetAudience: ts?.ai_target_audience || '',
+    sampleReplies: ts?.ai_sample_replies || '',
+    webpageUrl: ts?.business_webpage_url || '',
+    knowledgeBase: ts?.business_knowledge_base || '',
     model: ts?.ai_model || 'claude-haiku-4-5-20250401',
     isConfigured: !!(ts?.anthropic_api_key || process.env.ANTHROPIC_API_KEY),
   };

@@ -316,6 +316,69 @@ function initPage(pageTitle) {
       backdrop.classList.remove('open');
     });
   }
+
+  // Enforce permission-based nav visibility
+  enforceNavPermissions();
+}
+
+/* ============================================================
+   PERMISSION-BASED ACCESS CONTROL
+   ============================================================ */
+
+// Cache permissions after first fetch
+var _userPermissions = null;
+
+async function loadUserPermissions() {
+  if (_userPermissions) return _userPermissions;
+  try {
+    var me = await apiGet('/auth/me');
+    _userPermissions = (me.permissions || []).map(function(p) {
+      return p.module + '.' + p.action;
+    });
+    // Super admin flag
+    if (me.role === 'super_admin') {
+      _userPermissions._superAdmin = true;
+    }
+    return _userPermissions;
+  } catch (e) {
+    return [];
+  }
+}
+
+function hasPermission(module, action) {
+  if (!_userPermissions) return true; // not loaded yet, allow by default
+  if (_userPermissions._superAdmin) return true;
+  return _userPermissions.indexOf(module + '.' + action) !== -1;
+}
+
+// Apply permission-based visibility to sidebar nav items after loading permissions
+async function enforceNavPermissions() {
+  var perms = await loadUserPermissions();
+  var user = getUser();
+  if (!user) return;
+  if (user.role === 'super_admin') return; // super_admin sees everything
+
+  // Map pages to required permissions (module.action)
+  var pagePermMap = {
+    'index.html':         'dashboard.view',
+    'inventory.html':     'products.view',
+    'engagement.html':    'customers.view',
+    'campaigns.html':     'campaigns.view',
+    'conversations.html': 'conversations.view',
+    'bi.html':            'bi.view',
+    'reports.html':       'reports.view',
+    'team.html':          'team.view',
+    'roles.html':         'roles.view',
+    'settings.html':      'settings.view'
+  };
+
+  document.querySelectorAll('.nav-item').forEach(function(link) {
+    var href = link.getAttribute('href');
+    var required = pagePermMap[href];
+    if (required && perms.indexOf(required) === -1) {
+      link.style.display = 'none';
+    }
+  });
 }
 
 /* ============================================================
@@ -378,10 +441,12 @@ function sidebarHTML(activePage) {
       ((function() {
         var u = getUser();
         var r = u ? (u.role || '').toLowerCase() : '';
+        var items = '';
         if (r === 'admin' || r === 'super_admin') {
-          return navItem('team.html', 'Team', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
+          items += navItem('team.html', 'Team', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
+          items += navItem('roles.html', 'Roles', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>');
         }
-        return '';
+        return items;
       })()) +
       navItem('settings.html', 'Settings', icons.settings) +
     '</nav>' +
@@ -641,3 +706,6 @@ window.initTabs      = initTabs;
 window.GS            = GS;
 window.daysAgo       = daysAgo;
 window.timeAgo       = timeAgo;
+window.loadUserPermissions  = loadUserPermissions;
+window.hasPermission        = hasPermission;
+window.enforceNavPermissions = enforceNavPermissions;

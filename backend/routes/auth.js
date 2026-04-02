@@ -10,7 +10,7 @@ const JWT_EXPIRES = '7d';
 
 function makeToken(user) {
   return jwt.sign(
-    { userId: user.id, email: user.email, role: user.role, tenantId: user.tenant_id },
+    { userId: user.id, email: user.email, role: user.role, roleId: user.role_id || null, tenantId: user.tenant_id },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES }
   );
@@ -83,15 +83,40 @@ router.post('/register', async (req, res, next) => {
   }
 });
 
-// GET /api/auth/me — returns current user from JWT
+// GET /api/auth/me — returns current user with permissions
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, name, role, tenant_id, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, role, role_id, tenant_id, created_at FROM users WHERE id = $1',
       [req.user.userId]
     );
     if (!rows[0]) return res.status(404).json({ error: 'User not found' });
-    res.json(rows[0]);
+
+    const user = rows[0];
+
+    // Load permissions
+    let permissions = [];
+    if (user.role === 'super_admin') {
+      const { rows: all } = await pool.query('SELECT module, action FROM permissions');
+      permissions = all;
+    } else if (user.role_id) {
+      const { rows: perms } = await pool.query(`
+        SELECT p.module, p.action FROM role_permissions rp
+        JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = $1
+      `, [user.role_id]);
+      permissions = perms;
+    } else {
+      const { rows: perms } = await pool.query(`
+        SELECT p.module, p.action FROM role_permissions rp
+        JOIN permissions p ON p.id = rp.permission_id
+        JOIN roles r ON r.id = rp.role_id
+        WHERE r.slug = $1 AND r.tenant_id IS NULL
+      `, [user.role]);
+      permissions = perms;
+    }
+
+    user.permissions = permissions;
+    res.json(user);
   } catch (err) {
     next(err);
   }

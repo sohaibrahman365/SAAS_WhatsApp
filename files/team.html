@@ -158,18 +158,22 @@
           <input id="invPassword" class="form-control" type="password" required placeholder="Min 6 characters" minlength="6">
         </div>
         <div class="form-group">
-          <label>Role</label>
+          <label>Legacy Role</label>
           <select id="invRole" class="form-control">
             <option value="admin">Admin</option>
             <option value="manager" selected>Manager</option>
             <option value="analyst">Analyst</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>Dynamic Role (permissions-based)</label>
+          <select id="invRoleId" class="form-control">
+            <option value="">-- Use legacy role --</option>
+          </select>
+        </div>
         <div class="form-note">
-          <strong>Role permissions:</strong><br>
-          Admins can manage products, campaigns, and team.<br>
-          Managers can create campaigns.<br>
-          Analysts have view-only access.
+          <strong>Tip:</strong> Assign a <b>Dynamic Role</b> for granular permission control, or use the legacy role for basic access levels.
+          <a href="roles.html" style="color:var(--primary);font-weight:600">Manage roles &amp; permissions</a>
         </div>
       </form>
     </div>
@@ -185,6 +189,7 @@
 <script>
 let allMembers = [];
 let currentTenantId = null;
+let availableRoles = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   const user = requireLogin();
@@ -192,8 +197,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sidebar').innerHTML = sidebarHTML('team.html');
   document.getElementById('topbar').innerHTML = topbarHTML('Team Management');
   initPage('Team Management');
-  loadTeam();
+  loadRolesAndTeam();
 });
+
+async function loadRolesAndTeam() {
+  try {
+    availableRoles = await apiGet('/roles');
+    if (!Array.isArray(availableRoles)) availableRoles = [];
+  } catch (e) {
+    availableRoles = [];
+  }
+  populateInviteRoles();
+  loadTeam();
+}
 
 async function loadTeam() {
   try {
@@ -254,16 +270,21 @@ function renderPage(list) {
 
     const toggleLabel = isActive ? 'Suspend' : 'Activate';
 
-    // Role select (don't allow changing super_admin role)
+    // Role display: show dynamic role name if assigned, otherwise legacy role badge
+    const roleName = m.role_name || '';
     let roleHtml;
     if (role === 'super_admin') {
       roleHtml = roleBadge('Super Admin');
     } else {
+      // Dynamic role selector
+      let roleOpts = '<option value="">-- Legacy: ' + escapeHtml(role) + ' --</option>';
+      availableRoles.forEach(function(ar) {
+        var sel = m.role_id === ar.id ? ' selected' : '';
+        roleOpts += '<option value="' + escapeHtml(ar.id) + '"' + sel + '>' + escapeHtml(ar.name) + '</option>';
+      });
       roleHtml =
-        '<select class="role-select" onchange="changeRole(\'' + m.id + '\', this.value)">' +
-          '<option value="admin"' + (role === 'admin' ? ' selected' : '') + '>Admin</option>' +
-          '<option value="manager"' + (role === 'manager' ? ' selected' : '') + '>Manager</option>' +
-          '<option value="analyst"' + (role === 'analyst' ? ' selected' : '') + '>Analyst</option>' +
+        '<select class="role-select" onchange="changeRole(\'' + m.id + '\', this.value)" title="Assign dynamic role">' +
+          roleOpts +
         '</select>';
     }
 
@@ -378,14 +399,24 @@ function filterMembers(q) {
   renderPage(filtered);
 }
 
-async function changeRole(memberId, newRole) {
+async function changeRole(memberId, newRoleIdOrEmpty) {
   try {
-    await apiPatch('/team/' + memberId + '/role', { role: newRole });
+    var body = {};
+    if (newRoleIdOrEmpty) {
+      // Dynamic role selected — find slug for legacy field
+      var role = availableRoles.find(function(r) { return r.id === newRoleIdOrEmpty; });
+      body.roleId = newRoleIdOrEmpty;
+      if (role) body.role = role.slug;
+    } else {
+      // Cleared dynamic role
+      body.roleId = null;
+    }
+    await apiPatch('/team/' + memberId + '/role', body);
     toast('Role updated successfully', 'success');
     loadTeam();
   } catch (e) {
     toast(e.message, 'error');
-    loadTeam(); // reload to reset select
+    loadTeam();
   }
 }
 
@@ -416,12 +447,14 @@ async function submitInvite() {
   const password = document.getElementById('invPassword').value;
   const name = document.getElementById('invName').value.trim();
   const role = document.getElementById('invRole').value;
+  const roleId = document.getElementById('invRoleId').value;
 
   if (!email) { toast('Email is required', 'error'); return; }
   if (!password || password.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
 
   const body = { email: email, password: password, role: role };
   if (name) body.name = name;
+  if (roleId) body.roleId = roleId;
 
   try {
     await apiPost('/team/invite', body);
@@ -432,6 +465,19 @@ async function submitInvite() {
   } catch (e) {
     toast(e.message, 'error');
   }
+}
+
+// Populate dynamic role options in the invite modal
+function populateInviteRoles() {
+  var sel = document.getElementById('invRoleId');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Use legacy role --</option>';
+  availableRoles.forEach(function(r) {
+    var opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = r.name;
+    sel.appendChild(opt);
+  });
 }
 </script>
 </body>

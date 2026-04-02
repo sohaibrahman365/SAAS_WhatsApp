@@ -45,6 +45,9 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/tenant-settings', require('./routes/tenantSettings'));
 app.use('/api/team', require('./routes/team'));
 
+// Phase 9 — Dynamic Roles & Permissions
+app.use('/api/roles', require('./routes/roles'));
+
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

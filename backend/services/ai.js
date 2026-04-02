@@ -22,14 +22,22 @@ async function analyzeResponse(responseText, campaignContext, tenantId) {
     return stubAnalysis(responseText);
   }
 
-  // Build prompt with optional tenant-specific business context
+  // Build rich business context from tenant's AI knowledge base
   let businessContext = '';
-  if (creds.promptContext) {
-    businessContext = `\nBusiness context: ${creds.promptContext}\n`;
-  }
+  if (creds.industry) businessContext += `Industry: ${creds.industry}\n`;
+  if (creds.targetAudience) businessContext += `Target audience: ${creds.targetAudience}\n`;
+  if (creds.businessSemantics) businessContext += `Business semantics & terminology: ${creds.businessSemantics}\n`;
+  if (creds.knowledgeBase) businessContext += `Business knowledge: ${creds.knowledgeBase}\n`;
+  if (creds.webpageUrl) businessContext += `Business website: ${creds.webpageUrl}\n`;
+  if (creds.sampleReplies) businessContext += `Example ideal replies:\n${creds.sampleReplies}\n`;
+  if (creds.promptContext) businessContext += `Additional context: ${creds.promptContext}\n`;
+
+  const toneInstruction = creds.replyTone
+    ? `\nIMPORTANT: The suggested_reply must use a ${creds.replyTone} tone.`
+    : '';
 
   const prompt = `You are analyzing a customer's WhatsApp reply to a marketing campaign.
-${businessContext}
+${businessContext ? '\n--- BUSINESS CONTEXT ---\n' + businessContext + '--- END CONTEXT ---\n' : ''}
 Campaign context:
 - Campaign: ${campaignContext.campaignName || 'N/A'}
 - Product: ${campaignContext.productName || 'N/A'}
@@ -46,7 +54,7 @@ Analyze and return ONLY valid JSON (no markdown, no code fences):
   "extracted_info": { "any relevant structured data" },
   "suggested_reply": "A helpful follow-up message",
   "confidence": 0.00-1.00
-}`;
+}${toneInstruction}`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',

@@ -21,20 +21,24 @@ router.get('/', requireAuth, requireRole('super_admin', 'admin', 'manager'), asy
     if (req.user.role === 'super_admin' && !req.query.tenantId) {
       // Super admin without tenantId filter: show all users
       query = `
-        SELECT u.id, u.name, u.email, u.role, u.status, u.created_at, u.invited_at,
-               t.name AS tenant_name, t.id AS tenant_id
+        SELECT u.id, u.name, u.email, u.role, u.role_id, u.status, u.created_at, u.invited_at,
+               t.name AS tenant_name, t.id AS tenant_id,
+               r.name AS role_name, r.slug AS role_slug
           FROM users u
           LEFT JOIN tenants t ON t.id = u.tenant_id
+          LEFT JOIN roles r ON r.id = u.role_id
          ORDER BY u.created_at DESC
       `;
       params = [];
     } else {
       if (!tenantId) return res.status(400).json({ error: 'No tenant context' });
       query = `
-        SELECT u.id, u.name, u.email, u.role, u.status, u.created_at, u.invited_at,
-               t.name AS tenant_name
+        SELECT u.id, u.name, u.email, u.role, u.role_id, u.status, u.created_at, u.invited_at,
+               t.name AS tenant_name,
+               r.name AS role_name, r.slug AS role_slug
           FROM users u
           LEFT JOIN tenants t ON t.id = u.tenant_id
+          LEFT JOIN roles r ON r.id = u.role_id
          WHERE u.tenant_id = $1
          ORDER BY u.created_at DESC
       `;
@@ -55,7 +59,7 @@ router.post('/invite', requireAuth, requireRole('super_admin', 'admin'), async (
     const tenantId = resolvedTenantId(req);
     if (!tenantId) return res.status(400).json({ error: 'No tenant context' });
 
-    const { name, email, role, password } = req.body;
+    const { name, email, role, roleId, password } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
     if (!password || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
@@ -76,10 +80,10 @@ router.post('/invite', requireAuth, requireRole('super_admin', 'admin'), async (
 
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(`
-      INSERT INTO users (name, email, password_hash, role, tenant_id, invited_by, invited_at)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
-      RETURNING id, name, email, role, tenant_id, status, created_at, invited_at
-    `, [name || email.split('@')[0], email, hash, assignRole, tenantId, req.user.id]);
+      INSERT INTO users (name, email, password_hash, role, role_id, tenant_id, invited_by, invited_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      RETURNING id, name, email, role, role_id, tenant_id, status, created_at, invited_at
+    `, [name || email.split('@')[0], email, hash, assignRole, roleId || null, tenantId, req.user.id]);
 
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -88,15 +92,15 @@ router.post('/invite', requireAuth, requireRole('super_admin', 'admin'), async (
 });
 
 // ── PATCH /api/team/:userId/role ────────────────────────────
-// Change a team member's role
+// Change a team member's role (supports both legacy role string and dynamic role_id)
 router.patch('/:userId/role', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
   try {
     const tenantId = resolvedTenantId(req);
     const { userId } = req.params;
-    const { role } = req.body;
+    const { role, roleId } = req.body;
 
     const allowedRoles = ['admin', 'manager', 'analyst'];
-    if (!allowedRoles.includes(role)) {
+    if (role && !allowedRoles.includes(role)) {
       return res.status(400).json({ error: 'Invalid role. Must be admin, manager, or analyst' });
     }
 
@@ -106,20 +110,37 @@ router.patch('/:userId/role', requireAuth, requireRole('super_admin', 'admin'), 
     }
 
     // Cannot change own role
-    if (userId === req.user.id) {
+    if (userId === req.user.userId) {
       return res.status(400).json({ error: 'Cannot change your own role' });
     }
 
-    // Ensure target user belongs to same tenant (unless super_admin)
-    let query = 'UPDATE users SET role = $1 WHERE id = $2';
-    const params = [role, userId];
+    // Build dynamic SET clause
+    const sets = [];
+    const params = [];
+    let idx = 1;
+
+    if (role) {
+      sets.push('role = $' + idx++);
+      params.push(role);
+    }
+    if (roleId !== undefined) {
+      sets.push('role_id = $' + idx++);
+      params.push(roleId || null);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ error: 'Provide role or roleId' });
+    }
+
+    let query = 'UPDATE users SET ' + sets.join(', ') + ' WHERE id = $' + idx++;
+    params.push(userId);
 
     if (req.user.role !== 'super_admin') {
-      query += ' AND tenant_id = $3';
+      query += ' AND tenant_id = $' + idx++;
       params.push(tenantId);
     }
 
-    query += ' RETURNING id, name, email, role, status';
+    query += ' RETURNING id, name, email, role, role_id, status';
     const { rows } = await pool.query(query, params);
 
     if (!rows[0]) return res.status(404).json({ error: 'User not found in your tenant' });

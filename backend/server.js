@@ -33,7 +33,7 @@ app.use('/api/campaigns', require('./routes/campaigns'));
 app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // Phase 5 — AI Analysis
-// app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ai', require('./routes/ai'));
 
 // Phase 6 — BI Analytics
 // app.use('/api/bi', require('./routes/bi'));

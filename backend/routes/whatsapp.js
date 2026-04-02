@@ -2,6 +2,7 @@ const express = require('express');
 const pool    = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendTextMessage, personalizeMessage, isStubMode } = require('../services/whatsapp');
+const { analyzeResponse } = require('../services/ai');
 
 const router = express.Router();
 
@@ -99,14 +100,47 @@ async function handleIncomingMessage(message) {
     [campaignId]
   );
 
-  // Insert response row (AI analysis happens in Phase 5)
-  await pool.query(
+  // Insert response row
+  const { rows: inserted } = await pool.query(
     `INSERT INTO campaign_responses (campaign_id, recipient_id, response_text, response_type)
-     VALUES ($1, $2, $3, 'text')`,
+     VALUES ($1, $2, $3, 'text') RETURNING id`,
     [campaignId, recipientId, text]
   );
 
   console.log(`[whatsapp] Reply from ${from} → campaign ${campaignId}`);
+
+  // Auto-analyze with Claude AI (async — don't block webhook)
+  const responseId = inserted[0]?.id;
+  if (responseId) {
+    // Fetch campaign context for AI
+    const { rows: ctx } = await pool.query(
+      `SELECT c.name AS campaign_name, c.message_template, p.name AS product_name
+         FROM campaigns c LEFT JOIN products p ON p.id = c.product_id
+        WHERE c.id = $1`,
+      [campaignId]
+    );
+    const cc = ctx[0] || {};
+
+    analyzeResponse(text, {
+      campaignName: cc.campaign_name,
+      productName: cc.product_name,
+      messageTemplate: cc.message_template,
+    }).then(analysis =>
+      pool.query(
+        `UPDATE campaign_responses
+            SET sentiment = $1, sentiment_score = $2, intent = $3,
+                key_phrases = $4, extracted_info = $5, suggested_reply = $6,
+                ai_confidence = $7, ai_analyzed = true
+          WHERE id = $8`,
+        [
+          analysis.sentiment, analysis.sentiment_score, analysis.intent,
+          JSON.stringify(analysis.key_phrases || []),
+          JSON.stringify(analysis.extracted_info || {}),
+          analysis.suggested_reply, analysis.confidence, responseId,
+        ]
+      )
+    ).catch(err => console.error(`[ai:auto] Failed for response ${responseId}:`, err.message));
+  }
 }
 
 async function handleStatusUpdate(status) {

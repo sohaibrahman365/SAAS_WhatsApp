@@ -3,1502 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GeniSearch — Settings</title>
+  <title>Settings — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared.css">
-  <style>
-    /* ── Settings Layout ── */
-    .settings-layout {
-      display: flex;
-      gap: 1.5rem;
-      align-items: flex-start;
-    }
-
-    /* ── Settings Secondary Nav ── */
-    .settings-nav {
-      width: 210px;
-      flex-shrink: 0;
-      background: var(--white);
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: sticky;
-      top: calc(var(--topbar-h) + 1.75rem);
-    }
-    .settings-nav-header {
-      padding: .9rem 1.1rem;
-      font-size: .7rem;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      background: var(--light);
-      border-bottom: 1px solid var(--light-2);
-    }
-    .settings-nav-item {
-      display: flex;
-      align-items: center;
-      gap: .65rem;
-      padding: .7rem 1.1rem;
-      font-size: .875rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      border-left: 3px solid transparent;
-      border-bottom: 1px solid var(--light-2);
-      transition: var(--t);
-      user-select: none;
-    }
-    .settings-nav-item:last-child { border-bottom: none; }
-    .settings-nav-item:hover {
-      color: var(--text-primary);
-      background: var(--light);
-    }
-    .settings-nav-item.active {
-      color: var(--primary);
-      background: var(--primary-light);
-      border-left-color: var(--primary);
-      font-weight: 600;
-    }
-    .settings-nav-item .snav-icon { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
-
-    /* ── Settings Content ── */
-    .settings-content { flex: 1; min-width: 0; }
-
-    .settings-section {
-      display: none;
-    }
-    .settings-section.active {
-      display: block;
-    }
-
-    .settings-card {
-      background: var(--white);
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-bottom: 1.25rem;
-      overflow: hidden;
-    }
-    .settings-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.1rem 1.5rem;
-      border-bottom: 1px solid var(--light-2);
-      background: var(--light);
-    }
-    .settings-card-header h3 {
-      font-size: .95rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-    }
-    .settings-card-body { padding: 1.5rem; }
-
-    /* ── Avatar Upload ── */
-    .avatar-upload-area {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      padding: 1.5rem;
-      border-bottom: 1px solid var(--light-2);
-    }
-    .avatar-upload-circle {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: var(--gradient);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--white);
-      font-size: 2rem;
-      font-weight: 700;
-      flex-shrink: 0;
-      position: relative;
-      cursor: pointer;
-    }
-    .avatar-upload-overlay {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: rgba(0,0,0,.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: var(--t);
-      font-size: .75rem;
-      color: var(--white);
-      font-weight: 600;
-    }
-    .avatar-upload-circle:hover .avatar-upload-overlay { opacity: 1; }
-    .avatar-upload-info p { font-size: .875rem; color: var(--text-secondary); margin-top: .25rem; }
-
-    /* ── API Key Cards ── */
-    .api-key-list { display: flex; flex-direction: column; gap: 1rem; }
-    .api-key-card {
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius-sm);
-      padding: 1.1rem 1.25rem;
-      background: var(--light);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .api-key-info { flex: 1; min-width: 0; }
-    .api-key-label {
-      font-size: .8rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      margin-bottom: .3rem;
-    }
-    .api-key-value {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: .875rem;
-      color: var(--text-primary);
-      background: var(--white);
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius-sm);
-      padding: .4rem .75rem;
-      display: inline-block;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      letter-spacing: .04em;
-    }
-    .api-key-actions { display: flex; gap: .5rem; flex-shrink: 0; }
-    .api-key-warning {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      background: var(--warning-light);
-      border: 1px solid #f6d07a;
-      border-radius: var(--radius-sm);
-      padding: .7rem 1rem;
-      font-size: .82rem;
-      color: #7d5a00;
-      margin-top: 1rem;
-    }
-
-    /* ── Toggle Switch ── */
-    .toggle-switch {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: .85rem 0;
-      border-bottom: 1px solid var(--light-2);
-    }
-    .toggle-switch:last-of-type { border-bottom: none; }
-    .toggle-switch-label { display: flex; flex-direction: column; gap: .15rem; }
-    .toggle-switch-label .t-title { font-size: .875rem; font-weight: 600; color: var(--text-primary); }
-    .toggle-switch-label .t-desc { font-size: .78rem; color: var(--text-secondary); }
-
-    .toggle {
-      position: relative;
-      display: inline-block;
-      width: 44px;
-      height: 24px;
-      flex-shrink: 0;
-    }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background: var(--light-2);
-      border-radius: 24px;
-      transition: var(--t);
-    }
-    .toggle-slider::before {
-      position: absolute;
-      content: '';
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background: var(--white);
-      border-radius: 50%;
-      transition: var(--t);
-      box-shadow: 0 1px 4px rgba(0,0,0,.2);
-    }
-    .toggle input:checked + .toggle-slider { background: var(--primary); }
-    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
-
-    /* ── Webhook Table ── */
-    .webhook-inline-form {
-      background: var(--primary-light);
-      border: 1px dashed var(--primary);
-      border-radius: var(--radius-sm);
-      padding: 1.1rem;
-      margin-top: 1rem;
-      display: none;
-    }
-    .webhook-inline-form.open { display: block; }
-    .webhook-inline-form .form-row { margin-bottom: .75rem; }
-
-    /* ── Session Item ── */
-    .session-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: .9rem 0;
-      border-bottom: 1px solid var(--light-2);
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .session-item:last-child { border-bottom: none; }
-    .session-device { display: flex; align-items: center; gap: .75rem; }
-    .session-icon {
-      width: 38px; height: 38px;
-      background: var(--primary-light);
-      border-radius: var(--radius-sm);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem;
-      flex-shrink: 0;
-    }
-    .session-info .device-name { font-size: .875rem; font-weight: 600; color: var(--text-primary); }
-    .session-info .device-meta { font-size: .78rem; color: var(--text-muted); margin-top: .1rem; }
-    .session-current {
-      font-size: .72rem;
-      font-weight: 700;
-      background: var(--success-light);
-      color: var(--success);
-      padding: .15rem .5rem;
-      border-radius: 20px;
-    }
-
-    /* ── Login History ── */
-    .login-history-table thead th { font-size: .72rem; }
-
-    /* ── Section Page Header ── */
-    .settings-section-title {
-      display: flex;
-      align-items: center;
-      gap: .6rem;
-      margin-bottom: 1.25rem;
-    }
-    .settings-section-title h2 { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); }
-    .settings-section-title p { font-size: .875rem; color: var(--text-secondary); margin-top: .1rem; }
-
-    /* ── Danger zone ── */
-    .danger-zone {
-      border: 1px solid var(--danger-light);
-      background: var(--danger-light);
-      border-radius: var(--radius-sm);
-      padding: 1.1rem 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-    .danger-zone-info .dz-title { font-size: .875rem; font-weight: 700; color: var(--danger); }
-    .danger-zone-info .dz-desc { font-size: .8rem; color: var(--text-secondary); margin-top: .2rem; }
-
-    /* ── WhatsApp status indicator ── */
-    .connection-status {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      font-size: .8rem;
-      font-weight: 600;
-      padding: .4rem .85rem;
-      border-radius: 20px;
-      border: none;
-    }
-    .connection-status.connected { background: var(--success-light); color: var(--success); }
-    .connection-status.disconnected { background: var(--danger-light); color: var(--danger); }
-    .connection-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    /* ── Tenant plan badge colors ── */
-    .plan-enterprise { background: var(--primary-light); color: var(--primary); }
-    .plan-pro { background: var(--info-light); color: var(--info); }
-    .plan-business { background: var(--success-light); color: var(--success); }
-    .plan-starter { background: var(--warning-light); color: var(--warning); }
-
-    /* ── Password strength ── */
-    .pw-strength {
-      display: flex;
-      gap: .3rem;
-      margin-top: .5rem;
-    }
-    .pw-bar {
-      height: 4px;
-      flex: 1;
-      border-radius: 20px;
-      background: var(--light-2);
-      transition: background .3s;
-    }
-    .pw-bar.fill-weak { background: var(--danger); }
-    .pw-bar.fill-fair { background: var(--warning); }
-    .pw-bar.fill-good { background: var(--info); }
-    .pw-bar.fill-strong { background: var(--success); }
-
-    /* ── 2FA card ── */
-    .twofa-card {
-      display: flex;
-      align-items: center;
-      gap: 1.25rem;
-      padding: 1.25rem;
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius-sm);
-      background: var(--light);
-    }
-    .twofa-card .twofa-icon {
-      font-size: 2rem;
-      width: 52px; height: 52px;
-      background: var(--primary-light);
-      border-radius: var(--radius-sm);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .twofa-card .twofa-body { flex: 1; }
-    .twofa-card .twofa-title { font-size: .95rem; font-weight: 700; color: var(--text-primary); }
-    .twofa-card .twofa-desc { font-size: .8rem; color: var(--text-secondary); margin-top: .2rem; }
-
-    /* ── Regenerate confirm highlight ── */
-    .regen-confirm {
-      display: none;
-      align-items: center;
-      gap: .5rem;
-      background: var(--danger-light);
-      border: 1px solid #f5aea9;
-      border-radius: var(--radius-sm);
-      padding: .5rem .9rem;
-      font-size: .8rem;
-      color: var(--danger);
-      margin-top: .5rem;
-    }
-    .regen-confirm.open { display: flex; }
-
-    /* ── Info callout ── */
-    .callout {
-      display: flex;
-      align-items: flex-start;
-      gap: .65rem;
-      padding: .85rem 1rem;
-      border-radius: var(--radius-sm);
-      font-size: .82rem;
-    }
-    .callout-info { background: var(--info-light); color: #1a5e8a; border: 1px solid #b8ddf8; }
-    .callout-success { background: var(--success-light); color: #1a6b3a; border: 1px solid #a8e6c2; }
-
-    /* ── Responsive ── */
-    @media (max-width: 880px) {
-      .settings-layout { flex-direction: column; }
-      .settings-nav { width: 100%; position: static; display: flex; overflow-x: auto; }
-      .settings-nav-header { display: none; }
-      .settings-nav-item { border-bottom: none; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
-      .settings-nav-item.active { border-bottom-color: var(--primary); border-left: none; }
-    }
-  </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- ── Sidebar ── -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">&#127760;</div>
-      <div>
-        <div class="logo-text">GeniSearch</div>
-        <div class="logo-sub">Super Admin</div>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="sidebar-section">Main</div>
-      <a href="index.html"         class="nav-item"><span class="nav-icon">&#9962;</span> Dashboard</a>
-      <a href="inventory.html"     class="nav-item"><span class="nav-icon">&#128230;</span> Inventory</a>
-      <a href="campaigns.html"     class="nav-item"><span class="nav-icon">&#128228;</span> Campaigns</a>
-      <a href="engagement.html"    class="nav-item"><span class="nav-icon">&#128172;</span> Engagement</a>
-      <div class="sidebar-section">Analytics</div>
-      <a href="bi.html"            class="nav-item"><span class="nav-icon">&#128202;</span> BI Analytics</a>
-      <a href="conversations.html" class="nav-item"><span class="nav-icon">&#128489;</span> Conversations <span class="nav-badge">12</span></a>
-      <a href="reports.html"       class="nav-item"><span class="nav-icon">&#128196;</span> Reports</a>
-      <div class="sidebar-section">System</div>
-      <a href="settings.html"      class="nav-item"><span class="nav-icon">&#9881;</span> Settings</a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="avatar avatar-sm">S</div>
-        <div class="user-info">
-          <div class="user-name">Sohaib R.</div>
-          <div class="user-role">Super Admin</div>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- ── Main ── -->
+  <aside class="sidebar" id="sidebar"></aside>
   <div class="main">
-    <header class="topbar">
-      <div class="topbar-title">Settings</div>
-      <div class="topbar-actions">
-        <div class="topbar-search">
-          <span>&#128269;</span>
-          <input type="text" placeholder="Search settings…">
-        </div>
-        <button class="topbar-btn" title="Notifications">
-          &#128276;
-          <span class="badge">5</span>
-        </button>
-        <div class="topbar-avatar" title="sohaib365@gmail.com">S</div>
-      </div>
-    </header>
-
-    <div class="page">
-
-      <!-- Page header -->
-      <div class="page-header">
-        <div class="page-header-left">
-          <h1>&#9881; Settings</h1>
-          <p>Manage your account, integrations, tenants, and security preferences.</p>
-        </div>
-      </div>
-
-      <div class="settings-layout">
-
-        <!-- ── Secondary Settings Nav ── -->
-        <nav class="settings-nav" id="settingsNav">
-          <div class="settings-nav-header">Settings</div>
-          <div class="settings-nav-item active" data-target="profile">
-            <span class="snav-icon">&#128100;</span> Profile
-          </div>
-          <div class="settings-nav-item" data-target="apikeys">
-            <span class="snav-icon">&#128273;</span> API Keys
-          </div>
-          <div class="settings-nav-item" data-target="whatsapp">
-            <span class="snav-icon">&#128242;</span> WhatsApp Config
-          </div>
-          <div class="settings-nav-item" data-target="n8n">
-            <span class="snav-icon">&#128279;</span> n8n Webhooks
-          </div>
-          <div class="settings-nav-item" data-target="notifications">
-            <span class="snav-icon">&#128276;</span> Notifications
-          </div>
-          <div class="settings-nav-item" data-target="tenants">
-            <span class="snav-icon">&#127968;</span> Tenant Management
-          </div>
-          <div class="settings-nav-item" data-target="security">
-            <span class="snav-icon">&#128274;</span> Security
-          </div>
-        </nav>
-
-        <!-- ── Settings Sections ── -->
-        <div class="settings-content">
-
-          <!-- ════════════════════════════════
-               PROFILE
-          ════════════════════════════════ -->
-          <div class="settings-section active" id="section-profile">
-            <div class="settings-section-title">
-              <div>
-                <h2>&#128100; Profile</h2>
-                <p>Update your personal information and account details.</p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <!-- Avatar -->
-              <div class="avatar-upload-area">
-                <div class="avatar-upload-circle" onclick="document.getElementById('avatarInput').click()" title="Change photo">
-                  S
-                  <div class="avatar-upload-overlay">&#128247;<br>Change</div>
-                </div>
-                <div class="avatar-upload-info">
-                  <strong style="font-size:.95rem">Sohaib Rahman</strong>
-                  <p>Click the avatar to upload a new photo.</p>
-                  <p style="margin-top:.25rem">JPG, PNG or GIF &nbsp;·&nbsp; Max 2 MB</p>
-                  <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
-                </div>
-              </div>
-
-              <!-- Form -->
-              <div class="settings-card-body">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Full Name</label>
-                    <input type="text" class="form-control" value="Sohaib Rahman" id="profileName">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Email <span class="optional">(read-only)</span></label>
-                    <input type="email" class="form-control" value="sohaib365@gmail.com" disabled>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Role <span class="optional">(read-only)</span></label>
-                    <input type="text" class="form-control" value="Super Admin" disabled>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Phone</label>
-                    <input type="tel" class="form-control" value="+92 300 1234567" id="profilePhone" placeholder="+92 300 0000000">
-                  </div>
-                </div>
-                <div class="form-group" style="max-width:340px">
-                  <label class="form-label">Company Name</label>
-                  <input type="text" class="form-control" value="GeniSearch" id="profileCompany">
-                </div>
-                <div style="display:flex;gap:.75rem;margin-top:.5rem">
-                  <button class="btn btn-primary" onclick="saveProfile()">&#10003; Save Changes</button>
-                  <button class="btn btn-secondary" onclick="toast('Changes discarded.','info')">Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ════════════════════════════════
-               API KEYS
-          ════════════════════════════════ -->
-          <div class="settings-section" id="section-apikeys">
-            <div class="settings-section-title">
-              <div>
-                <h2>&#128273; API Keys</h2>
-                <p>Manage credentials for connected services. Keep these secure.</p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128272; Service Credentials</h3>
-              </div>
-              <div class="settings-card-body">
-                <div class="api-key-list">
-
-                  <!-- Anthropic -->
-                  <div class="api-key-card" id="keyCard-anthropic">
-                    <div class="api-key-info">
-                      <div class="api-key-label">Anthropic API Key</div>
-                      <div class="api-key-value" id="keyVal-anthropic" data-real="sk-ant-api03-xK8mN2pQrL4vW9sA1bYcD6eF7gHiJ0kMnOpQrStUvWxYz-A1B2C3D4" data-masked="sk-ant-••••••••••••••••••••••••••••••••A1B2">
-                        sk-ant-••••••••••••••••••••••••••••••••A1B2
-                      </div>
-                    </div>
-                    <div class="api-key-actions">
-                      <button class="btn btn-secondary btn-sm" onclick="revealKey('anthropic')" id="revealBtn-anthropic">&#128065; Reveal</button>
-                      <button class="btn btn-secondary btn-sm" onclick="copyKey('anthropic')">&#128203; Copy</button>
-                      <button class="btn btn-ghost btn-sm text-danger" onclick="showRegen('anthropic')">&#8635; Regen</button>
-                    </div>
-                    <div class="regen-confirm" id="regen-anthropic">
-                      &#9888; This will invalidate the current key. Confirm?
-                      <button class="btn btn-danger btn-sm" onclick="regenKey('anthropic')" style="margin-left:.5rem">Yes, Regenerate</button>
-                      <button class="btn btn-ghost btn-sm" onclick="hideRegen('anthropic')">Cancel</button>
-                    </div>
-                  </div>
-
-                  <!-- WhatsApp -->
-                  <div class="api-key-card" id="keyCard-whatsapp">
-                    <div class="api-key-info">
-                      <div class="api-key-label">WhatsApp API Token</div>
-                      <div class="api-key-value" id="keyVal-whatsapp" data-real="EAAl7fK2mNpQ8rStUvWxYzAbCdEfGhIjKlMnOpQrStUvW3X4" data-masked="EAAl••••••••••••••••••••••••••••••3X4">
-                        EAAl••••••••••••••••••••••••••••••3X4
-                      </div>
-                    </div>
-                    <div class="api-key-actions">
-                      <button class="btn btn-secondary btn-sm" onclick="revealKey('whatsapp')" id="revealBtn-whatsapp">&#128065; Reveal</button>
-                      <button class="btn btn-secondary btn-sm" onclick="copyKey('whatsapp')">&#128203; Copy</button>
-                      <button class="btn btn-ghost btn-sm text-danger" onclick="showRegen('whatsapp')">&#8635; Regen</button>
-                    </div>
-                    <div class="regen-confirm" id="regen-whatsapp">
-                      &#9888; This will invalidate the current key. Confirm?
-                      <button class="btn btn-danger btn-sm" onclick="regenKey('whatsapp')" style="margin-left:.5rem">Yes, Regenerate</button>
-                      <button class="btn btn-ghost btn-sm" onclick="hideRegen('whatsapp')">Cancel</button>
-                    </div>
-                  </div>
-
-                  <!-- n8n -->
-                  <div class="api-key-card" id="keyCard-n8n">
-                    <div class="api-key-info">
-                      <div class="api-key-label">n8n API Key</div>
-                      <div class="api-key-value" id="keyVal-n8n" data-real="n8n_api_7hJkLmNoPqRsTuVwXyZ123456789AbCdE" data-masked="••••••••••••••••••••••••••••••AbCdE">
-                        ••••••••••••••••••••••••••••••AbCdE
-                      </div>
-                    </div>
-                    <div class="api-key-actions">
-                      <button class="btn btn-secondary btn-sm" onclick="revealKey('n8n')" id="revealBtn-n8n">&#128065; Reveal</button>
-                      <button class="btn btn-secondary btn-sm" onclick="copyKey('n8n')">&#128203; Copy</button>
-                      <button class="btn btn-ghost btn-sm text-danger" onclick="showRegen('n8n')">&#8635; Regen</button>
-                    </div>
-                    <div class="regen-confirm" id="regen-n8n">
-                      &#9888; This will invalidate the current key. Confirm?
-                      <button class="btn btn-danger btn-sm" onclick="regenKey('n8n')" style="margin-left:.5rem">Yes, Regenerate</button>
-                      <button class="btn btn-ghost btn-sm" onclick="hideRegen('n8n')">Cancel</button>
-                    </div>
-                  </div>
-
-                </div>
-
-                <div class="api-key-warning">
-                  &#128274; <span><strong>Keep these keys secret.</strong> Never share them or commit them to version control. Regenerating a key will immediately invalidate the old one.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ════════════════════════════════
-               WHATSAPP CONFIG
-          ════════════════════════════════ -->
-          <div class="settings-section" id="section-whatsapp">
-            <div class="settings-section-title">
-              <div>
-                <h2>&#128242; WhatsApp Configuration</h2>
-                <p>Configure the WhatsApp Cloud API integration for campaign messaging.</p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128242; WhatsApp Cloud API</h3>
-                <span class="connection-status connected" id="waConnectionStatus">
-                  <span class="connection-dot"></span> Connected
-                </span>
-              </div>
-              <div class="settings-card-body">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Phone Number ID</label>
-                    <input type="text" class="form-control" id="waPhoneId" value="102938475610293" placeholder="e.g. 102938475610293">
-                    <div class="form-hint">Found in your Meta Business Suite app settings.</div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">API Version</label>
-                    <select class="form-control" id="waApiVersion">
-                      <option value="v19.0" selected>v19.0 (latest)</option>
-                      <option value="v18.0">v18.0</option>
-                      <option value="v17.0">v17.0</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">WhatsApp Business Account ID (WABA ID)</label>
-                  <input type="text" class="form-control" id="wabaId" value="5678901234567890" placeholder="e.g. 5678901234567890">
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Incoming Webhook URL <span class="optional">(read-only — configure in Meta)</span></label>
-                  <div style="display:flex;gap:.5rem">
-                    <input type="text" class="form-control" value="https://api.genisearch.io/webhooks/whatsapp" readonly style="background:var(--light);color:var(--text-secondary)">
-                    <button class="btn btn-secondary btn-sm" style="flex-shrink:0" onclick="copyToClipboard('https://api.genisearch.io/webhooks/whatsapp', 'Webhook URL copied!')">&#128203; Copy</button>
-                  </div>
-                  <div class="form-hint">Paste this URL into your Meta App's Webhooks configuration.</div>
-                </div>
-
-                <div class="form-group" style="max-width:440px">
-                  <label class="form-label">Webhook Verify Token</label>
-                  <div style="display:flex;gap:.5rem">
-                    <input type="text" class="form-control" id="waVerifyToken" value="geni_wh_verify_2026_xK9mNpQ" placeholder="Enter your verify token">
-                    <button class="btn btn-secondary btn-sm" style="flex-shrink:0" onclick="copyToClipboard(document.getElementById('waVerifyToken').value, 'Verify token copied!')">&#128203;</button>
-                  </div>
-                  <div class="form-hint">Set the same token in your Meta App Webhooks panel.</div>
-                </div>
-
-                <div style="display:flex;gap:.75rem;align-items:center;margin-top:.5rem;flex-wrap:wrap">
-                  <button class="btn btn-primary" onclick="saveWAConfig()">&#10003; Save Configuration</button>
-                  <button class="btn btn-secondary" onclick="testWAConnection()">&#9889; Test Connection</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ════════════════════════════════
-               N8N WEBHOOKS
-          ════════════════════════════════ -->
-          <div class="settings-section" id="section-n8n">
-            <div class="settings-section-title">
-              <div>
-                <h2>&#128279; n8n Webhooks</h2>
-                <p>Configure n8n automation webhook endpoints for CRM sync, Slack alerts, and more.</p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128279; Webhook Base URL</h3>
-              </div>
-              <div class="settings-card-body">
-                <div class="form-group" style="max-width:520px">
-                  <label class="form-label">n8n Instance Base URL</label>
-                  <input type="url" class="form-control" id="n8nBaseUrl" value="https://n8n.genisearch.io" placeholder="https://your-n8n-instance.com">
-                  <div class="form-hint">All relative webhook paths are appended to this base URL.</div>
-                </div>
-                <button class="btn btn-secondary btn-sm" onclick="saveN8nBase()">Save Base URL</button>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128640; Configured Webhooks</h3>
-                <button class="btn btn-primary btn-sm" onclick="toggleWebhookForm()">&#43; Add Webhook</button>
-              </div>
-              <div class="settings-card-body" style="padding:0">
-
-                <!-- Add webhook inline form -->
-                <div class="webhook-inline-form" id="webhookAddForm" style="margin:1rem;margin-bottom:0">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label">Webhook Name</label>
-                      <input type="text" class="form-control" id="newWhName" placeholder="e.g. CRM Sync">
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Trigger Event</label>
-                      <select class="form-control" id="newWhTrigger">
-                        <option>Campaign Sent</option>
-                        <option>Reply Received</option>
-                        <option>Conversion Event</option>
-                        <option>New Tenant Signup</option>
-                        <option>Low Reply Rate Alert</option>
-                        <option>Custom</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Webhook URL Path</label>
-                    <input type="text" class="form-control" id="newWhUrl" placeholder="/webhook/crm-sync">
-                  </div>
-                  <div style="display:flex;gap:.5rem">
-                    <button class="btn btn-primary btn-sm" onclick="addWebhook()">Add Webhook</button>
-                    <button class="btn btn-ghost btn-sm" onclick="toggleWebhookForm()">Cancel</button>
-                  </div>
-                </div>
-
-                <div class="table-wrap" style="margin-top:0">
-                  <table id="webhookTable">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>URL</th>
-                        <th>Trigger</th>
-                        <th>Status</th>
-                        <th>Test</th>
-                        <th>Delete</th>
-                      </tr>
-                    </thead>
-                    <tbody id="webhookTableBody">
-                      <!-- populated by JS -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ════════════════════════════════
-               NOTIFICATIONS
-          ════════════════════════════════ -->
-          <div class="settings-section" id="section-notifications">
-            <div class="settings-section-title">
-              <div>
-                <h2>&#128276; Notifications</h2>
-                <p>Control which alerts and summaries are delivered to your inbox.</p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128274; Alert Preferences</h3>
-              </div>
-              <div class="settings-card-body">
-
-                <div class="toggle-switch">
-                  <div class="toggle-switch-label">
-                    <span class="t-title">Email alerts on new reply spike</span>
-                    <span class="t-desc">Notify when a campaign reply rate rises more than 2x the average.</span>
-                  </div>
-                  <label class="toggle">
-                    <input type="checkbox" id="notif-spike" checked>
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div class="toggle-switch">
-                  <div class="toggle-switch-label">
-                    <span class="t-title">Daily summary email</span>
-                    <span class="t-desc">Receive a daily digest of campaigns sent, replies, and conversions.</span>
-                  </div>
-                  <label class="toggle">
-                    <input type="checkbox" id="notif-daily" checked>
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div class="toggle-switch">
-                  <div class="toggle-switch-label">
-                    <span class="t-title">Campaign completion notification</span>
-                    <span class="t-desc">Get notified when a campaign finishes sending all messages.</span>
-                  </div>
-                  <label class="toggle">
-                    <input type="checkbox" id="notif-complete" checked>
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div class="toggle-switch">
-                  <div class="toggle-switch-label">
-                    <span class="t-title">Low reply rate alert (&lt; threshold)</span>
-                    <span class="t-desc">Alert when a campaign reply rate falls below the configured threshold.</span>
-                  </div>
-                  <label class="toggle">
-                    <input type="checkbox" id="notif-lowreply" checked>
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div class="toggle-switch">
-                  <div class="toggle-switch-label">
-                    <span class="t-title">New tenant signup notification</span>
-                    <span class="t-desc">Be notified whenever a new tenant registers on the platform.</span>
-                  </div>
-                  <label class="toggle">
-                    <input type="checkbox" id="notif-tenant" checked>
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#9881; Alert Thresholds</h3>
-              </div>
-              <div class="settings-card-body">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Alert when reply rate drops below</label>
-                    <div style="display:flex;align-items:center;gap:.5rem">
-                      <input type="number" class="form-control" id="replyRateThreshold" value="5" min="1" max="50" style="width:90px">
-                      <span class="text-secondary fw-600">%</span>
-                    </div>
-                    <div class="form-hint">Campaigns below this threshold trigger a low-reply-rate alert.</div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Alert delivery email</label>
-                    <input type="email" class="form-control" id="alertEmail" value="sohaib365@gmail.com">
-                    <div class="form-hint">All notification emails are sent here.</div>
-                  </div>
-                </div>
-                <button class="btn btn-primary" onclick="saveNotifications()">&#10003; Save Preferences</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- ════════════════════════════════
-               TENANT MANAGEMENT
-          ════════════════════════════════ -->
-          <div class="settings-section" id="section-tenants">
-            <div class="settings-section-title">
-              <div>
-                <h2>&#127968; Tenant Management</h2>
-                <p>View, manage, and provision tenants on the GeniSearch platform.</p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128101; All Tenants</h3>
-                <div style="display:flex;gap:.5rem;align-items:center">
-                  <input type="text" class="form-control" id="tenantSearch" placeholder="Search…" style="width:160px;padding:.35rem .7rem;font-size:.8rem" oninput="filterTenants()">
-                  <button class="btn btn-primary btn-sm" onclick="openModal('addTenantModal')">&#43; Add Tenant</button>
-                </div>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Plan</th>
-                      <th>Status</th>
-                      <th>Users</th>
-                      <th>Last Active</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tenantMgmtBody">
-                    <!-- populated by JS -->
-                  </tbody>
-                </table>
-              </div>
-              <div class="card-footer" id="tenantCount">Showing 10 tenants</div>
-            </div>
-          </div>
-
-          <!-- ════════════════════════════════
-               SECURITY
-          ════════════════════════════════ -->
-          <div class="settings-section" id="section-security">
-            <div class="settings-section-title">
-              <div>
-                <h2>&#128274; Security</h2>
-                <p>Manage your password, two-factor auth, and active sessions.</p>
-              </div>
-            </div>
-
-            <!-- Change Password -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128272; Change Password</h3>
-              </div>
-              <div class="settings-card-body">
-                <div style="max-width:400px">
-                  <div class="form-group">
-                    <label class="form-label">Current Password</label>
-                    <input type="password" class="form-control" id="curPassword" placeholder="Enter current password">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">New Password</label>
-                    <input type="password" class="form-control" id="newPassword" placeholder="Min 12 characters" oninput="checkPasswordStrength(this.value)">
-                    <div class="pw-strength">
-                      <div class="pw-bar" id="pwBar1"></div>
-                      <div class="pw-bar" id="pwBar2"></div>
-                      <div class="pw-bar" id="pwBar3"></div>
-                      <div class="pw-bar" id="pwBar4"></div>
-                    </div>
-                    <div class="form-hint" id="pwStrengthLabel">Enter a new password to see strength.</div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Confirm New Password</label>
-                    <input type="password" class="form-control" id="confirmPassword" placeholder="Repeat new password">
-                  </div>
-                  <button class="btn btn-primary" onclick="changePassword()">&#128272; Update Password</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2FA -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128737; Two-Factor Authentication</h3>
-              </div>
-              <div class="settings-card-body">
-                <div class="twofa-card">
-                  <div class="twofa-icon">&#128737;</div>
-                  <div class="twofa-body">
-                    <div class="twofa-title">Authenticator App (TOTP)</div>
-                    <div class="twofa-desc">Scan the QR code with Google Authenticator or Authy to enable 2FA on your account.</div>
-                  </div>
-                  <label class="toggle" style="flex-shrink:0" title="Enable 2FA">
-                    <input type="checkbox" id="toggle2fa" onchange="handle2FA(this)">
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div id="twofa-setup" style="display:none;margin-top:1.25rem">
-                  <div class="callout callout-info" style="margin-bottom:1rem">
-                    &#8505;&#65039; Scan the QR code below with your authenticator app, then enter the 6-digit code to confirm.
-                  </div>
-                  <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
-                    <!-- Mock QR code placeholder -->
-                    <div style="width:120px;height:120px;background:var(--light-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:2.5rem;flex-shrink:0">&#129518;</div>
-                    <div style="flex:1;min-width:200px">
-                      <div class="form-group">
-                        <label class="form-label">Enter 6-digit code</label>
-                        <input type="text" class="form-control" id="totpCode" placeholder="000 000" maxlength="7" style="max-width:160px;letter-spacing:.25em;font-size:1.1rem;text-align:center">
-                      </div>
-                      <button class="btn btn-primary btn-sm" onclick="verify2FA()">Verify &amp; Enable</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Active Sessions -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128421; Active Sessions</h3>
-                <button class="btn btn-danger btn-sm" onclick="revokeAllSessions()">Revoke All Other Sessions</button>
-              </div>
-              <div class="settings-card-body" style="padding:.5rem 1.5rem">
-
-                <div class="session-item">
-                  <div class="session-device">
-                    <div class="session-icon">&#128187;</div>
-                    <div class="session-info">
-                      <div class="device-name">MacBook Pro — Chrome 124</div>
-                      <div class="device-meta">Karachi, PK &nbsp;·&nbsp; 203.128.42.17 &nbsp;·&nbsp; Last active: just now</div>
-                    </div>
-                  </div>
-                  <span class="session-current">Current</span>
-                </div>
-
-                <div class="session-item" id="session2">
-                  <div class="session-device">
-                    <div class="session-icon">&#128241;</div>
-                    <div class="session-info">
-                      <div class="device-name">iPhone 15 Pro — Safari</div>
-                      <div class="device-meta">Karachi, PK &nbsp;·&nbsp; 203.128.42.19 &nbsp;·&nbsp; Last active: 2h ago</div>
-                    </div>
-                  </div>
-                  <button class="btn btn-danger btn-sm" onclick="revokeSession('session2')">Revoke</button>
-                </div>
-
-              </div>
-            </div>
-
-            <!-- Login History -->
-            <div class="settings-card">
-              <div class="settings-card-header">
-                <h3>&#128196; Login History</h3>
-              </div>
-              <div class="table-wrap login-history-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date &amp; Time</th>
-                      <th>IP Address</th>
-                      <th>Device / Browser</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>30 Mar 2026, 09:14</td>
-                      <td>203.128.42.17</td>
-                      <td>MacBook Pro — Chrome 124</td>
-                      <td><span class="badge badge-success badge-dot">Success</span></td>
-                    </tr>
-                    <tr>
-                      <td>29 Mar 2026, 21:52</td>
-                      <td>203.128.42.19</td>
-                      <td>iPhone 15 Pro — Safari</td>
-                      <td><span class="badge badge-success badge-dot">Success</span></td>
-                    </tr>
-                    <tr>
-                      <td>28 Mar 2026, 14:30</td>
-                      <td>203.128.42.17</td>
-                      <td>MacBook Pro — Chrome 124</td>
-                      <td><span class="badge badge-success badge-dot">Success</span></td>
-                    </tr>
-                    <tr>
-                      <td>27 Mar 2026, 08:10</td>
-                      <td>192.168.1.55</td>
-                      <td>Windows 11 — Edge 122</td>
-                      <td><span class="badge badge-danger badge-dot">Failed</span></td>
-                    </tr>
-                    <tr>
-                      <td>26 Mar 2026, 17:44</td>
-                      <td>203.128.42.17</td>
-                      <td>MacBook Pro — Chrome 124</td>
-                      <td><span class="badge badge-success badge-dot">Success</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div><!-- /security -->
-
-        </div><!-- /settings-content -->
-      </div><!-- /settings-layout -->
-    </div><!-- /page -->
-  </div><!-- /main -->
-</div><!-- /app -->
-
-<!-- ════════════════════════════════
-     ADD TENANT MODAL
-════════════════════════════════ -->
-<div class="modal-overlay" id="addTenantModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>&#127968; Add New Tenant</h3>
-      <button class="modal-close" onclick="closeModal('addTenantModal')">&#215;</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Business Name</label>
-        <input type="text" class="form-control" id="newTenantName" placeholder="e.g. FreshMart Grocery">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Admin Email</label>
-        <input type="email" class="form-control" id="newTenantEmail" placeholder="admin@business.com">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Plan</label>
-          <select class="form-control" id="newTenantPlan">
-            <option value="Starter">Starter — PKR 12,000/mo</option>
-            <option value="Business" selected>Business — PKR 25,000/mo</option>
-            <option value="Pro">Pro — PKR 45,000/mo</option>
-            <option value="Enterprise">Enterprise — PKR 85,000/mo</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Initial Status</label>
-          <select class="form-control" id="newTenantStatus">
-            <option value="trial">Trial</option>
-            <option value="active" selected>Active</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('addTenantModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="addTenant()">&#10003; Create Tenant</button>
-    </div>
+    <header class="topbar" id="topbar"></header>
+    <div class="page" id="page-body"><div class="loading-spinner">Loading...</div></div>
   </div>
 </div>
 
+<div class="modal-overlay" id="addTenantModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Tenant</h3><button class="modal-close" onclick="closeModal('addTenantModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Business Name *</label><input id="tName" class="form-control" required placeholder="Acme Corp"></div>
+      <div class="form-group"><label>Email *</label><input id="tEmail" class="form-control" type="email" required placeholder="admin@acme.com"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input id="tPhone" class="form-control" placeholder="+923001234567"></div>
+        <div class="form-group"><label>Plan</label><select id="tPlan" class="form-control"><option value="starter">Starter</option><option value="pro">Pro</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('addTenantModal')">Cancel</button><button class="btn btn-primary" onclick="submitTenant()">Add Tenant</button></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
 <script src="shared.js"></script>
 <script>
-
-/* ══════════════════════════════════════════════════════
-   Settings Secondary Navigation
-══════════════════════════════════════════════════════ */
-document.querySelectorAll('.settings-nav-item').forEach(item => {
-  item.addEventListener('click', () => {
-    const target = item.dataset.target;
-
-    // Update nav active state
-    document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
-    item.classList.add('active');
-
-    // Show correct section
-    document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
-    const section = document.getElementById('section-' + target);
-    if (section) section.classList.add('active');
-  });
-});
-
-/* ══════════════════════════════════════════════════════
-   Profile
-══════════════════════════════════════════════════════ */
-function saveProfile() {
-  const name = document.getElementById('profileName').value.trim();
-  if (!name) { toast('Full name is required.', 'error'); return; }
-  toast('Profile updated successfully!', 'success');
-}
-
-function handleAvatarChange(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) {
-    toast('Image must be under 2 MB.', 'error');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = e => {
-    const circle = document.querySelector('.avatar-upload-circle');
-    // Replace text with image
-    circle.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">
-      <div class="avatar-upload-overlay">&#128247;<br>Change</div>`;
-    toast('Avatar updated!', 'success');
-  };
-  reader.readAsDataURL(file);
-}
-
-/* ══════════════════════════════════════════════════════
-   API Keys — Reveal / Copy / Regen
-══════════════════════════════════════════════════════ */
-const keyRevealed = {};
-
-function revealKey(id) {
-  const el = document.getElementById('keyVal-' + id);
-  const btn = document.getElementById('revealBtn-' + id);
-  if (!el) return;
-  keyRevealed[id] = !keyRevealed[id];
-  el.textContent = keyRevealed[id] ? el.dataset.real : el.dataset.masked;
-  btn.innerHTML = keyRevealed[id] ? '&#128065; Hide' : '&#128065; Reveal';
-}
-
-function copyKey(id) {
-  const el = document.getElementById('keyVal-' + id);
-  if (!el) return;
-  const value = keyRevealed[id] ? el.dataset.real : el.dataset.real; // always copy real value
-  copyToClipboard(value, 'API key copied to clipboard!');
-}
-
-function showRegen(id) {
-  document.getElementById('regen-' + id).classList.add('open');
-}
-function hideRegen(id) {
-  document.getElementById('regen-' + id).classList.remove('open');
-}
-function regenKey(id) {
-  hideRegen(id);
-  keyRevealed[id] = false;
-  const el = document.getElementById('keyVal-' + id);
-  const btn = document.getElementById('revealBtn-' + id);
-  el.textContent = el.dataset.masked;
-  btn.innerHTML = '&#128065; Reveal';
-  toast('API key regenerated. Update your services immediately!', 'error');
-}
-
-/* ══════════════════════════════════════════════════════
-   WhatsApp Config
-══════════════════════════════════════════════════════ */
-function saveWAConfig() {
-  const phoneId = document.getElementById('waPhoneId').value.trim();
-  const wabaId  = document.getElementById('wabaId').value.trim();
-  if (!phoneId || !wabaId) { toast('Phone Number ID and WABA ID are required.', 'error'); return; }
-  toast('WhatsApp configuration saved!', 'success');
-}
-
-function testWAConnection() {
-  const btn = event.target;
-  btn.textContent = '&#9203; Testing…';
-  btn.disabled = true;
-  setTimeout(() => {
-    btn.innerHTML = '&#9889; Test Connection';
-    btn.disabled = false;
-    const status = document.getElementById('waConnectionStatus');
-    status.className = 'connection-status connected';
-    status.innerHTML = '<span class="connection-dot"></span> Connected';
-    toast('WhatsApp connection successful! API responded normally.', 'success');
-  }, 1600);
-}
-
-/* ══════════════════════════════════════════════════════
-   n8n Webhooks
-══════════════════════════════════════════════════════ */
-const webhooks = [
-  { name: 'CRM Sync',         url: '/webhook/crm-sync',        trigger: 'Campaign Sent',      status: 'active' },
-  { name: 'Slack Alerts',     url: '/webhook/slack-notify',    trigger: 'Reply Received',     status: 'active' },
-  { name: 'Google Sheets Log',url: '/webhook/sheets-log',      trigger: 'Conversion Event',   status: 'active' },
-  { name: 'Tenant Welcome',   url: '/webhook/tenant-welcome',  trigger: 'New Tenant Signup',  status: 'paused' },
-];
-
-function renderWebhooks() {
-  const tbody = document.getElementById('webhookTableBody');
-  const base = document.getElementById('n8nBaseUrl').value || 'https://n8n.genisearch.io';
-  tbody.innerHTML = webhooks.map((w, i) => `
-    <tr>
-      <td><strong>${w.name}</strong></td>
-      <td style="font-size:.8rem;color:var(--text-muted);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${base + w.url}">${base + w.url}</td>
-      <td><span class="tag">${w.trigger}</span></td>
-      <td>
-        <span class="badge ${w.status === 'active' ? 'badge-success' : 'badge-warning'} badge-dot">
-          ${w.status}
-        </span>
-      </td>
-      <td>
-        <button class="btn btn-secondary btn-sm" onclick="testWebhook(${i})">&#9889; Test</button>
-      </td>
-      <td>
-        <button class="btn btn-ghost btn-sm text-danger" onclick="deleteWebhook(${i})">&#128465;</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-function toggleWebhookForm() {
-  const form = document.getElementById('webhookAddForm');
-  form.classList.toggle('open');
-}
-
-function addWebhook() {
-  const name    = document.getElementById('newWhName').value.trim();
-  const url     = document.getElementById('newWhUrl').value.trim();
-  const trigger = document.getElementById('newWhTrigger').value;
-  if (!name || !url) { toast('Name and URL path are required.', 'error'); return; }
-  webhooks.push({ name, url: url.startsWith('/') ? url : '/' + url, trigger, status: 'active' });
-  renderWebhooks();
-  document.getElementById('newWhName').value = '';
-  document.getElementById('newWhUrl').value = '';
-  toggleWebhookForm();
-  toast('Webhook added successfully!', 'success');
-}
-
-function deleteWebhook(i) {
-  if (!confirm(`Delete webhook "${webhooks[i].name}"?`)) return;
-  webhooks.splice(i, 1);
-  renderWebhooks();
-  toast('Webhook deleted.', 'info');
-}
-
-function testWebhook(i) {
-  setTimeout(() => toast(`Test ping sent to "${webhooks[i].name}" — 200 OK!`, 'success'), 600);
-}
-
-function saveN8nBase() {
-  renderWebhooks();
-  toast('n8n base URL saved!', 'success');
-}
-
-/* ══════════════════════════════════════════════════════
-   Notifications
-══════════════════════════════════════════════════════ */
-function saveNotifications() {
-  toast('Notification preferences saved!', 'success');
-}
-
-/* ══════════════════════════════════════════════════════
-   Tenant Management
-══════════════════════════════════════════════════════ */
-const tenantData = [
-  { name: 'Zara Fashion PK',      plan: 'Enterprise', status: 'active', users: 12, lastActive: '2 min ago' },
-  { name: 'FreshMart Grocery',    plan: 'Pro',        status: 'active', users: 7,  lastActive: '1h ago' },
-  { name: 'AutoZone Motors',      plan: 'Pro',        status: 'active', users: 5,  lastActive: '3h ago' },
-  { name: 'MediPlus Pharma',      plan: 'Business',   status: 'active', users: 4,  lastActive: 'Yesterday' },
-  { name: 'TechGadgets PK',       plan: 'Pro',        status: 'active', users: 8,  lastActive: '5h ago' },
-  { name: 'EduBridge Academy',    plan: 'Business',   status: 'active', users: 3,  lastActive: '2 days ago' },
-  { name: 'HomeDecor Studios',    plan: 'Starter',    status: 'active', users: 2,  lastActive: '1 day ago' },
-  { name: 'SkyFoods Catering',    plan: 'Business',   status: 'active', users: 4,  lastActive: '6h ago' },
-  { name: 'RealEstate Hub PK',    plan: 'Enterprise', status: 'active', users: 15, lastActive: '30 min ago' },
-  { name: 'StyleKraft Boutique',  plan: 'Starter',    status: 'trial',  users: 1,  lastActive: '3 days ago' },
-];
-
-const planBadge = { Enterprise: 'badge-purple', Pro: 'badge-info', Business: 'badge-success', Starter: 'badge-warning' };
-
-function renderTenants(data) {
-  const tbody = document.getElementById('tenantMgmtBody');
-  tbody.innerHTML = data.map((t, i) => `
-    <tr>
-      <td><strong>${t.name}</strong></td>
-      <td><span class="badge ${planBadge[t.plan]}">${t.plan}</span></td>
-      <td><span class="badge ${t.status === 'active' ? 'badge-success' : 'badge-warning'} badge-dot">${t.status}</span></td>
-      <td>${t.users}</td>
-      <td>${t.lastActive}</td>
-      <td>
-        <div style="display:flex;gap:.35rem;flex-wrap:wrap">
-          <button class="btn btn-secondary btn-sm" onclick="suspendTenant(${i})" title="Suspend">&#128683;</button>
-          <button class="btn btn-primary btn-sm" onclick="upgradeTenant(${i})" title="Upgrade">&#9650;</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteTenant(${i})" title="Delete">&#128465;</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
-  document.getElementById('tenantCount').textContent = `Showing ${data.length} tenant${data.length !== 1 ? 's' : ''}`;
-}
-
-function filterTenants() {
-  const q = document.getElementById('tenantSearch').value.toLowerCase();
-  const filtered = q ? tenantData.filter(t => t.name.toLowerCase().includes(q) || t.plan.toLowerCase().includes(q)) : tenantData;
-  renderTenants(filtered);
-}
-
-function suspendTenant(i) {
-  if (!confirm(`Suspend "${tenantData[i].name}"?`)) return;
-  tenantData[i].status = tenantData[i].status === 'suspended' ? 'active' : 'suspended';
-  renderTenants(tenantData);
-  toast(`Tenant ${tenantData[i].status === 'suspended' ? 'suspended' : 'reactivated'}.`, 'info');
-}
-
-function upgradeTenant(i) {
-  const plans = ['Starter', 'Business', 'Pro', 'Enterprise'];
-  const currentIdx = plans.indexOf(tenantData[i].plan);
-  if (currentIdx >= plans.length - 1) { toast('Already on the highest plan.', 'info'); return; }
-  tenantData[i].plan = plans[currentIdx + 1];
-  renderTenants(tenantData);
-  toast(`${tenantData[i].name} upgraded to ${tenantData[i].plan}!`, 'success');
-}
-
-function deleteTenant(i) {
-  if (!confirm(`Permanently delete "${tenantData[i].name}"? This cannot be undone.`)) return;
-  tenantData.splice(i, 1);
-  renderTenants(tenantData);
-  toast('Tenant deleted.', 'error');
-}
-
-function addTenant() {
-  const name   = document.getElementById('newTenantName').value.trim();
-  const email  = document.getElementById('newTenantEmail').value.trim();
-  const plan   = document.getElementById('newTenantPlan').value;
-  const status = document.getElementById('newTenantStatus').value;
-  if (!name || !email) { toast('Business name and email are required.', 'error'); return; }
-  tenantData.unshift({ name, plan, status, users: 1, lastActive: 'just now' });
-  renderTenants(tenantData);
-  closeModal('addTenantModal');
-  document.getElementById('newTenantName').value = '';
-  document.getElementById('newTenantEmail').value = '';
-  toast(`Tenant "${name}" created on the ${plan} plan!`, 'success');
-}
-
-/* ══════════════════════════════════════════════════════
-   Security
-══════════════════════════════════════════════════════ */
-function checkPasswordStrength(val) {
-  const bars = [1,2,3,4].map(n => document.getElementById('pwBar' + n));
-  const label = document.getElementById('pwStrengthLabel');
-  bars.forEach(b => b.className = 'pw-bar');
-  if (!val) { label.textContent = 'Enter a new password to see strength.'; return; }
-
-  let score = 0;
-  if (val.length >= 8)  score++;
-  if (val.length >= 12) score++;
-  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
-  if (/\d/.test(val) && /[^A-Za-z0-9]/.test(val)) score++;
-
-  const classes = ['', 'fill-weak', 'fill-fair', 'fill-good', 'fill-strong'];
-  const labels  = ['', 'Weak — use a longer password', 'Fair — add uppercase & numbers', 'Good — add symbols to strengthen', 'Strong password!'];
-  for (let i = 0; i < score; i++) bars[i].classList.add(classes[score]);
-  label.textContent = labels[score] || 'Weak — too short';
-}
-
-function changePassword() {
-  const cur  = document.getElementById('curPassword').value;
-  const nw   = document.getElementById('newPassword').value;
-  const conf = document.getElementById('confirmPassword').value;
-  if (!cur || !nw || !conf) { toast('All password fields are required.', 'error'); return; }
-  if (nw !== conf) { toast('New passwords do not match.', 'error'); return; }
-  if (nw.length < 8) { toast('Password must be at least 8 characters.', 'error'); return; }
-  ['curPassword','newPassword','confirmPassword'].forEach(id => document.getElementById(id).value = '');
-  checkPasswordStrength('');
-  toast('Password changed successfully!', 'success');
-}
-
-function handle2FA(checkbox) {
-  document.getElementById('twofa-setup').style.display = checkbox.checked ? 'block' : 'none';
-  if (!checkbox.checked) toast('Two-factor authentication disabled.', 'info');
-}
-
-function verify2FA() {
-  const code = document.getElementById('totpCode').value.replace(/\s/g,'');
-  if (code.length !== 6 || !/^\d{6}$/.test(code)) {
-    toast('Please enter a valid 6-digit code.', 'error'); return;
-  }
-  document.getElementById('twofa-setup').style.display = 'none';
-  toast('Two-factor authentication enabled!', 'success');
-}
-
-function revokeSession(id) {
-  const el = document.getElementById(id);
-  if (el) el.remove();
-  toast('Session revoked successfully.', 'success');
-}
-
-function revokeAllSessions() {
-  if (!confirm('This will log you out of all other devices. Continue?')) return;
-  document.getElementById('session2')?.remove();
-  toast('All other sessions have been revoked.', 'success');
-}
-
-/* ══════════════════════════════════════════════════════
-   Clipboard Utility
-══════════════════════════════════════════════════════ */
-function copyToClipboard(text, message) {
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(() => toast(message || 'Copied!', 'success'));
-  } else {
-    // Fallback for non-HTTPS
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-    toast(message || 'Copied!', 'success');
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   Init
-══════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  renderWebhooks();
-  renderTenants(tenantData);
+  const user = requireLogin(); if (!user) return;
+  document.getElementById('sidebar').innerHTML = sidebarHTML('settings.html');
+  document.getElementById('topbar').innerHTML = topbarHTML('Settings');
+  initPage('Settings');
+  renderSettings();
 });
+
+async function renderSettings() {
+  const page = document.getElementById('page-body');
+  const user = getUser();
+  const isSA = user && user.role === 'super_admin';
+
+  try {
+    const [me, waStatus, aiStatus, whStatus] = await Promise.all([
+      apiGet('/auth/me'),
+      apiGet('/whatsapp/status').catch(() => ({ configured:false, stub_mode:true })),
+      apiGet('/ai/status').catch(() => ({ configured:false, stub_mode:true })),
+      apiGet('/webhooks/status').catch(() => ({ configured:false, stub_mode:true }))
+    ]);
+
+    let tenantsTab = '';
+    if (isSA) {
+      tenantsTab = '<button class="tab" data-tab="tenants">Tenants</button>';
+    }
+
+    page.innerHTML = `
+      <div class="page-header"><div class="page-header-left"><h1>Settings</h1></div></div>
+
+      <div class="tabs" data-tab-group>
+        <button class="tab active" data-tab="profile">Profile</button>
+        <button class="tab" data-tab="api">API Configuration</button>
+        ${tenantsTab}
+      </div>
+
+      <!-- Profile Tab -->
+      <div data-panel="profile">
+        <div class="card">
+          <div class="card-header"><h3>Your Profile</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label>Name</label><input class="form-control" value="${escapeHtml(me.name||'')}" disabled></div>
+              <div class="form-group"><label>Email</label><input class="form-control" value="${escapeHtml(me.email||'')}" disabled></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Role</label><div style="margin-top:6px">${roleBadge(me.role)}</div></div>
+              <div class="form-group"><label>Member Since</label><input class="form-control" value="${fmtDate(me.created_at)}" disabled></div>
+            </div>
+            ${me.tenant_id ? '<div class="form-group"><label>Tenant ID</label><input class="form-control" value="'+me.tenant_id+'" disabled></div>' : ''}
+          </div>
+        </div>
+        <div class="card mt-2">
+          <div class="card-header"><h3>Security</h3></div>
+          <div class="card-body">
+            <p class="text-muted mb-2">Your JWT token is valid for 7 days. To change your password, register again with the same email.</p>
+            <button class="btn btn-danger" onclick="logout()">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Tab -->
+      <div data-panel="api" style="display:none">
+        <div class="grid-3 mb-3">
+          <div class="card">
+            <div class="card-body" style="text-align:center;padding:24px">
+              <div style="font-size:2rem;margin-bottom:8px">&#128172;</div>
+              <h3>WhatsApp API</h3>
+              <div class="mt-2">${waStatus.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>'}</div>
+              ${waStatus.phone_number_id ? '<p class="text-muted mt-1">Phone: '+escapeHtml(waStatus.phone_number_id)+'</p>' : ''}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="text-align:center;padding:24px">
+              <div style="font-size:2rem;margin-bottom:8px">&#129302;</div>
+              <h3>Claude AI</h3>
+              <div class="mt-2">${aiStatus.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>'}</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="text-align:center;padding:24px">
+              <div style="font-size:2rem;margin-bottom:8px">&#128232;</div>
+              <h3>n8n Webhooks</h3>
+              <div class="mt-2">${whStatus.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>'}</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Configuration Guide</h3></div>
+          <div class="card-body">
+            <p class="mb-2">Add these environment variables in <strong>Railway Variables</strong> to activate each service:</p>
+            <table><thead><tr><th>Variable</th><th>Service</th><th>Where to Get</th></tr></thead><tbody>
+              <tr><td class="fw-600">WHATSAPP_API_TOKEN</td><td>WhatsApp</td><td>Meta Developer Portal → WhatsApp → Getting Started</td></tr>
+              <tr><td class="fw-600">WHATSAPP_PHONE_NUMBER_ID</td><td>WhatsApp</td><td>Same page — Phone Number ID</td></tr>
+              <tr><td class="fw-600">WHATSAPP_VERIFY_TOKEN</td><td>WhatsApp Webhook</td><td>You create this (any random string)</td></tr>
+              <tr><td class="fw-600">ANTHROPIC_API_KEY</td><td>AI Analysis</td><td>console.anthropic.com → API Keys</td></tr>
+              <tr><td class="fw-600">N8N_WEBHOOK_URL</td><td>n8n Automations</td><td>Your n8n instance webhook URL</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tenants Tab (super_admin only) -->
+      ${isSA ? '<div data-panel="tenants" style="display:none" id="tenantsPanel"></div>' : ''}
+    `;
+
+    initTabs();
+    if (isSA) loadTenants();
+  } catch(e) { page.innerHTML = '<div class="empty-state"><p>'+escapeHtml(e.message)+'</p><button class="btn btn-primary mt-2" onclick="renderSettings()">Retry</button></div>'; }
+}
+
+async function loadTenants() {
+  const panel = document.getElementById('tenantsPanel');
+  if (!panel) return;
+  try {
+    const tenants = await apiGet('/tenants');
+    let rows = '';
+    tenants.forEach(t => {
+      rows += '<tr><td class="fw-600">'+escapeHtml(t.name)+'</td><td>'+escapeHtml(t.email)+'</td><td>'+escapeHtml(t.phone||'-')+'</td><td><span class="badge badge-primary">'+escapeHtml(t.plan)+'</span></td><td>'+fmtCurrency(t.mrr)+'</td><td>'+statusBadge(t.status)+'</td></tr>';
+    });
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-primary" onclick="openModal('addTenantModal')">+ Add Tenant</button></div>
+      <div class="card"><div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Plan</th><th>MRR</th><th>Status</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" class="text-center text-muted">No tenants</td></tr>'}</tbody>
+      </table></div></div>`;
+  } catch(e) { panel.innerHTML = '<p class="text-danger">'+escapeHtml(e.message)+'</p>'; }
+}
+
+async function submitTenant() {
+  const name = document.getElementById('tName').value.trim();
+  const email = document.getElementById('tEmail').value.trim();
+  if (!name || !email) { toast('Name and email required','error'); return; }
+  try {
+    await apiPost('/tenants', { name, email, phone:document.getElementById('tPhone').value.trim()||undefined, plan:document.getElementById('tPlan').value });
+    toast('Tenant added!','success');
+    closeModal('addTenantModal');
+    loadTenants();
+  } catch(e) { toast(e.message,'error'); }
+}
 </script>
 </body>
 </html>

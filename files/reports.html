@@ -3,846 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GeniSearch — Reports &amp; Exports</title>
+  <title>Reports — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared.css">
-  <style>
-    /* ── Reports grid ── */
-    .reports-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .report-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      border: 1px solid var(--light-2);
-      box-shadow: var(--shadow);
-      padding: 1.4rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: .85rem;
-      transition: box-shadow var(--t), border-color var(--t);
-    }
-    .report-card:hover {
-      box-shadow: var(--shadow-md);
-      border-color: rgba(102,126,234,.25);
-    }
-
-    .report-card-top {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-
-    .report-icon {
-      width: 46px;
-      height: 46px;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      flex-shrink: 0;
-    }
-
-    .report-icon.purple { background: var(--primary-light); }
-    .report-icon.green  { background: var(--success-light); }
-    .report-icon.blue   { background: var(--info-light); }
-    .report-icon.orange { background: var(--warning-light); }
-    .report-icon.red    { background: var(--danger-light); }
-    .report-icon.teal   { background: #e8f8f5; }
-
-    .report-meta { flex: 1; }
-    .report-meta h4 {
-      font-size: .9rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: .25rem;
-    }
-    .report-meta p {
-      font-size: .8rem;
-      color: var(--text-secondary);
-      line-height: 1.45;
-    }
-
-    .report-formats {
-      display: flex;
-      gap: .4rem;
-      flex-wrap: wrap;
-    }
-
-    .format-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .25rem;
-      padding: .15rem .5rem;
-      border-radius: 4px;
-      font-size: .68rem;
-      font-weight: 700;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-    }
-    .format-badge.pdf   { background: #fdf0ef; color: #c0392b; }
-    .format-badge.csv   { background: #eafaf1; color: #1e8449; }
-    .format-badge.excel { background: #eafaf1; color: #1e8449; }
-
-    .report-last {
-      font-size: .75rem;
-      color: var(--text-muted);
-    }
-
-    .report-actions {
-      display: flex;
-      gap: .6rem;
-      margin-top: auto;
-      padding-top: .25rem;
-    }
-
-    /* ── Schedule table ── */
-    .freq-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: .2rem .6rem;
-      border-radius: 20px;
-      font-size: .72rem;
-      font-weight: 600;
-    }
-    .freq-badge.daily   { background: #ebf5fb; color: #2980b9; }
-    .freq-badge.weekly  { background: var(--primary-light); color: var(--primary); }
-    .freq-badge.monthly { background: var(--warning-light); color: var(--warning); }
-
-    /* ── Export history ── */
-    .dl-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      padding: .3rem .7rem;
-      background: var(--primary-light);
-      color: var(--primary);
-      border-radius: var(--radius-sm);
-      font-size: .78rem;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: var(--t);
-    }
-    .dl-btn:hover { background: var(--primary); color: var(--white); }
-
-    .size-tag {
-      font-size: .8rem;
-      color: var(--text-muted);
-      font-feature-settings: "tnum";
-    }
-
-    /* ── Modal format radios ── */
-    .format-radio-group {
-      display: flex;
-      gap: .75rem;
-    }
-    .format-radio-label {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: .5rem;
-      padding: .6rem 1rem;
-      border: 1.5px solid var(--light-2);
-      border-radius: var(--radius-sm);
-      font-size: .875rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: var(--t);
-    }
-    .format-radio-label:has(input:checked) {
-      border-color: var(--primary);
-      background: var(--primary-light);
-      color: var(--primary);
-    }
-    .format-radio-label input[type="radio"] {
-      display: none;
-    }
-
-    /* ── Action icon buttons ── */
-    .icon-btn {
-      width: 30px; height: 30px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--light-2);
-      background: var(--white);
-      color: var(--text-secondary);
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: .8rem;
-      cursor: pointer;
-      transition: var(--t);
-    }
-    .icon-btn:hover { background: var(--light); color: var(--text-primary); }
-    .icon-btn.danger:hover { background: var(--danger-light); color: var(--danger); border-color: var(--danger); }
-
-    /* ── Summary stat strip ── */
-    .report-summary-strip {
-      display: flex;
-      gap: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-
-    /* ── Recipient pills ── */
-    .recipient-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: .3rem;
-      background: var(--light);
-      border-radius: 20px;
-      padding: .15rem .55rem;
-      font-size: .75rem;
-      color: var(--text-secondary);
-    }
-
-    /* ── Modal wider ── */
-    .modal-lg { max-width: 620px; }
-
-    /* ── Tab panel hidden by default (JS controls visibility via inline style) ── */
-    [data-panel] { display: none; }
-  </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- ═══ Sidebar ═══ -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">&#127760;</div>
-      <div>
-        <div class="logo-text">GeniSearch</div>
-        <div class="logo-sub">Super Admin</div>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="sidebar-section">Main</div>
-      <a href="index.html"         class="nav-item"><span class="nav-icon">&#9962;</span> Dashboard</a>
-      <a href="inventory.html"     class="nav-item"><span class="nav-icon">&#128230;</span> Inventory</a>
-      <a href="campaigns.html"     class="nav-item"><span class="nav-icon">&#128228;</span> Campaigns</a>
-      <a href="engagement.html"    class="nav-item"><span class="nav-icon">&#128172;</span> Engagement</a>
-      <div class="sidebar-section">Analytics</div>
-      <a href="bi.html"            class="nav-item"><span class="nav-icon">&#128202;</span> BI Analytics</a>
-      <a href="conversations.html" class="nav-item"><span class="nav-icon">&#128489;</span> Conversations <span class="nav-badge">12</span></a>
-      <a href="reports.html"       class="nav-item"><span class="nav-icon">&#128196;</span> Reports</a>
-      <div class="sidebar-section">System</div>
-      <a href="settings.html"      class="nav-item"><span class="nav-icon">&#9881;</span> Settings</a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="avatar avatar-sm">S</div>
-        <div class="user-info">
-          <div class="user-name">Sohaib R.</div>
-          <div class="user-role">Super Admin</div>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- ═══ Main ═══ -->
+  <aside class="sidebar" id="sidebar"></aside>
   <div class="main">
-
-    <!-- Topbar -->
-    <header class="topbar">
-      <div class="topbar-title">Reports &amp; Exports</div>
-      <div class="topbar-actions">
-        <div class="topbar-search">
-          <span>&#128269;</span>
-          <input type="text" placeholder="Search reports…">
-        </div>
-        <button class="topbar-btn" title="Notifications">
-          &#128276;
-          <span class="badge">3</span>
-        </button>
-        <div class="topbar-avatar" title="sohaib365@gmail.com">S</div>
-      </div>
-    </header>
-
-    <!-- Page -->
-    <div class="page">
-
-      <!-- Page header -->
-      <div class="page-header">
-        <div class="page-header-left">
-          <h1>&#128196; Reports &amp; Exports</h1>
-          <p>Generate, schedule and download platform reports across all tenants and campaigns.</p>
-        </div>
-        <div class="page-header-actions">
-          <button class="btn btn-secondary" onclick="openModal('scheduleModal')">
-            &#128337; Schedule Report
-          </button>
-          <button class="btn btn-primary" onclick="openModal('generateModal')">
-            &#43; Generate Report
-          </button>
-        </div>
-      </div>
-
-      <!-- Summary strip -->
-      <div class="report-summary-strip">
-        <div class="summary-tile">
-          <div class="tile-icon" style="background:var(--primary-light)">&#128196;</div>
-          <div>
-            <div class="tile-label">Available Reports</div>
-            <div class="tile-value">8</div>
-          </div>
-        </div>
-        <div class="summary-tile">
-          <div class="tile-icon" style="background:var(--success-light)">&#128337;</div>
-          <div>
-            <div class="tile-label">Scheduled Reports</div>
-            <div class="tile-value">4</div>
-          </div>
-        </div>
-        <div class="summary-tile">
-          <div class="tile-icon" style="background:var(--info-light)">&#128190;</div>
-          <div>
-            <div class="tile-label">Exports This Month</div>
-            <div class="tile-value">38</div>
-          </div>
-        </div>
-        <div class="summary-tile">
-          <div class="tile-icon" style="background:var(--warning-light)">&#9201;</div>
-          <div>
-            <div class="tile-label">Last Generated</div>
-            <div class="tile-value" style="font-size:1rem;margin-top:.2rem;">2h ago</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab bar (data-tab-group scopes tab switching) -->
-      <div data-tab-group="main">
-        <div class="tabs">
-          <button class="tab active" data-tab="available">&#128196; Available Reports</button>
-          <button class="tab" data-tab="scheduled">&#128337; Scheduled Reports</button>
-          <button class="tab" data-tab="history">&#128190; Export History</button>
-        </div>
-
-        <!-- ── TAB 1: Available Reports ── -->
-        <div data-panel="available" class="panel-active">
-          <div class="reports-grid" id="reportsGrid"></div>
-        </div>
-
-        <!-- ── TAB 2: Scheduled Reports ── -->
-        <div data-panel="scheduled">
-          <div class="card">
-            <div class="card-header">
-              <h3>&#128337; Scheduled Reports</h3>
-              <button class="btn btn-primary btn-sm" onclick="openModal('scheduleModal')">&#43; New Schedule</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Report Name</th>
-                    <th>Frequency</th>
-                    <th>Recipients</th>
-                    <th>Next Run</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="scheduledTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── TAB 3: Export History ── -->
-        <div data-panel="history">
-          <div class="card">
-            <div class="card-header">
-              <h3>&#128190; Export History</h3>
-              <div style="display:flex;gap:.5rem;align-items:center;">
-                <input type="text" class="form-control" placeholder="Filter exports…" style="width:180px;padding:.35rem .7rem;font-size:.8rem;">
-                <button class="btn btn-secondary btn-sm">&#128259; Refresh</button>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Report Name</th>
-                    <th>Generated</th>
-                    <th>Format</th>
-                    <th>Size</th>
-                    <th>Generated By</th>
-                    <th>Download</th>
-                  </tr>
-                </thead>
-                <tbody id="historyTableBody"></tbody>
-              </table>
-            </div>
-            <div class="card-footer">
-              Showing 8 most recent exports &nbsp;·&nbsp; <a href="#" style="color:var(--primary)">Load more</a>
-            </div>
-          </div>
-        </div>
-      </div><!-- /tab group -->
-
-    </div><!-- /page -->
-  </div><!-- /main -->
-</div><!-- /app -->
-
-<!-- ═══════════════════════════════════════════════
-     MODAL: Generate Report
-════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="generateModal">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <h3>&#128196; Generate Report</h3>
-      <button class="modal-close" onclick="closeModal('generateModal')">&#10005;</button>
-    </div>
-    <div class="modal-body">
-
-      <div class="form-group">
-        <label class="form-label">Report Type</label>
-        <select class="form-control" id="genReportType">
-          <option value="">-- Select a report --</option>
-          <option value="campaign">Campaign Performance Report</option>
-          <option value="engagement">Customer Engagement Summary</option>
-          <option value="sentiment">Sentiment Analysis Report</option>
-          <option value="revenue">Revenue &amp; MRR Report</option>
-          <option value="tenant">Tenant Activity Report</option>
-          <option value="response">Response Analysis Report</option>
-          <option value="churn">Churn Risk Report</option>
-          <option value="geo">Geographic Performance Report</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-control" id="genStartDate" value="2026-03-01">
-        </div>
-        <div class="form-group">
-          <label class="form-label">End Date</label>
-          <input type="date" class="form-control" id="genEndDate" value="2026-03-30">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Select Tenant</label>
-        <select class="form-control" id="genTenant">
-          <option value="all">All Tenants</option>
-          <option value="zara">Zara Fashion PK</option>
-          <option value="freshmart">FreshMart Grocery</option>
-          <option value="autozone">AutoZone Motors</option>
-          <option value="mediplus">MediPlus Pharma</option>
-          <option value="techgadgets">TechGadgets PK</option>
-          <option value="edubridge">EduBridge Academy</option>
-          <option value="homedecor">HomeDecor Studios</option>
-          <option value="skyfoods">SkyFoods Catering</option>
-          <option value="realestate">RealEstate Hub PK</option>
-          <option value="stylekraft">StyleKraft Boutique</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Export Format</label>
-        <div class="format-radio-group">
-          <label class="format-radio-label">
-            <input type="radio" name="genFormat" value="pdf" checked>
-            &#128196; PDF
-          </label>
-          <label class="format-radio-label">
-            <input type="radio" name="genFormat" value="csv">
-            &#128202; CSV
-          </label>
-          <label class="format-radio-label">
-            <input type="radio" name="genFormat" value="excel">
-            &#128209; Excel
-          </label>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Email Results To</label>
-        <input type="email" class="form-control" id="genEmail" value="sohaib365@gmail.com" placeholder="Enter email address">
-        <div class="form-hint">The report will be emailed once generation is complete (usually 1–3 minutes).</div>
-      </div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('generateModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="handleGenerate()">
-        &#9889; Generate Report
-      </button>
-    </div>
+    <header class="topbar" id="topbar"></header>
+    <div class="page" id="page-body"><div class="loading-spinner">Loading...</div></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════
-     MODAL: Schedule Report
-════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="scheduleModal">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <h3>&#128337; Schedule Report</h3>
-      <button class="modal-close" onclick="closeModal('scheduleModal')">&#10005;</button>
-    </div>
-    <div class="modal-body">
-
-      <div class="form-group">
-        <label class="form-label">Report Type</label>
-        <select class="form-control">
-          <option value="">-- Select a report --</option>
-          <option>Campaign Performance Report</option>
-          <option>Customer Engagement Summary</option>
-          <option>Sentiment Analysis Report</option>
-          <option>Revenue &amp; MRR Report</option>
-          <option>Tenant Activity Report</option>
-          <option>Response Analysis Report</option>
-          <option>Churn Risk Report</option>
-          <option>Geographic Performance Report</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Frequency</label>
-          <select class="form-control">
-            <option>Daily</option>
-            <option>Weekly</option>
-            <option selected>Monthly</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Export Format</label>
-          <select class="form-control">
-            <option>PDF</option>
-            <option>CSV</option>
-            <option>Excel</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Recipients <span class="optional">(comma-separated)</span></label>
-        <input type="text" class="form-control" value="sohaib365@gmail.com" placeholder="email1@example.com, email2@example.com">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Select Tenant</label>
-        <select class="form-control">
-          <option value="all">All Tenants</option>
-          <option>Zara Fashion PK</option>
-          <option>FreshMart Grocery</option>
-          <option>AutoZone Motors</option>
-          <option>MediPlus Pharma</option>
-          <option>TechGadgets PK</option>
-        </select>
-      </div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('scheduleModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="handleSchedule()">
-        &#128337; Save Schedule
-      </button>
-    </div>
+<div class="modal-overlay" id="reportModal">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header"><h3 id="reportTitle">Report</h3><button class="modal-close" onclick="closeModal('reportModal')">&times;</button></div>
+    <div class="modal-body" id="reportBody"><div class="loading-spinner">Generating...</div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('reportModal')">Close</button><button class="btn btn-primary" id="exportBtn" style="display:none" onclick="exportCSV()">Export CSV</button></div>
   </div>
 </div>
 
+<div class="toast-container" id="toast-container"></div>
 <script src="shared.js"></script>
 <script>
-/* ══════════════════════════════════════════
-   DATA
-══════════════════════════════════════════ */
-const REPORTS = [
-  {
-    id: 'campaign',
-    icon: '&#128228;',
-    iconClass: 'purple',
-    title: 'Campaign Performance Report',
-    desc: 'Comprehensive metrics across all campaigns — messages sent, delivery rates, reply rates, and conversion outcomes.',
-    formats: ['PDF', 'CSV'],
-    lastGenerated: '30 Mar 2026',
-  },
-  {
-    id: 'engagement',
-    icon: '&#128172;',
-    iconClass: 'blue',
-    title: 'Customer Engagement Summary',
-    desc: 'Per-customer priority scores, engagement history, reply frequency and sentiment trends over time.',
-    formats: ['PDF', 'CSV', 'Excel'],
-    lastGenerated: '29 Mar 2026',
-  },
-  {
-    id: 'sentiment',
-    icon: '&#128512;',
-    iconClass: 'green',
-    title: 'Sentiment Analysis Report',
-    desc: 'Positive, neutral, and negative sentiment breakdown for every campaign, powered by Claude AI analysis.',
-    formats: ['PDF', 'CSV'],
-    lastGenerated: '28 Mar 2026',
-  },
-  {
-    id: 'revenue',
-    icon: '&#128178;',
-    iconClass: 'orange',
-    title: 'Revenue &amp; MRR Report',
-    desc: 'Platform-wide revenue, monthly recurring revenue by tenant, plan distribution and growth trends.',
-    formats: ['PDF', 'Excel'],
-    lastGenerated: '25 Mar 2026',
-  },
-  {
-    id: 'tenant',
-    icon: '&#127968;',
-    iconClass: 'purple',
-    title: 'Tenant Activity Report',
-    desc: 'Usage statistics per tenant — campaign volume, active customers, message quotas and API calls.',
-    formats: ['PDF', 'CSV'],
-    lastGenerated: '27 Mar 2026',
-  },
-  {
-    id: 'response',
-    icon: '&#129302;',
-    iconClass: 'blue',
-    title: 'Response Analysis Report',
-    desc: 'AI-analyzed customer responses with intent classification, key phrase extraction and suggested auto-replies.',
-    formats: ['PDF', 'CSV', 'Excel'],
-    lastGenerated: '26 Mar 2026',
-  },
-  {
-    id: 'churn',
-    icon: '&#128680;',
-    iconClass: 'red',
-    title: 'Churn Risk Report',
-    desc: 'Customers showing declining engagement, falling priority scores, or increased unsubscribe signals.',
-    formats: ['PDF', 'CSV'],
-    lastGenerated: '24 Mar 2026',
-  },
-  {
-    id: 'geo',
-    icon: '&#127759;',
-    iconClass: 'teal',
-    title: 'Geographic Performance',
-    desc: 'Reply rates, conversion rates and customer density broken down by city and region across Pakistan.',
-    formats: ['PDF', 'CSV'],
-    lastGenerated: '22 Mar 2026',
-  },
-];
+let exportData = null;
 
-const SCHEDULED = [
-  {
-    name: 'Campaign Performance Report',
-    freq: 'Weekly',
-    recipients: ['sohaib365@gmail.com', 'ops@genisearch.io'],
-    nextRun: '31 Mar 2026',
-    status: 'Active',
-  },
-  {
-    name: 'Revenue &amp; MRR Report',
-    freq: 'Monthly',
-    recipients: ['sohaib365@gmail.com'],
-    nextRun: '01 Apr 2026',
-    status: 'Active',
-  },
-  {
-    name: 'Churn Risk Report',
-    freq: 'Weekly',
-    recipients: ['sohaib365@gmail.com', 'support@genisearch.io'],
-    nextRun: '04 Apr 2026',
-    status: 'Active',
-  },
-  {
-    name: 'Sentiment Analysis Report',
-    freq: 'Daily',
-    recipients: ['sohaib365@gmail.com'],
-    nextRun: '31 Mar 2026',
-    status: 'Paused',
-  },
-];
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireLogin(); if (!user) return;
+  document.getElementById('sidebar').innerHTML = sidebarHTML('reports.html');
+  document.getElementById('topbar').innerHTML = topbarHTML('Reports');
+  initPage('Reports');
+  renderPage();
+});
 
-const HISTORY = [
-  { name: 'Campaign Performance Report',   generated: '30 Mar 2026, 10:14 AM', format: 'PDF',   size: '1.2 MB', by: 'Sohaib R.' },
-  { name: 'Customer Engagement Summary',   generated: '29 Mar 2026, 03:45 PM', format: 'CSV',   size: '840 KB', by: 'Sohaib R.' },
-  { name: 'Revenue &amp; MRR Report',      generated: '28 Mar 2026, 09:00 AM', format: 'Excel', size: '2.1 MB', by: 'System (Scheduled)' },
-  { name: 'Sentiment Analysis Report',     generated: '27 Mar 2026, 08:01 AM', format: 'PDF',   size: '970 KB', by: 'System (Scheduled)' },
-  { name: 'Churn Risk Report',             generated: '26 Mar 2026, 11:30 AM', format: 'CSV',   size: '310 KB', by: 'Sohaib R.' },
-  { name: 'Tenant Activity Report',        generated: '25 Mar 2026, 04:20 PM', format: 'PDF',   size: '1.5 MB', by: 'Sohaib R.' },
-  { name: 'Geographic Performance',        generated: '23 Mar 2026, 02:10 PM', format: 'CSV',   size: '420 KB', by: 'Sohaib R.' },
-  { name: 'Response Analysis Report',      generated: '22 Mar 2026, 10:55 AM', format: 'Excel', size: '3.4 MB', by: 'System (Scheduled)' },
-];
+async function renderPage() {
+  const page = document.getElementById('page-body');
+  const [waStatus, aiStatus, whStatus] = await Promise.all([
+    apiGet('/whatsapp/status').catch(() => ({ stub_mode: true })),
+    apiGet('/ai/status').catch(() => ({ stub_mode: true })),
+    apiGet('/webhooks/status').catch(() => ({ stub_mode: true }))
+  ]);
 
-/* ══════════════════════════════════════════
-   RENDER — Available Reports
-══════════════════════════════════════════ */
-const formatLabels = { PDF: 'pdf', CSV: 'csv', Excel: 'excel' };
+  page.innerHTML = `
+    <div class="page-header"><div class="page-header-left"><h1>Reports</h1><p>Generate and export data reports</p></div></div>
 
-function renderReports() {
-  const grid = document.getElementById('reportsGrid');
-  grid.innerHTML = REPORTS.map(r => `
-    <div class="report-card">
-      <div class="report-card-top">
-        <div class="report-icon ${r.iconClass}">${r.icon}</div>
-        <div class="report-meta">
-          <h4>${r.title}</h4>
-          <p>${r.desc}</p>
+    <div class="grid-3 mb-3">
+      <div class="card" style="cursor:pointer" onclick="genReport('platform')">
+        <div class="card-body" style="text-align:center;padding:28px">
+          <div style="font-size:2.2rem;margin-bottom:8px">&#128202;</div>
+          <h3>Platform Overview</h3>
+          <p class="text-muted" style="font-size:.85rem">Tenants, campaigns, messages, MRR</p>
+          <button class="btn btn-primary btn-sm mt-2">Generate</button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-        <div class="report-formats">
-          ${r.formats.map(f => `<span class="format-badge ${f.toLowerCase()}">${f}</span>`).join('')}
+      <div class="card" style="cursor:pointer" onclick="genReport('campaigns')">
+        <div class="card-body" style="text-align:center;padding:28px">
+          <div style="font-size:2.2rem;margin-bottom:8px">&#128228;</div>
+          <h3>Campaign Performance</h3>
+          <p class="text-muted" style="font-size:.85rem">All campaigns with metrics</p>
+          <button class="btn btn-primary btn-sm mt-2">Generate</button>
         </div>
-        <span class="report-last">Last generated: ${r.lastGenerated}</span>
       </div>
-      <div class="report-actions">
-        <button class="btn btn-primary btn-sm" onclick="quickGenerate('${r.id}')">
-          &#9889; Generate
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="openModal('scheduleModal')">
-          &#128337; Schedule
-        </button>
+      <div class="card" style="cursor:pointer" onclick="genReport('customers')">
+        <div class="card-body" style="text-align:center;padding:28px">
+          <div style="font-size:2.2rem;margin-bottom:8px">&#128101;</div>
+          <h3>Customer Report</h3>
+          <p class="text-muted" style="font-size:.85rem">All customers with details</p>
+          <button class="btn btn-primary btn-sm mt-2">Generate</button>
+        </div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="genReport('products')">
+        <div class="card-body" style="text-align:center;padding:28px">
+          <div style="font-size:2.2rem;margin-bottom:8px">&#128230;</div>
+          <h3>Product Report</h3>
+          <p class="text-muted" style="font-size:.85rem">All products with targeting</p>
+          <button class="btn btn-primary btn-sm mt-2">Generate</button>
+        </div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="triggerDailySummary()">
+        <div class="card-body" style="text-align:center;padding:28px">
+          <div style="font-size:2.2rem;margin-bottom:8px">&#128232;</div>
+          <h3>Daily Summary</h3>
+          <p class="text-muted" style="font-size:.85rem">Trigger n8n daily summary webhook</p>
+          <button class="btn btn-success btn-sm mt-2">Trigger</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="text-align:center;padding:28px">
+          <div style="font-size:2.2rem;margin-bottom:8px">&#9881;</div>
+          <h3>Service Status</h3>
+          <div class="mt-2" style="text-align:left">
+            <p>WhatsApp: ${waStatus.stub_mode ? '<span class="badge badge-warning">Stub</span>' : '<span class="badge badge-success">Active</span>'}</p>
+            <p>AI Analysis: ${aiStatus.stub_mode ? '<span class="badge badge-warning">Stub</span>' : '<span class="badge badge-success">Active</span>'}</p>
+            <p>Webhooks: ${whStatus.stub_mode ? '<span class="badge badge-warning">Stub</span>' : '<span class="badge badge-success">Active</span>'}</p>
+          </div>
+        </div>
       </div>
     </div>
-  `).join('');
+  `;
 }
 
-/* ══════════════════════════════════════════
-   RENDER — Scheduled Reports
-══════════════════════════════════════════ */
-const freqClass = { Daily: 'daily', Weekly: 'weekly', Monthly: 'monthly' };
+async function genReport(type) {
+  const titles = { platform:'Platform Overview', campaigns:'Campaign Performance', customers:'Customer Report', products:'Product Report' };
+  document.getElementById('reportTitle').textContent = titles[type] || 'Report';
+  document.getElementById('reportBody').innerHTML = '<div class="loading-spinner">Generating report...</div>';
+  document.getElementById('exportBtn').style.display = 'none';
+  exportData = null;
+  openModal('reportModal');
 
-function renderScheduled() {
-  const tbody = document.getElementById('scheduledTableBody');
-  tbody.innerHTML = SCHEDULED.map((s, i) => `
-    <tr>
-      <td><span class="fw-600">${s.name}</span></td>
-      <td><span class="freq-badge ${freqClass[s.freq]}">${s.freq}</span></td>
-      <td>
-        ${s.recipients.map(e => `<span class="recipient-pill">&#9993; ${e}</span>`).join(' ')}
-      </td>
-      <td>${s.nextRun}</td>
-      <td>
-        <span class="badge badge-dot ${s.status === 'Active' ? 'badge-success' : 'badge-warning'}">
-          ${s.status}
-        </span>
-      </td>
-      <td>
-        <div style="display:flex;gap:.4rem;">
-          <button class="icon-btn" title="Edit" onclick="toast('Opening schedule editor…','info')">&#9998;</button>
-          <button class="icon-btn" title="${s.status === 'Active' ? 'Pause' : 'Resume'}"
-            onclick="toggleSchedule(this, ${i})">
-            ${s.status === 'Active' ? '&#9646;&#9646;' : '&#9654;'}
-          </button>
-          <button class="icon-btn danger" title="Delete" onclick="deleteSchedule(this, ${i})">&#128465;</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+  try {
+    let html = '', data = [];
+    if (type === 'platform') {
+      const d = await apiGet('/bi/saas-platform/dashboard');
+      const o = d.overview || {};
+      html = '<div class="stats-grid mb-3"><div class="stat-card"><div class="stat-info"><div class="stat-label">Tenants</div><div class="stat-value">'+fmtNum(o.total_tenants)+'</div></div></div><div class="stat-card"><div class="stat-info"><div class="stat-label">Products</div><div class="stat-value">'+fmtNum(o.total_products)+'</div></div></div><div class="stat-card"><div class="stat-info"><div class="stat-label">Customers</div><div class="stat-value">'+fmtNum(o.total_customers)+'</div></div></div><div class="stat-card"><div class="stat-info"><div class="stat-label">Campaigns</div><div class="stat-value">'+fmtNum(o.total_campaigns)+'</div></div></div><div class="stat-card"><div class="stat-info"><div class="stat-label">MRR</div><div class="stat-value">'+fmtCurrency(o.total_mrr)+'</div></div></div></div>';
+      const tenants = d.tenants || [];
+      html += '<table><thead><tr><th>Tenant</th><th>Plan</th><th>Products</th><th>Campaigns</th><th>Customers</th></tr></thead><tbody>';
+      tenants.forEach(t => { html += '<tr><td>'+escapeHtml(t.name)+'</td><td>'+escapeHtml(t.plan)+'</td><td>'+t.product_count+'</td><td>'+t.campaign_count+'</td><td>'+t.customer_count+'</td></tr>'; });
+      html += '</tbody></table>';
+      data = tenants.map(t => ({ Name:t.name, Plan:t.plan, Products:t.product_count, Campaigns:t.campaign_count, Customers:t.customer_count }));
+    } else if (type === 'campaigns') {
+      const camps = await apiGet('/campaigns');
+      html = '<table><thead><tr><th>Name</th><th>Status</th><th>Sent</th><th>Replies</th><th>Conversions</th><th>Created</th></tr></thead><tbody>';
+      camps.forEach(c => { html += '<tr><td>'+escapeHtml(c.name)+'</td><td>'+c.status+'</td><td>'+c.sent_count+'</td><td>'+c.reply_count+'</td><td>'+c.conversion_count+'</td><td>'+fmtDate(c.created_at)+'</td></tr>'; });
+      html += '</tbody></table>';
+      data = camps.map(c => ({ Name:c.name, Status:c.status, Sent:c.sent_count, Replies:c.reply_count, Conversions:c.conversion_count, Created:fmtDate(c.created_at) }));
+    } else if (type === 'customers') {
+      const custs = await apiGet('/customers');
+      html = '<table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>City</th><th>Source</th></tr></thead><tbody>';
+      custs.forEach(c => { html += '<tr><td>'+escapeHtml(c.name||'-')+'</td><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.email||'-')+'</td><td>'+escapeHtml(c.city||'-')+'</td><td>'+escapeHtml(c.source||'-')+'</td></tr>'; });
+      html += '</tbody></table>';
+      data = custs.map(c => ({ Name:c.name, Phone:c.phone, Email:c.email, City:c.city, Source:c.source }));
+    } else if (type === 'products') {
+      const prods = await apiGet('/products');
+      html = '<table><thead><tr><th>Name</th><th>Price</th><th>Region</th><th>City</th><th>Status</th></tr></thead><tbody>';
+      prods.forEach(p => { html += '<tr><td>'+escapeHtml(p.name)+'</td><td>'+(p.price||'-')+'</td><td>'+escapeHtml(p.region||'-')+'</td><td>'+escapeHtml(p.city||'-')+'</td><td>'+escapeHtml(p.status||'active')+'</td></tr>'; });
+      html += '</tbody></table>';
+      data = prods.map(p => ({ Name:p.name, Price:p.price, Region:p.region, City:p.city, Status:p.status }));
+    }
+    document.getElementById('reportBody').innerHTML = '<div class="table-wrap">'+html+'</div>';
+    if (data.length) { exportData = data; document.getElementById('exportBtn').style.display = ''; }
+  } catch(e) { document.getElementById('reportBody').innerHTML = '<p class="text-danger">'+escapeHtml(e.message)+'</p>'; }
 }
 
-/* ══════════════════════════════════════════
-   RENDER — Export History
-══════════════════════════════════════════ */
-const formatColors = { PDF: '#c0392b', CSV: '#1e8449', Excel: '#1e8449' };
-const formatBg     = { PDF: '#fdf0ef', CSV: '#eafaf1', Excel: '#eafaf1' };
-
-function renderHistory() {
-  const tbody = document.getElementById('historyTableBody');
-  tbody.innerHTML = HISTORY.map(h => `
-    <tr>
-      <td><span class="fw-600">${h.name}</span></td>
-      <td><span style="font-size:.82rem;color:var(--text-secondary);">${h.generated}</span></td>
-      <td>
-        <span class="format-badge ${h.format.toLowerCase()}">${h.format}</span>
-      </td>
-      <td><span class="size-tag">${h.size}</span></td>
-      <td>
-        <div style="display:flex;align-items:center;gap:.5rem;">
-          <div class="avatar avatar-sm">${h.by[0]}</div>
-          <span style="font-size:.82rem;">${h.by}</span>
-        </div>
-      </td>
-      <td>
-        <button class="dl-btn" onclick="simulateDownload('${h.name}', '${h.format}')">
-          &#11015; Download
-        </button>
-      </td>
-    </tr>
-  `).join('');
+function exportCSV() {
+  if (!exportData || !exportData.length) return;
+  const headers = Object.keys(exportData[0]);
+  const csv = [headers.join(',')].concat(exportData.map(row => headers.map(h => '"'+(row[h]||'')+'"').join(','))).join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'report.csv'; a.click();
+  toast('CSV downloaded!','success');
 }
 
-/* ══════════════════════════════════════════
-   ACTIONS
-══════════════════════════════════════════ */
-function quickGenerate(reportId) {
-  const report = REPORTS.find(r => r.id === reportId);
-  // Pre-select the report in the modal
-  document.getElementById('genReportType').value = reportId;
-  openModal('generateModal');
+async function triggerDailySummary() {
+  try {
+    const r = await apiPost('/webhooks/daily-summary', {});
+    toast('Daily summary sent! Campaigns today: '+(r.data?.campaigns_sent_today||0), 'success');
+  } catch(e) { toast(e.message, 'error'); }
 }
-
-function handleGenerate() {
-  const type  = document.getElementById('genReportType').value;
-  const email = document.getElementById('genEmail').value.trim();
-  if (!type) {
-    toast('Please select a report type.', 'error');
-    return;
-  }
-  if (!email) {
-    toast('Please enter a recipient email.', 'error');
-    return;
-  }
-  closeModal('generateModal');
-  toast('Report generation started. You\'ll receive an email shortly.', 'success');
-}
-
-function handleSchedule() {
-  closeModal('scheduleModal');
-  toast('Report schedule saved successfully!', 'success');
-}
-
-function simulateDownload(name, format) {
-  toast(`Downloading "${name}" (${format})…`, 'info');
-}
-
-function toggleSchedule(btn, index) {
-  const row = btn.closest('tr');
-  const badgeEl = row.querySelector('.badge');
-  const isActive = SCHEDULED[index].status === 'Active';
-  SCHEDULED[index].status = isActive ? 'Paused' : 'Active';
-  btn.innerHTML = SCHEDULED[index].status === 'Active' ? '&#9646;&#9646;' : '&#9654;';
-  btn.title = SCHEDULED[index].status === 'Active' ? 'Pause' : 'Resume';
-  badgeEl.className = `badge badge-dot ${SCHEDULED[index].status === 'Active' ? 'badge-success' : 'badge-warning'}`;
-  badgeEl.textContent = SCHEDULED[index].status;
-  toast(`Schedule ${SCHEDULED[index].status === 'Active' ? 'resumed' : 'paused'} successfully.`, 'success');
-}
-
-function deleteSchedule(btn, index) {
-  const row = btn.closest('tr');
-  row.style.transition = 'opacity .3s ease';
-  row.style.opacity = '0';
-  setTimeout(() => {
-    row.remove();
-    SCHEDULED.splice(index, 1);
-    toast('Schedule deleted.', 'success');
-    // Re-render to fix indices
-    renderScheduled();
-  }, 300);
-}
-
-/* ══════════════════════════════════════════
-   INIT
-══════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
-  renderReports();
-  renderScheduled();
-  renderHistory();
-
-  // Set first tab panel visible; shared.js initTabs() will handle subsequent
-  // tab clicks using inline style toggling.
-  document.querySelectorAll('[data-panel]').forEach((p, i) => {
-    p.style.display = i === 0 ? '' : 'none';
-  });
-
-  // Re-run initTabs so the tab bar picks up after our render
-  if (typeof initTabs === 'function') initTabs();
-});
 </script>
 </body>
 </html>

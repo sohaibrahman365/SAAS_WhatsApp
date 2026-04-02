@@ -3,1862 +3,246 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GeniSearch — BI Analytics</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <title>BI Analytics — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared.css">
   <style>
-    /* ── BI-specific styles ── */
-    .bi-level { display: none; }
-    .bi-level.active { display: block; }
-
-    /* Breadcrumb trail */
-    .bi-breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: .4rem;
-      font-size: .8rem;
-      color: var(--text-muted);
-      background: var(--white);
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius-sm);
-      padding: .6rem 1rem;
-      margin-bottom: 1.5rem;
-      box-shadow: var(--shadow);
-    }
-    .bi-breadcrumb .bc-item {
-      display: flex;
-      align-items: center;
-      gap: .4rem;
-    }
-    .bi-breadcrumb .bc-link {
-      color: var(--primary);
-      font-weight: 500;
-      cursor: pointer;
-      transition: var(--t);
-    }
-    .bi-breadcrumb .bc-link:hover { text-decoration: underline; color: var(--primary-dark); }
-    .bi-breadcrumb .bc-current { color: var(--text-primary); font-weight: 600; }
-    .bi-breadcrumb .bc-sep { color: var(--text-muted); font-size: .7rem; margin: 0 .1rem; }
-    .bi-breadcrumb .bc-icon { font-size: .85rem; }
-
-    /* Level header */
-    .level-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 1.5rem;
-      gap: 1rem;
-    }
-    .level-header-left h1 { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); }
-    .level-header-left p  { color: var(--text-secondary); font-size: .875rem; margin-top: .2rem; }
-    .level-header-actions { display: flex; gap: .75rem; align-items: center; flex-shrink: 0; }
-
-    /* Level badge pill */
-    .level-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      background: var(--primary-light);
-      color: var(--primary);
-      font-size: .72rem;
-      font-weight: 700;
-      padding: .3rem .75rem;
-      border-radius: 20px;
-      letter-spacing: .05em;
-      text-transform: uppercase;
-    }
-
-    /* Drill-down button */
-    .btn-drill {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      padding: .35rem .8rem;
-      background: var(--primary-light);
-      color: var(--primary);
-      border: 1px solid rgba(102,126,234,.25);
-      border-radius: var(--radius-sm);
-      font-size: .8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: var(--t);
-      white-space: nowrap;
-    }
-    .btn-drill:hover {
-      background: var(--primary);
-      color: var(--white);
-      border-color: var(--primary);
-    }
-
-    /* Trend indicators in tables */
-    .trend-up   { color: var(--success); font-size: 1rem; }
-    .trend-down { color: var(--danger);  font-size: 1rem; }
-    .trend-flat { color: var(--text-muted); font-size: 1rem; }
-
-    /* Chart cards */
-    .chart-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      border: 1px solid var(--light-2);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      margin-bottom: 1.5rem;
-    }
-    .chart-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--light-2);
-    }
-    .chart-card-header h3 { font-size: .95rem; font-weight: 600; color: var(--text-primary); }
-    .chart-card-body { padding: 1.25rem 1.5rem; }
-
-    /* Content grid */
-    .content-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
-    .content-grid-3-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
-
-    /* Table card */
-    .table-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      border: 1px solid var(--light-2);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      margin-bottom: 1.5rem;
-    }
-    .table-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--light-2);
-    }
-    .table-card-header h3 { font-size: .95rem; font-weight: 600; }
-
-    /* Plan badge */
-    .plan-pro     { background: #fef3ff; color: #9b59b6; }
-    .plan-growth  { background: #f0fdf4; color: #16a34a; }
-    .plan-starter { background: #f0f9ff; color: #0284c7; }
-
-    /* ── Level 4: Funnel chart ── */
-    .funnel-container {
-      display: flex;
-      flex-direction: column;
-      gap: .6rem;
-      padding: .5rem 0;
-    }
-    .funnel-row {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .funnel-label {
-      width: 80px;
-      font-size: .78rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-align: right;
-      flex-shrink: 0;
-    }
-    .funnel-bar-wrap {
-      flex: 1;
-      position: relative;
-      height: 32px;
-      background: var(--light-2);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .funnel-bar {
-      height: 100%;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      padding-left: .75rem;
-      font-size: .78rem;
-      font-weight: 700;
-      color: var(--white);
-      transition: width .5s ease;
-    }
-    .funnel-pct {
-      width: 52px;
-      font-size: .78rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      flex-shrink: 0;
-    }
-    .funnel-val {
-      width: 52px;
-      font-size: .82rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      flex-shrink: 0;
-      text-align: right;
-    }
-
-    /* Sentiment breakdown */
-    .sentiment-bars { display: flex; flex-direction: column; gap: .85rem; padding: .25rem 0; }
-    .sent-row { display: flex; flex-direction: column; gap: .3rem; }
-    .sent-label-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: .8rem;
-    }
-    .sent-label { font-weight: 600; color: var(--text-primary); }
-    .sent-count { color: var(--text-secondary); }
-    .sent-bar-wrap {
-      height: 8px;
-      background: var(--light-2);
-      border-radius: 20px;
-      overflow: hidden;
-    }
-    .sent-bar { height: 100%; border-radius: 20px; }
-
-    /* ── Level 5: Chat bubbles ── */
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      gap: .85rem;
-      padding: 1rem 1.25rem;
-      background: #f0f2f5;
-      border-radius: var(--radius);
-      min-height: 140px;
-    }
-    .chat-bubble-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: .2rem;
-    }
-    .chat-bubble-wrap.right { align-items: flex-end; }
-    .chat-bubble-wrap.left  { align-items: flex-start; }
-    .chat-bubble {
-      max-width: 75%;
-      padding: .75rem 1rem;
-      border-radius: 12px;
-      font-size: .875rem;
-      line-height: 1.55;
-      position: relative;
-    }
-    .chat-bubble.sent {
-      background: #d9fdd3;
-      color: #111;
-      border-bottom-right-radius: 3px;
-    }
-    .chat-bubble.received {
-      background: var(--white);
-      color: #111;
-      border-bottom-left-radius: 3px;
-      box-shadow: 0 1px 2px rgba(0,0,0,.1);
-    }
-    .chat-time {
-      font-size: .68rem;
-      color: var(--text-muted);
-    }
-    .chat-label {
-      font-size: .72rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: .25rem;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    /* AI Analysis card */
-    .ai-card {
-      background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
-      border: 1px solid rgba(102,126,234,.2);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    .ai-card-header {
-      background: var(--gradient);
-      padding: .85rem 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: .6rem;
-      color: var(--white);
-    }
-    .ai-card-header h4 { font-size: .9rem; font-weight: 700; }
-    .ai-card-header span { font-size: 1rem; }
-    .ai-card-body { padding: 1.25rem; }
-
-    .ai-row {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      padding: .5rem 0;
-      border-bottom: 1px solid var(--light-2);
-    }
-    .ai-row:last-child { border-bottom: none; }
-    .ai-row-label {
-      width: 120px;
-      font-size: .75rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      flex-shrink: 0;
-    }
-    .ai-row-value { flex: 1; font-size: .875rem; color: var(--text-primary); }
-
-    /* Sentiment badge large */
-    .sentiment-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      padding: .35rem .9rem;
-      border-radius: 20px;
-      font-size: .8rem;
-      font-weight: 700;
-    }
-    .sentiment-positive { background: #eafaf1; color: var(--success); }
-    .sentiment-neutral  { background: var(--warning-light); color: var(--warning); }
-    .sentiment-negative { background: var(--danger-light);  color: var(--danger); }
-
-    /* Key phrases */
-    .phrase-list { display: flex; flex-wrap: wrap; gap: .4rem; }
-
-    /* Priority score gauge */
-    .priority-score {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--white);
-      line-height: 1;
-      gap: .15rem;
-    }
-    .priority-score span { font-size: .6rem; font-weight: 600; opacity: .85; }
-    .priority-high   { background: linear-gradient(135deg, #27ae60, #1abc9c); box-shadow: 0 4px 14px rgba(39,174,96,.4); }
-    .priority-medium { background: linear-gradient(135deg, #f39c12, #e67e22); box-shadow: 0 4px 14px rgba(243,156,18,.4); }
-    .priority-low    { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 4px 14px rgba(231,76,60,.4); }
-
-    /* Customer info card */
-    .customer-info-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      border: 1px solid var(--light-2);
-      box-shadow: var(--shadow);
-      padding: 1.25rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      margin-bottom: 1.25rem;
-    }
-    .customer-info-details { flex: 1; }
-    .customer-info-details h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: .3rem; }
-    .customer-info-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .5rem 1.25rem;
-      font-size: .82rem;
-      color: var(--text-secondary);
-    }
-    .customer-info-meta strong { color: var(--text-primary); }
-
-    /* Timeline */
-    .timeline { position: relative; padding-left: 1.5rem; }
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 6px;
-      top: 4px;
-      bottom: 4px;
-      width: 2px;
-      background: var(--light-2);
-    }
-    .timeline-item {
-      position: relative;
-      padding: 0 0 1rem 1rem;
-    }
-    .timeline-item:last-child { padding-bottom: 0; }
-    .timeline-dot {
-      position: absolute;
-      left: -1.5rem;
-      top: 4px;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      border: 2px solid var(--white);
-      box-shadow: 0 0 0 2px var(--light-2);
-      flex-shrink: 0;
-    }
-    .timeline-dot.green  { background: var(--success); box-shadow: 0 0 0 2px rgba(39,174,96,.2); }
-    .timeline-dot.blue   { background: var(--info);    box-shadow: 0 0 0 2px rgba(52,152,219,.2); }
-    .timeline-dot.orange { background: var(--warning); box-shadow: 0 0 0 2px rgba(243,156,18,.2); }
-    .timeline-dot.red    { background: var(--danger);  box-shadow: 0 0 0 2px rgba(231,76,60,.2); }
-    .timeline-dot.purple { background: var(--primary); box-shadow: 0 0 0 2px rgba(102,126,234,.2); }
-    .timeline-content h5 { font-size: .82rem; font-weight: 600; color: var(--text-primary); }
-    .timeline-content p  { font-size: .78rem; color: var(--text-secondary); margin-top: .15rem; }
-    .timeline-content time { font-size: .72rem; color: var(--text-muted); display: block; margin-top: .2rem; }
-
-    /* Confidence bar */
-    .confidence-wrap {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-    }
-    .confidence-track {
-      flex: 1;
-      height: 6px;
-      background: var(--light-2);
-      border-radius: 20px;
-      overflow: hidden;
-    }
-    .confidence-fill {
-      height: 100%;
-      border-radius: 20px;
-      background: var(--gradient);
-    }
-    .confidence-pct {
-      font-size: .8rem;
-      font-weight: 700;
-      color: var(--primary);
-      flex-shrink: 0;
-    }
-
-    /* Suggested reply textarea */
-    .reply-textarea {
-      width: 100%;
-      padding: .75rem;
-      border: 1px solid rgba(102,126,234,.3);
-      border-radius: var(--radius-sm);
-      font-size: .875rem;
-      background: var(--primary-light);
-      color: var(--text-primary);
-      resize: vertical;
-      min-height: 75px;
-      line-height: 1.5;
-    }
-    .reply-textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(102,126,234,.15);
-    }
-
-    /* Stats in level 4 - 5 columns */
-    .stats-grid-5 {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    /* Response breakdown row */
-    .response-breakdown {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .rb-item {
-      flex: 1;
-      background: var(--white);
-      border-radius: var(--radius);
-      border: 1px solid var(--light-2);
-      box-shadow: var(--shadow);
-      padding: 1.1rem 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: .85rem;
-    }
-    .rb-icon {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem;
-      flex-shrink: 0;
-    }
-    .rb-icon.pos  { background: var(--success-light); }
-    .rb-icon.neu  { background: var(--warning-light); }
-    .rb-icon.neg  { background: var(--danger-light); }
-    .rb-info .rb-label { font-size: .72rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
-    .rb-info .rb-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; margin-top: .1rem; }
-    .rb-info .rb-pct   { font-size: .75rem; color: var(--text-secondary); }
-
-    /* L5 two-col grid */
-    .l5-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
-
-    /* Export button styling */
-    .btn-export {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      padding: .5rem 1rem;
-      background: var(--white);
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius-sm);
-      font-size: .8rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: var(--t);
-    }
-    .btn-export:hover { background: var(--light); color: var(--text-primary); }
-
-    /* Date range selector */
-    .date-range {
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-      padding: .45rem .9rem;
-      background: var(--white);
-      border: 1px solid var(--light-2);
-      border-radius: var(--radius-sm);
-      font-size: .8rem;
-      color: var(--text-secondary);
-      cursor: pointer;
-    }
-
-    /* Small chart height override */
-    .chart-sm { height: 220px; }
-    .chart-md { height: 260px; }
-
-    /* Tenant row avatar */
-    .tenant-avatar {
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .75rem;
-      font-weight: 700;
-      color: var(--white);
-      flex-shrink: 0;
-    }
-
-    /* Rev highlight */
-    .rev-cell { font-weight: 700; color: var(--text-primary); }
-
-    /* L5 send reply actions */
-    .send-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: .75rem; }
-
-    /* Responsive overrides for smaller screens */
-    @media (max-width: 1100px) {
-      .stats-grid-5 { grid-template-columns: repeat(3, 1fr); }
-      .content-grid-3-1 { grid-template-columns: 1fr; }
-      .l5-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 860px) {
-      .content-grid-2 { grid-template-columns: 1fr; }
-      .response-breakdown { flex-wrap: wrap; }
-    }
+    .breadcrumb-nav { display:flex; align-items:center; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+    .breadcrumb-nav a { color:var(--primary); font-weight:600; cursor:pointer; }
+    .breadcrumb-nav .sep { color:var(--light-3); }
+    .breadcrumb-nav .current { color:var(--text-primary); font-weight:700; }
+    .funnel-bar { height:36px; border-radius:6px; display:flex; align-items:center; padding:0 12px; color:#fff; font-weight:600; font-size:.82rem; min-width:40px; transition:width .5s ease; }
+    .funnel-step { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+    .funnel-label { min-width:90px; font-size:.82rem; font-weight:500; color:var(--text-secondary); }
+    .clickable-row { cursor:pointer; } .clickable-row:hover { background:var(--primary-light) !important; }
   </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- ══════════════════════════════════
-       SIDEBAR
-  ══════════════════════════════════ -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">&#127760;</div>
-      <div>
-        <div class="logo-text">GeniSearch</div>
-        <div class="logo-sub">Super Admin</div>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="sidebar-section">Main</div>
-      <a href="index.html"         class="nav-item"><span class="nav-icon">&#9962;</span> Dashboard</a>
-      <a href="inventory.html"     class="nav-item"><span class="nav-icon">&#128230;</span> Inventory</a>
-      <a href="campaigns.html"     class="nav-item"><span class="nav-icon">&#128228;</span> Campaigns</a>
-      <a href="engagement.html"    class="nav-item"><span class="nav-icon">&#128172;</span> Engagement</a>
-      <div class="sidebar-section">Analytics</div>
-      <a href="bi.html"            class="nav-item"><span class="nav-icon">&#128202;</span> BI Analytics</a>
-      <a href="conversations.html" class="nav-item"><span class="nav-icon">&#128489;</span> Conversations <span class="nav-badge">12</span></a>
-      <a href="reports.html"       class="nav-item"><span class="nav-icon">&#128196;</span> Reports</a>
-      <div class="sidebar-section">System</div>
-      <a href="settings.html"      class="nav-item"><span class="nav-icon">&#9881;</span> Settings</a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="avatar avatar-sm">S</div>
-        <div class="user-info">
-          <div class="user-name">Sohaib R.</div>
-          <div class="user-role">Super Admin</div>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- ══════════════════════════════════
-       MAIN
-  ══════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar"></aside>
   <div class="main">
-
-    <!-- Topbar -->
-    <header class="topbar">
-      <div class="topbar-title" id="topbar-title">BI Analytics — Platform Overview</div>
-      <div class="topbar-actions">
-        <div class="topbar-search">
-          <span>&#128269;</span>
-          <input type="text" placeholder="Search tenants, products…">
-        </div>
-        <button class="btn-export">&#128196; Export</button>
-        <button class="topbar-btn" title="Notifications">&#128276;<span class="badge">3</span></button>
-        <div class="topbar-avatar" title="sohaib365@gmail.com">S</div>
-      </div>
-    </header>
-
-    <div class="page">
-
-      <!-- ╔═══════════════════════════════╗
-           ║  LEVEL 1 — Platform Overview  ║
-           ╚═══════════════════════════════╝ -->
-      <div class="bi-level active" data-level="1">
-
-        <!-- Breadcrumb -->
-        <div class="bi-breadcrumb">
-          <div class="bc-item">
-            <span class="bc-icon">&#128202;</span>
-            <span class="bc-current">Platform</span>
-          </div>
-        </div>
-
-        <!-- Header -->
-        <div class="level-header">
-          <div class="level-header-left">
-            <h1>SaaS Platform Analytics</h1>
-            <p>Aggregate view across all 24 active tenants &nbsp;·&nbsp; Last updated: 30 Mar 2026</p>
-          </div>
-          <div class="level-header-actions">
-            <span class="level-badge">&#127968; Level 1 of 5</span>
-            <div class="date-range">&#128197; Last 12 Months &#9660;</div>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon purple">&#127968;</div>
-            <div class="stat-info">
-              <div class="stat-label">Total Tenants</div>
-              <div class="stat-value">24</div>
-              <div class="stat-change up">&#9650; +3 this month</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon green">&#128176;</div>
-            <div class="stat-info">
-              <div class="stat-label">Platform Revenue</div>
-              <div class="stat-value">PKR 8.4M</div>
-              <div class="stat-change up">&#9650; +18.2% vs last month</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon blue">&#128228;</div>
-            <div class="stat-info">
-              <div class="stat-label">Total Campaigns</div>
-              <div class="stat-value">386</div>
-              <div class="stat-change up">&#9650; +42 this month</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon orange">&#128172;</div>
-            <div class="stat-info">
-              <div class="stat-label">Avg Reply Rate</div>
-              <div class="stat-value">11.4%</div>
-              <div class="stat-change up">&#9650; +1.2% vs last month</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Revenue chart -->
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <h3>&#128200; Platform Revenue — Last 12 Months</h3>
-            <div style="display:flex;gap:.75rem;align-items:center">
-              <span style="font-size:.78rem;color:var(--text-secondary)">Total: PKR 8.4M MRR</span>
-              <span class="badge badge-success badge-dot">Growing</span>
-            </div>
-          </div>
-          <div class="chart-card-body">
-            <div class="chart-wrap" style="height:240px">
-              <canvas id="chartRevenue"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tenants table -->
-        <div class="table-card">
-          <div class="table-card-header">
-            <h3>&#127968; All Tenants</h3>
-            <div style="display:flex;gap:.6rem;align-items:center">
-              <span style="font-size:.78rem;color:var(--text-secondary)">24 tenants · Click "Drill Down" to explore</span>
-              <button class="btn-export">&#128247; Export CSV</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table id="tenantsTable">
-              <thead>
-                <tr>
-                  <th>Tenant Name</th>
-                  <th>Industry</th>
-                  <th>Plan</th>
-                  <th>Revenue (PKR)</th>
-                  <th>Campaigns</th>
-                  <th>Reply Rate</th>
-                  <th>Trend</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="tenantsBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-      </div><!-- /level-1 -->
-
-
-      <!-- ╔══════════════════════════════╗
-           ║  LEVEL 2 — Tenant Dashboard  ║
-           ╚══════════════════════════════╝ -->
-      <div class="bi-level" data-level="2">
-
-        <!-- Breadcrumb -->
-        <div class="bi-breadcrumb">
-          <div class="bc-item">
-            <span class="bc-icon">&#128202;</span>
-            <span class="bc-link" onclick="showLevel(1)">Platform</span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-current" id="bc2-tenant"></span>
-          </div>
-        </div>
-
-        <!-- Header -->
-        <div class="level-header">
-          <div class="level-header-left">
-            <h1 id="l2-title">Tenant Analytics</h1>
-            <p id="l2-subtitle">Tenant-level performance overview</p>
-          </div>
-          <div class="level-header-actions">
-            <span class="level-badge">&#127968; Level 2 of 5</span>
-            <button class="btn-secondary btn-sm" onclick="showLevel(1)">&#8592; Back to Platform</button>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon purple">&#128230;</div>
-            <div class="stat-info">
-              <div class="stat-label">Products</div>
-              <div class="stat-value">12</div>
-              <div class="stat-change up">&#9650; +2 this month</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon green">&#9989;</div>
-            <div class="stat-info">
-              <div class="stat-label">Active Campaigns</div>
-              <div class="stat-value">3</div>
-              <div class="stat-change up">&#9650; Running now</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon blue">&#128100;</div>
-            <div class="stat-info">
-              <div class="stat-label">Total Customers</div>
-              <div class="stat-value">8,420</div>
-              <div class="stat-change up">&#9650; +320 this month</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon orange">&#128736;</div>
-            <div class="stat-info">
-              <div class="stat-label">Conversion Rate</div>
-              <div class="stat-value">8.7%</div>
-              <div class="stat-change up">&#9650; +0.9% vs last month</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Campaign bar chart -->
-        <div class="chart-card" style="margin-bottom:1.5rem">
-          <div class="chart-card-header">
-            <h3>&#128228; Campaign Performance — Sent vs Replies</h3>
-            <span class="badge badge-info">Last 8 Campaigns</span>
-          </div>
-          <div class="chart-card-body">
-            <div class="chart-wrap" style="height:240px">
-              <canvas id="chartCampaigns"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- Products table -->
-        <div class="table-card">
-          <div class="table-card-header">
-            <h3>&#128230; Products Overview</h3>
-            <span style="font-size:.78rem;color:var(--text-secondary)">12 products · Drill down for campaign-level analytics</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product Name</th>
-                  <th>Category</th>
-                  <th>Campaigns</th>
-                  <th>Total Sent</th>
-                  <th>Total Replies</th>
-                  <th>Reply Rate</th>
-                  <th>Revenue (PKR)</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="productsBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-      </div><!-- /level-2 -->
-
-
-      <!-- ╔═══════════════════════════════╗
-           ║  LEVEL 3 — Product Dashboard  ║
-           ╚═══════════════════════════════╝ -->
-      <div class="bi-level" data-level="3">
-
-        <!-- Breadcrumb -->
-        <div class="bi-breadcrumb">
-          <div class="bc-item">
-            <span class="bc-icon">&#128202;</span>
-            <span class="bc-link" onclick="showLevel(1)">Platform</span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-link" onclick="showLevel(2)" id="bc3-tenant"></span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-current" id="bc3-product"></span>
-          </div>
-        </div>
-
-        <!-- Header -->
-        <div class="level-header">
-          <div class="level-header-left">
-            <h1 id="l3-title">Product Analytics</h1>
-            <p id="l3-subtitle">Product-level campaign and sentiment breakdown</p>
-          </div>
-          <div class="level-header-actions">
-            <span class="level-badge">&#128230; Level 3 of 5</span>
-            <button class="btn-secondary btn-sm" onclick="showLevel(2)">&#8592; Back to Tenant</button>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon purple">&#128228;</div>
-            <div class="stat-info">
-              <div class="stat-label">Total Campaigns</div>
-              <div class="stat-value">8</div>
-              <div class="stat-change up">&#9650; 2 active now</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon blue">&#128233;</div>
-            <div class="stat-info">
-              <div class="stat-label">Total Sent</div>
-              <div class="stat-value">24,000</div>
-              <div class="stat-change up">&#9650; +3,200 last campaign</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon green">&#128172;</div>
-            <div class="stat-info">
-              <div class="stat-label">Total Replies</div>
-              <div class="stat-value">2,640</div>
-              <div class="stat-change up">&#9650; 11.0% reply rate</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon orange">&#11088;</div>
-            <div class="stat-info">
-              <div class="stat-label">Avg Sentiment Score</div>
-              <div class="stat-value">7.2/10</div>
-              <div class="stat-change up">&#9650; +0.4 vs last product</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sentiment pie + campaigns chart -->
-        <div class="content-grid-2">
-          <div class="chart-card" style="margin-bottom:0">
-            <div class="chart-card-header">
-              <h3>&#128513; Sentiment Distribution</h3>
-              <span class="badge badge-success">2,640 total replies</span>
-            </div>
-            <div class="chart-card-body">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:center">
-                <div class="chart-wrap" style="height:180px">
-                  <canvas id="chartSentiment"></canvas>
-                </div>
-                <div class="sentiment-bars">
-                  <div class="sent-row">
-                    <div class="sent-label-row">
-                      <span class="sent-label">&#128513; Positive</span>
-                      <span class="sent-count">1,584 · 60%</span>
-                    </div>
-                    <div class="sent-bar-wrap">
-                      <div class="sent-bar" style="width:60%;background:var(--success)"></div>
-                    </div>
-                  </div>
-                  <div class="sent-row">
-                    <div class="sent-label-row">
-                      <span class="sent-label">&#128528; Neutral</span>
-                      <span class="sent-count">792 · 30%</span>
-                    </div>
-                    <div class="sent-bar-wrap">
-                      <div class="sent-bar" style="width:30%;background:var(--warning)"></div>
-                    </div>
-                  </div>
-                  <div class="sent-row">
-                    <div class="sent-label-row">
-                      <span class="sent-label">&#128544; Negative</span>
-                      <span class="sent-count">264 · 10%</span>
-                    </div>
-                    <div class="sent-bar-wrap">
-                      <div class="sent-bar" style="width:10%;background:var(--danger)"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="chart-card" style="margin-bottom:0">
-            <div class="chart-card-header">
-              <h3>&#128200; Reply Rate per Campaign</h3>
-              <span class="badge badge-purple">8 campaigns</span>
-            </div>
-            <div class="chart-card-body">
-              <div class="chart-wrap" style="height:180px">
-                <canvas id="chartReplyRate"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Campaigns table -->
-        <div class="table-card" style="margin-top:1.25rem">
-          <div class="table-card-header">
-            <h3>&#128228; Campaigns for this Product</h3>
-            <span style="font-size:.78rem;color:var(--text-secondary)">8 campaigns · Drill down for per-customer data</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Campaign Name</th>
-                  <th>Date</th>
-                  <th>Sent</th>
-                  <th>Replies</th>
-                  <th>Reply Rate</th>
-                  <th>Converted</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="campaignsBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-      </div><!-- /level-3 -->
-
-
-      <!-- ╔════════════════════════════════╗
-           ║  LEVEL 4 — Campaign Dashboard  ║
-           ╚════════════════════════════════╝ -->
-      <div class="bi-level" data-level="4">
-
-        <!-- Breadcrumb -->
-        <div class="bi-breadcrumb">
-          <div class="bc-item">
-            <span class="bc-icon">&#128202;</span>
-            <span class="bc-link" onclick="showLevel(1)">Platform</span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-link" onclick="showLevel(2)" id="bc4-tenant"></span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-link" onclick="showLevel(3)" id="bc4-product"></span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-current" id="bc4-campaign"></span>
-          </div>
-        </div>
-
-        <!-- Header -->
-        <div class="level-header">
-          <div class="level-header-left">
-            <h1 id="l4-title">Campaign Performance</h1>
-            <p id="l4-subtitle">Detailed funnel and response analysis</p>
-          </div>
-          <div class="level-header-actions">
-            <span class="level-badge">&#128228; Level 4 of 5</span>
-            <button class="btn-secondary btn-sm" onclick="showLevel(3)">&#8592; Back to Product</button>
-          </div>
-        </div>
-
-        <!-- Stats: 5 columns -->
-        <div class="stats-grid-5">
-          <div class="stat-card">
-            <div class="stat-icon blue">&#128233;</div>
-            <div class="stat-info">
-              <div class="stat-label">Sent</div>
-              <div class="stat-value">1,200</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon green">&#9989;</div>
-            <div class="stat-info">
-              <div class="stat-label">Delivered</div>
-              <div class="stat-value">1,178</div>
-              <div class="stat-change up">98.2%</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon purple">&#128065;</div>
-            <div class="stat-info">
-              <div class="stat-label">Read</div>
-              <div class="stat-value">834</div>
-              <div class="stat-change up">70.8%</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon orange">&#128172;</div>
-            <div class="stat-info">
-              <div class="stat-label">Replied</div>
-              <div class="stat-value">142</div>
-              <div class="stat-change up">17.0%</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon green">&#127881;</div>
-            <div class="stat-info">
-              <div class="stat-label">Converted</div>
-              <div class="stat-value">38</div>
-              <div class="stat-change up">26.8% of replies</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Funnel + Sentiment breakdown side by side -->
-        <div class="content-grid-2">
-
-          <!-- Funnel chart -->
-          <div class="chart-card" style="margin-bottom:0">
-            <div class="chart-card-header">
-              <h3>&#9654; Campaign Funnel</h3>
-              <span class="badge badge-info">Message Journey</span>
-            </div>
-            <div class="chart-card-body">
-              <div class="funnel-container">
-                <div class="funnel-row">
-                  <div class="funnel-label">Sent</div>
-                  <div class="funnel-bar-wrap">
-                    <div class="funnel-bar" style="width:100%;background:linear-gradient(90deg,#667eea,#764ba2)">1,200</div>
-                  </div>
-                  <div class="funnel-pct">100%</div>
-                  <div class="funnel-val">1,200</div>
-                </div>
-                <div class="funnel-row">
-                  <div class="funnel-label">Delivered</div>
-                  <div class="funnel-bar-wrap">
-                    <div class="funnel-bar" style="width:98.2%;background:linear-gradient(90deg,#3498db,#2980b9)">1,178</div>
-                  </div>
-                  <div class="funnel-pct">98.2%</div>
-                  <div class="funnel-val">1,178</div>
-                </div>
-                <div class="funnel-row">
-                  <div class="funnel-label">Read</div>
-                  <div class="funnel-bar-wrap">
-                    <div class="funnel-bar" style="width:70.8%;background:linear-gradient(90deg,#27ae60,#1e8449)">834</div>
-                  </div>
-                  <div class="funnel-pct">70.8%</div>
-                  <div class="funnel-val">834</div>
-                </div>
-                <div class="funnel-row">
-                  <div class="funnel-label">Replied</div>
-                  <div class="funnel-bar-wrap">
-                    <div class="funnel-bar" style="width:17%;background:linear-gradient(90deg,#f39c12,#e67e22)">142</div>
-                  </div>
-                  <div class="funnel-pct">17.0%</div>
-                  <div class="funnel-val">142</div>
-                </div>
-                <div class="funnel-row">
-                  <div class="funnel-label">Converted</div>
-                  <div class="funnel-bar-wrap">
-                    <div class="funnel-bar" style="width:3.2%;background:linear-gradient(90deg,#e74c3c,#c0392b);min-width:52px">38</div>
-                  </div>
-                  <div class="funnel-pct">3.2%</div>
-                  <div class="funnel-val">38</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Response breakdown (pie + bars) -->
-          <div class="chart-card" style="margin-bottom:0">
-            <div class="chart-card-header">
-              <h3>&#129488; Response Sentiment</h3>
-              <span class="badge badge-success">142 total replies</span>
-            </div>
-            <div class="chart-card-body">
-              <div class="response-breakdown" style="margin-bottom:1rem">
-                <div class="rb-item">
-                  <div class="rb-icon pos">&#128513;</div>
-                  <div class="rb-info">
-                    <div class="rb-label">Positive</div>
-                    <div class="rb-value">68</div>
-                    <div class="rb-pct">47.9%</div>
-                  </div>
-                </div>
-                <div class="rb-item">
-                  <div class="rb-icon neu">&#128528;</div>
-                  <div class="rb-info">
-                    <div class="rb-label">Neutral</div>
-                    <div class="rb-value">52</div>
-                    <div class="rb-pct">36.6%</div>
-                  </div>
-                </div>
-                <div class="rb-item">
-                  <div class="rb-icon neg">&#128544;</div>
-                  <div class="rb-info">
-                    <div class="rb-label">Negative</div>
-                    <div class="rb-value">22</div>
-                    <div class="rb-pct">15.5%</div>
-                  </div>
-                </div>
-              </div>
-              <div class="chart-wrap" style="height:140px">
-                <canvas id="chartCampaignSentiment"></canvas>
-              </div>
-            </div>
-          </div>
-
-        </div><!-- /content-grid-2 -->
-
-        <!-- Customers table -->
-        <div class="table-card" style="margin-top:1.25rem">
-          <div class="table-card-header">
-            <h3>&#128100; Customer Responses</h3>
-            <div style="display:flex;gap:.6rem;align-items:center">
-              <span style="font-size:.78rem;color:var(--text-secondary)">142 replied · Click "View" for full response detail</span>
-              <button class="btn-export">&#128247; Export CSV</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Phone</th>
-                  <th>City</th>
-                  <th>Delivery</th>
-                  <th>Sentiment</th>
-                  <th>Intent</th>
-                  <th>Replied At</th>
-                  <th>Priority</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="customersBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-      </div><!-- /level-4 -->
-
-
-      <!-- ╔══════════════════════════════════╗
-           ║  LEVEL 5 — Individual Response   ║
-           ╚══════════════════════════════════╝ -->
-      <div class="bi-level" data-level="5">
-
-        <!-- Breadcrumb -->
-        <div class="bi-breadcrumb">
-          <div class="bc-item">
-            <span class="bc-icon">&#128202;</span>
-            <span class="bc-link" onclick="showLevel(1)">Platform</span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-link" onclick="showLevel(2)" id="bc5-tenant"></span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-link" onclick="showLevel(3)" id="bc5-product"></span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-link" onclick="showLevel(4)" id="bc5-campaign"></span>
-          </div>
-          <span class="bc-sep">&#9658;</span>
-          <div class="bc-item">
-            <span class="bc-current" id="bc5-customer"></span>
-          </div>
-        </div>
-
-        <!-- Header -->
-        <div class="level-header">
-          <div class="level-header-left">
-            <h1>Customer Response Detail</h1>
-            <p id="l5-subtitle">Full interaction record with AI-powered analysis</p>
-          </div>
-          <div class="level-header-actions">
-            <span class="level-badge">&#128172; Level 5 of 5</span>
-            <button class="btn-secondary btn-sm" onclick="showLevel(4)">&#8592; Back to Campaign</button>
-          </div>
-        </div>
-
-        <!-- Customer info card -->
-        <div class="customer-info-card">
-          <div class="priority-score priority-high" id="l5-priority-badge">
-            <span id="l5-priority-val">82</span>
-            <span>Score</span>
-          </div>
-          <div class="customer-info-details">
-            <h3 id="l5-cust-name">Farhan Ahmed</h3>
-            <div class="customer-info-meta">
-              <span>&#128241; <strong id="l5-cust-phone">+92-300-1234567</strong></span>
-              <span>&#128205; <strong id="l5-cust-city">Lahore, Punjab</strong></span>
-              <span>&#128100; Customer since Jan 2025</span>
-              <span>&#128228; 8 campaigns received</span>
-              <span>&#11088; 4.2/5 avg rating</span>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:.5rem;text-align:center">
-            <div style="font-size:.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em">Priority</div>
-            <div style="font-size:.78rem;color:var(--text-secondary)">High Value</div>
-            <span class="badge badge-success badge-dot">Active</span>
-          </div>
-        </div>
-
-        <!-- Chat + AI Analysis -->
-        <div class="l5-grid">
-
-          <!-- WhatsApp conversation -->
-          <div class="card">
-            <div class="card-header">
-              <h3>&#128241; WhatsApp Conversation</h3>
-              <span class="badge badge-success badge-dot">Mar 28, 2026</span>
-            </div>
-            <div class="card-body">
-              <!-- Sent message -->
-              <div class="chat-bubble-wrap right">
-                <div class="chat-label">GeniSearch Auto-Send · 10:14 AM</div>
-                <div class="chat-bubble sent" id="l5-sent-msg">
-                  Assalam-o-Alaikum Farhan bhai! &#128075;<br><br>
-                  Mango &amp; Kiwi Smoothie ka special offer sirf aap ke liye!<br>
-                  &#127347; <strong>25% OFF</strong> aaj tak — PKR 450 ki jagah sirf <strong>PKR 337</strong>.<br><br>
-                  Order karne ke liye reply karein: <strong>"ORDER"</strong><br>
-                  Delivery Lahore mein FREE hai &#128666;
-                </div>
-                <div class="chat-time">&#10003;&#10003; Delivered &amp; Read</div>
-              </div>
-
-              <div style="height:.75rem"></div>
-
-              <!-- Received reply -->
-              <div class="chat-bubble-wrap left">
-                <div class="chat-label">Farhan Ahmed · 10:31 AM</div>
-                <div class="chat-bubble received" id="l5-reply-msg">
-                  Waalaikum Assalam! Haan zaroor, yeh offer acha lagra hai &#128512;<br>
-                  Mujhe 2 bottles chahiye. COD available hai?<br>
-                  Address: House 14, Block C, DHA Lahore
-                </div>
-                <div class="chat-time">Replied 17 min after delivery</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- AI Analysis -->
-          <div class="ai-card">
-            <div class="ai-card-header">
-              <span>&#129504;</span>
-              <h4>Claude AI Analysis</h4>
-              <span class="badge" style="background:rgba(255,255,255,.2);color:#fff;margin-left:auto">Automated</span>
-            </div>
-            <div class="ai-card-body">
-
-              <div class="ai-row">
-                <div class="ai-row-label">Sentiment</div>
-                <div class="ai-row-value">
-                  <span class="sentiment-badge sentiment-positive">&#128513; Positive</span>
-                </div>
-              </div>
-
-              <div class="ai-row">
-                <div class="ai-row-label">Intent</div>
-                <div class="ai-row-value">
-                  <span class="badge badge-success">&#128722; Order Intent</span>
-                  <span class="badge badge-info" style="margin-left:.4rem">&#10067; Inquiry</span>
-                </div>
-              </div>
-
-              <div class="ai-row">
-                <div class="ai-row-label">Key Phrases</div>
-                <div class="ai-row-value">
-                  <div class="phrase-list">
-                    <span class="tag">2 bottles chahiye</span>
-                    <span class="tag">COD available</span>
-                    <span class="tag">acha lagra hai</span>
-                    <span class="tag">address provided</span>
-                    <span class="tag">purchase ready</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="ai-row">
-                <div class="ai-row-label">Confidence</div>
-                <div class="ai-row-value">
-                  <div class="confidence-wrap">
-                    <div class="confidence-track">
-                      <div class="confidence-fill" style="width:94%"></div>
-                    </div>
-                    <div class="confidence-pct">94%</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="ai-row" style="flex-direction:column;align-items:flex-start;gap:.5rem">
-                <div class="ai-row-label">Suggested Reply</div>
-                <textarea class="reply-textarea" id="l5-suggested-reply">JazakAllah Farhan bhai! Aap ka order confirm ho gaya &#9989;
-
-2x Mango &amp; Kiwi Smoothie — PKR 674
-COD available hai, delivery 1-2 din mein.
-
-Kya aap apna mobile number confirm kar sakte hain? &#128241;</textarea>
-                <div class="send-actions">
-                  <button class="btn btn-secondary btn-sm">&#128221; Edit</button>
-                  <button class="btn btn-primary btn-sm" onclick="toast('Reply sent via WhatsApp!','success')">&#9654; Send via WhatsApp</button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div><!-- /l5-grid -->
-
-        <!-- Engagement history timeline -->
-        <div class="card">
-          <div class="card-header">
-            <h3>&#128336; Engagement History — Farhan Ahmed</h3>
-            <span style="font-size:.78rem;color:var(--text-secondary)">Last 5 interactions</span>
-          </div>
-          <div class="card-body">
-            <div class="timeline">
-              <div class="timeline-item">
-                <div class="timeline-dot green"></div>
-                <div class="timeline-content">
-                  <h5>Replied to "Ramzan Deals 2026" campaign &#128513;</h5>
-                  <p>Ordered 3 units of Mango Smoothie — Converted · Positive sentiment</p>
-                  <time>Mar 28, 2026 · 10:31 AM</time>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot blue"></div>
-                <div class="timeline-content">
-                  <h5>Read "Winter Clearance" campaign &#128065;</h5>
-                  <p>Message opened but no reply — Read receipt confirmed</p>
-                  <time>Feb 14, 2026 · 3:45 PM</time>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot orange"></div>
-                <div class="timeline-content">
-                  <h5>Replied with inquiry — "Kya yeh organic hai?" &#10067;</h5>
-                  <p>Neutral sentiment · No conversion · FAQ auto-reply sent</p>
-                  <time>Jan 30, 2026 · 11:10 AM</time>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot green"></div>
-                <div class="timeline-content">
-                  <h5>Converted on "New Year Flash Sale" &#127881;</h5>
-                  <p>Purchased 1x Juice Pack — PKR 850 · 5-star feedback</p>
-                  <time>Jan 1, 2026 · 9:00 AM</time>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot purple"></div>
-                <div class="timeline-content">
-                  <h5>First campaign received — "Welcome Offer" &#128075;</h5>
-                  <p>Positive reply · Subscribed to WhatsApp updates</p>
-                  <time>Dec 15, 2025 · 2:00 PM</time>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /level-5 -->
-
-    </div><!-- /page -->
-  </div><!-- /main -->
-</div><!-- /app -->
-
+    <header class="topbar" id="topbar"></header>
+    <div class="page" id="page-body"><div class="loading-spinner">Loading BI analytics...</div></div>
+  </div>
+</div>
+<div class="toast-container" id="toast-container"></div>
 <script src="shared.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-/* ============================================================
-   BI Analytics — 5-Level Cascading Dashboard
-   ============================================================ */
+let currentLevel = 1;
+const history = [];
 
-/* ── Mock Data ── */
-const TENANTS = [
-  { id:1, name:'Fruity Fresh Pvt.Ltd.',   initials:'FF', color:'#e74c3c', industry:'Food & Beverages', plan:'Pro',     revenue:1420000, campaigns:48, replyRate:14.2, trend:'up' },
-  { id:2, name:'AlphaStyle Clothing',     initials:'AS', color:'#9b59b6', industry:'Fashion & Apparel', plan:'Growth',  revenue:980000,  campaigns:31, replyRate:10.8, trend:'up' },
-  { id:3, name:'TechZone Karachi',        initials:'TZ', color:'#3498db', industry:'Electronics',      plan:'Pro',     revenue:1680000, campaigns:62, replyRate:12.5, trend:'up' },
-  { id:4, name:'Desi Dastarkhwan',        initials:'DD', color:'#27ae60', industry:'Restaurants',      plan:'Growth',  revenue:760000,  campaigns:29, replyRate:16.3, trend:'up' },
-  { id:5, name:'ZoomPharm',              initials:'ZP', color:'#f39c12', industry:'Pharmacy',          plan:'Pro',     revenue:1120000, campaigns:44, replyRate:9.7,  trend:'flat' },
-  { id:6, name:'HomeFix Solutions',      initials:'HF', color:'#1abc9c', industry:'Home Services',    plan:'Starter', revenue:420000,  campaigns:18, replyRate:8.4,  trend:'down' },
-  { id:7, name:'BrightSmile Clinic',     initials:'BS', color:'#e67e22', industry:'Healthcare',        plan:'Growth',  revenue:640000,  campaigns:22, replyRate:11.1, trend:'up' },
-  { id:8, name:'UrbanEats Islamabad',    initials:'UE', color:'#2ecc71', industry:'Food Delivery',     plan:'Growth',  revenue:870000,  campaigns:35, replyRate:15.0, trend:'up' },
-];
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireLogin(); if (!user) return;
+  document.getElementById('sidebar').innerHTML = sidebarHTML('bi.html');
+  document.getElementById('topbar').innerHTML = topbarHTML('BI Analytics');
+  initPage('BI Analytics');
 
-const PRODUCTS = [
-  { id:1, name:'Mango & Kiwi Smoothie',  category:'Beverages',    campaigns:8,  sent:24000, replies:2640, replyRate:11.0, revenue:1180000 },
-  { id:2, name:'Strawberry Shake Pack',  category:'Beverages',    campaigns:5,  sent:15000, replies:1350, replyRate:9.0,  revenue:720000 },
-  { id:3, name:'Desi Lassi (1L)',        category:'Dairy',         campaigns:6,  sent:18000, replies:2340, replyRate:13.0, revenue:890000 },
-  { id:4, name:'Pomegranate Juice',      category:'Juices',        campaigns:4,  sent:12000, replies:960,  replyRate:8.0,  revenue:540000 },
-  { id:5, name:'Mixed Fruit Basket',     category:'Fresh Produce', campaigns:3,  sent:9000,  replies:810,  replyRate:9.0,  revenue:380000 },
-  { id:6, name:'Orange Juice 500ml',     category:'Juices',        campaigns:7,  sent:21000, replies:2520, replyRate:12.0, revenue:960000 },
-];
-
-const CAMPAIGNS = [
-  { id:1, name:'Ramzan Deals 2026',       date:'Mar 28, 2026', sent:3000, replies:480, replyRate:16.0, converted:128, status:'Active' },
-  { id:2, name:'Lahore Summer Special',   date:'Mar 10, 2026', sent:3200, replies:352, replyRate:11.0, converted:84,  status:'Completed' },
-  { id:3, name:'Independence Day Offer',  date:'Aug 14, 2025', sent:2800, replies:336, replyRate:12.0, converted:91,  status:'Completed' },
-  { id:4, name:'Eid ul Adha Bundle',      date:'Jun 28, 2025', sent:3500, replies:385, replyRate:11.0, converted:105, status:'Completed' },
-  { id:5, name:'Karachi Heat Relief',     date:'May 15, 2025', sent:2500, replies:250, replyRate:10.0, converted:67,  status:'Completed' },
-  { id:6, name:'Winter Warmth Campaign',  date:'Jan 10, 2025', sent:2800, replies:196, replyRate:7.0,  converted:52,  status:'Completed' },
-  { id:7, name:'New Year Flash Sale',     date:'Jan 1, 2026',  sent:3200, replies:320, replyRate:10.0, converted:88,  status:'Completed' },
-  { id:8, name:'Monsoon Refresh Drive',   date:'Jul 20, 2025', sent:3000, replies:321, replyRate:10.7, converted:79,  status:'Completed' },
-];
-
-const CUSTOMERS = [
-  { name:'Farhan Ahmed',    phone:'+92-300-1234567', city:'Lahore',    status:'Replied',   sentiment:'positive', intent:'Order',    repliedAt:'10:31 AM', priority:82 },
-  { name:'Sana Malik',      phone:'+92-321-9876543', city:'Karachi',   status:'Replied',   sentiment:'positive', intent:'Order',    repliedAt:'10:45 AM', priority:78 },
-  { name:'Bilal Qureshi',   phone:'+92-333-4567890', city:'Islamabad', status:'Replied',   sentiment:'neutral',  intent:'Inquiry',  repliedAt:'11:02 AM', priority:65 },
-  { name:'Ayesha Noor',     phone:'+92-345-6543210', city:'Lahore',    status:'Replied',   sentiment:'positive', intent:'Order',    repliedAt:'11:18 AM', priority:91 },
-  { name:'Usman Tariq',     phone:'+92-311-2223334', city:'Faisalabad',status:'Read',      sentiment:'—',        intent:'—',        repliedAt:'—',        priority:45 },
-  { name:'Zara Hussain',    phone:'+92-302-8887776', city:'Multan',    status:'Replied',   sentiment:'negative', intent:'Feedback', repliedAt:'12:05 PM', priority:38 },
-  { name:'Hassan Raza',     phone:'+92-300-5556665', city:'Karachi',   status:'Replied',   sentiment:'neutral',  intent:'Inquiry',  repliedAt:'12:44 PM', priority:60 },
-  { name:'Maryam Khan',     phone:'+92-336-1112223', city:'Lahore',    status:'Replied',   sentiment:'positive', intent:'Order',    repliedAt:'1:10 PM',  priority:85 },
-  { name:'Imran Sheikh',    phone:'+92-315-7778889', city:'Peshawar',  status:'Delivered', sentiment:'—',        intent:'—',        repliedAt:'—',        priority:30 },
-  { name:'Fatima Zahra',    phone:'+92-322-4445556', city:'Rawalpindi',status:'Replied',   sentiment:'positive', intent:'Order',    repliedAt:'2:30 PM',  priority:74 },
-];
-
-/* ── Context state ── */
-const ctx = {
-  tenant: null,
-  product: null,
-  campaign: null,
-  customer: null,
-};
-
-/* ── Chart references ── */
-let chartRevenue = null;
-let chartCampaigns = null;
-let chartSentiment = null;
-let chartReplyRate = null;
-let chartCampaignSentiment = null;
-
-/* ── showLevel ── */
-function showLevel(n, data) {
-  // Update context
-  if (data) {
-    if (n === 2) ctx.tenant   = data;
-    if (n === 3) ctx.product  = data;
-    if (n === 4) ctx.campaign = data;
-    if (n === 5) ctx.customer = data;
-  }
-
-  // Hide all levels
-  document.querySelectorAll('.bi-level').forEach(el => el.classList.remove('active'));
-
-  // Show target level
-  const target = document.querySelector('[data-level="' + n + '"]');
-  if (target) target.classList.add('active');
-
-  // Update topbar title
-  const titles = {
-    1: 'BI Analytics — Platform Overview',
-    2: 'BI Analytics — ' + (ctx.tenant ? ctx.tenant.name : 'Tenant'),
-    3: 'BI Analytics — ' + (ctx.product ? ctx.product.name : 'Product'),
-    4: 'BI Analytics — ' + (ctx.campaign ? ctx.campaign.name : 'Campaign'),
-    5: 'BI Analytics — Response Detail',
-  };
-  document.getElementById('topbar-title').textContent = titles[n] || 'BI Analytics';
-
-  // Populate level
-  if (n === 1) initLevel1();
-  if (n === 2) initLevel2();
-  if (n === 3) initLevel3();
-  if (n === 4) initLevel4();
-  if (n === 5) initLevel5();
-
-  // Scroll to top
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-/* ════════════════════════════════════
-   LEVEL 1 INIT
-════════════════════════════════════ */
-function initLevel1() {
-  renderTenantsTable();
-  buildRevenueChart();
-}
-
-function renderTenantsTable() {
-  const tbody = document.getElementById('tenantsBody');
-  tbody.innerHTML = TENANTS.map(t => {
-    const planClass = t.plan === 'Pro' ? 'plan-pro' : t.plan === 'Growth' ? 'plan-growth' : 'plan-starter';
-    const trendIcon = t.trend === 'up' ? '<span class="trend-up">&#9650;</span>'
-                    : t.trend === 'down' ? '<span class="trend-down">&#9660;</span>'
-                    : '<span class="trend-flat">&#9644;</span>';
-    return `<tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:.7rem">
-          <div class="tenant-avatar" style="background:${t.color}">${t.initials}</div>
-          <span style="font-weight:600">${t.name}</span>
-        </div>
-      </td>
-      <td><span style="font-size:.8rem;color:var(--text-secondary)">${t.industry}</span></td>
-      <td><span class="badge ${planClass}">${t.plan}</span></td>
-      <td class="rev-cell">PKR ${(t.revenue/1000).toFixed(0)}K</td>
-      <td>${t.campaigns}</td>
-      <td>
-        <div style="display:flex;flex-direction:column;gap:.3rem">
-          <span style="font-weight:600;font-size:.875rem">${t.replyRate}%</span>
-          <div class="progress"><div class="progress-bar" style="width:${Math.min(t.replyRate*5,100)}%"></div></div>
-        </div>
-      </td>
-      <td>${trendIcon}</td>
-      <td><button class="btn-drill" onclick="showLevel(2,${JSON.stringify(t).replace(/"/g,'&quot;')})">Drill Down &#9658;</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function buildRevenueChart() {
-  const canvas = document.getElementById('chartRevenue');
-  if (!canvas) return;
-  if (chartRevenue) { chartRevenue.destroy(); chartRevenue = null; }
-  const months = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
-  const revenue = [520, 580, 610, 640, 720, 690, 760, 810, 880, 940, 1020, 1080];
-  const c = canvas.getContext('2d');
-  chartRevenue = new Chart(c, {
-    type: 'line',
-    data: {
-      labels: months,
-      datasets: [{
-        label: 'Revenue (PKR 000)',
-        data: revenue,
-        borderColor: GS.primary,
-        backgroundColor: GS.gradientFill(c, GS.primary),
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: GS.primary,
-        pointRadius: 4,
-        pointHoverRadius: 7,
-        borderWidth: 2.5,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-        y: {
-          grid: { color: 'rgba(0,0,0,.05)' },
-          ticks: {
-            font: { size: 11 },
-            callback: v => 'PKR ' + v + 'K'
-          }
-        }
-      }
-    }
-  });
-}
-
-/* ════════════════════════════════════
-   LEVEL 2 INIT
-════════════════════════════════════ */
-function initLevel2() {
-  const t = ctx.tenant || TENANTS[0];
-  document.getElementById('bc2-tenant').textContent = t.name;
-  document.getElementById('l2-title').textContent = t.name + ' — Analytics';
-  document.getElementById('l2-subtitle').textContent = t.industry + ' · ' + t.plan + ' Plan · ' + t.campaigns + ' campaigns total';
-
-  renderProductsTable();
-  buildCampaignsChart();
-}
-
-function renderProductsTable() {
-  const tbody = document.getElementById('productsBody');
-  tbody.innerHTML = PRODUCTS.map(p => {
-    const rateColor = p.replyRate >= 12 ? 'var(--success)' : p.replyRate >= 9 ? 'var(--warning)' : 'var(--danger)';
-    return `<tr>
-      <td style="font-weight:600">${p.name}</td>
-      <td><span class="badge badge-neutral">${p.category}</span></td>
-      <td>${p.campaigns}</td>
-      <td>${p.sent.toLocaleString()}</td>
-      <td>${p.replies.toLocaleString()}</td>
-      <td><span style="font-weight:700;color:${rateColor}">${p.replyRate}%</span></td>
-      <td class="rev-cell">PKR ${(p.revenue/1000).toFixed(0)}K</td>
-      <td><button class="btn-drill" onclick="showLevel(3,${JSON.stringify(p).replace(/"/g,'&quot;')})">Drill Down &#9658;</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function buildCampaignsChart() {
-  const canvas = document.getElementById('chartCampaigns');
-  if (!canvas) return;
-  if (chartCampaigns) { chartCampaigns.destroy(); chartCampaigns = null; }
-  const labels = CAMPAIGNS.slice(0,8).map((c,i) => 'C' + (i+1));
-  const c = canvas.getContext('2d');
-  chartCampaigns = new Chart(c, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Sent',
-          data: CAMPAIGNS.map(c => c.sent),
-          backgroundColor: GS.primary + 'CC',
-          borderRadius: 4,
-        },
-        {
-          label: 'Replies',
-          data: CAMPAIGNS.map(c => c.replies),
-          backgroundColor: GS.success + 'CC',
-          borderRadius: 4,
-        }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-        y: { grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 11 } } }
-      }
-    }
-  });
-}
-
-/* ════════════════════════════════════
-   LEVEL 3 INIT
-════════════════════════════════════ */
-function initLevel3() {
-  const t = ctx.tenant  || TENANTS[0];
-  const p = ctx.product || PRODUCTS[0];
-  document.getElementById('bc3-tenant').textContent  = t.name;
-  document.getElementById('bc3-product').textContent = p.name;
-  document.getElementById('l3-title').textContent    = p.name + ' — Analytics';
-  document.getElementById('l3-subtitle').textContent = p.category + ' · ' + p.campaigns + ' campaigns · ' + p.sent.toLocaleString() + ' messages sent';
-
-  renderCampaignsTable();
-  buildSentimentChart();
-  buildReplyRateChart();
-}
-
-function renderCampaignsTable() {
-  const tbody = document.getElementById('campaignsBody');
-  tbody.innerHTML = CAMPAIGNS.map(c => {
-    const statusClass = c.status === 'Active' ? 'badge-success' : 'badge-neutral';
-    return `<tr>
-      <td style="font-weight:600">${c.name}</td>
-      <td style="font-size:.82rem;color:var(--text-secondary)">${c.date}</td>
-      <td>${c.sent.toLocaleString()}</td>
-      <td>${c.replies.toLocaleString()}</td>
-      <td><span style="font-weight:700">${c.replyRate}%</span></td>
-      <td>${c.converted}</td>
-      <td><span class="badge ${statusClass} badge-dot">${c.status}</span></td>
-      <td><button class="btn-drill" onclick="showLevel(4,${JSON.stringify(c).replace(/"/g,'&quot;')})">Drill Down &#9658;</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function buildSentimentChart() {
-  const canvas = document.getElementById('chartSentiment');
-  if (!canvas) return;
-  if (chartSentiment) { chartSentiment.destroy(); chartSentiment = null; }
-  chartSentiment = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Positive','Neutral','Negative'],
-      datasets: [{
-        data: [60, 30, 10],
-        backgroundColor: [GS.success, GS.warning, GS.danger],
-        borderWidth: 0,
-        hoverOffset: 6,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '65%',
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed + '%' }
-        }
-      }
-    }
-  });
-}
-
-function buildReplyRateChart() {
-  const canvas = document.getElementById('chartReplyRate');
-  if (!canvas) return;
-  if (chartReplyRate) { chartReplyRate.destroy(); chartReplyRate = null; }
-  const c = canvas.getContext('2d');
-  chartReplyRate = new Chart(c, {
-    type: 'bar',
-    data: {
-      labels: CAMPAIGNS.map((_,i) => 'C' + (i+1)),
-      datasets: [{
-        label: 'Reply Rate %',
-        data: CAMPAIGNS.map(c => c.replyRate),
-        backgroundColor: CAMPAIGNS.map(c => c.replyRate >= 12 ? GS.success + 'CC' : GS.primary + 'CC'),
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-        y: {
-          grid: { color: 'rgba(0,0,0,.05)' },
-          ticks: { font: { size: 11 }, callback: v => v + '%' }
-        }
-      }
-    }
-  });
-}
-
-/* ════════════════════════════════════
-   LEVEL 4 INIT
-════════════════════════════════════ */
-function initLevel4() {
-  const t = ctx.tenant   || TENANTS[0];
-  const p = ctx.product  || PRODUCTS[0];
-  const c = ctx.campaign || CAMPAIGNS[0];
-  document.getElementById('bc4-tenant').textContent   = t.name;
-  document.getElementById('bc4-product').textContent  = p.name;
-  document.getElementById('bc4-campaign').textContent = c.name;
-  document.getElementById('l4-title').textContent     = c.name + ' — Performance';
-  document.getElementById('l4-subtitle').textContent  = 'Launched ' + c.date + ' · ' + c.sent.toLocaleString() + ' messages sent';
-
-  renderCustomersTable();
-  buildCampaignSentimentChart();
-}
-
-function renderCustomersTable() {
-  const tbody = document.getElementById('customersBody');
-  tbody.innerHTML = CUSTOMERS.map(cu => {
-    const sentClass = cu.sentiment === 'positive' ? 'badge-success'
-                    : cu.sentiment === 'neutral'  ? 'badge-warning'
-                    : cu.sentiment === 'negative' ? 'badge-danger'
-                    : 'badge-neutral';
-    const sentIcon  = cu.sentiment === 'positive' ? '&#128513; ' : cu.sentiment === 'negative' ? '&#128544; ' : cu.sentiment === 'neutral' ? '&#128528; ' : '';
-    const statusClass = cu.status === 'Replied'   ? 'badge-success'
-                      : cu.status === 'Read'      ? 'badge-info'
-                      : cu.status === 'Delivered' ? 'badge-neutral'
-                      : 'badge-warning';
-    const prioClass = cu.priority >= 75 ? 'text-success' : cu.priority >= 50 ? 'text-warning' : 'text-danger';
-    return `<tr>
-      <td style="font-weight:600">${cu.name}</td>
-      <td style="font-size:.82rem;color:var(--text-secondary)">${cu.phone}</td>
-      <td style="font-size:.82rem">${cu.city}</td>
-      <td><span class="badge ${statusClass} badge-dot">${cu.status}</span></td>
-      <td>${cu.sentiment !== '—' ? '<span class="badge ' + sentClass + '">' + sentIcon + cu.sentiment + '</span>' : '<span class="text-muted">—</span>'}</td>
-      <td>${cu.intent !== '—' ? '<span class="badge badge-purple">' + cu.intent + '</span>' : '<span class="text-muted">—</span>'}</td>
-      <td style="font-size:.82rem;color:var(--text-secondary)">${cu.repliedAt}</td>
-      <td><span style="font-weight:700" class="${prioClass}">${cu.priority}</span></td>
-      <td>${cu.status === 'Replied' ? '<button class="btn-drill" onclick="showLevel(5,' + JSON.stringify(cu).replace(/"/g,'&quot;') + ')">View &#9658;</button>' : '<span class="text-muted" style="font-size:.8rem">—</span>'}</td>
-    </tr>`;
-  }).join('');
-}
-
-function buildCampaignSentimentChart() {
-  const canvas = document.getElementById('chartCampaignSentiment');
-  if (!canvas) return;
-  if (chartCampaignSentiment) { chartCampaignSentiment.destroy(); chartCampaignSentiment = null; }
-  chartCampaignSentiment = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Positive','Neutral','Negative'],
-      datasets: [{
-        data: [68, 52, 22],
-        backgroundColor: [GS.success, GS.warning, GS.danger],
-        borderWidth: 0,
-        hoverOffset: 6,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '60%',
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: {
-          callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed + ' replies' }
-        }
-      }
-    }
-  });
-}
-
-/* ════════════════════════════════════
-   LEVEL 5 INIT
-════════════════════════════════════ */
-function initLevel5() {
-  const t  = ctx.tenant   || TENANTS[0];
-  const p  = ctx.product  || PRODUCTS[0];
-  const ca = ctx.campaign || CAMPAIGNS[0];
-  const cu = ctx.customer || CUSTOMERS[0];
-
-  document.getElementById('bc5-tenant').textContent   = t.name;
-  document.getElementById('bc5-product').textContent  = p.name;
-  document.getElementById('bc5-campaign').textContent = ca.name;
-  document.getElementById('bc5-customer').textContent = cu.name;
-  document.getElementById('l5-subtitle').textContent  = 'Campaign: ' + ca.name + ' · Replied at ' + cu.repliedAt;
-
-  // Customer info
-  document.getElementById('l5-cust-name').textContent  = cu.name;
-  document.getElementById('l5-cust-phone').textContent = cu.phone;
-  document.getElementById('l5-cust-city').textContent  = cu.city + ', Pakistan';
-  document.getElementById('l5-priority-val').textContent = cu.priority;
-
-  // Priority badge color
-  const badge = document.getElementById('l5-priority-badge');
-  badge.className = 'priority-score ' +
-    (cu.priority >= 75 ? 'priority-high' : cu.priority >= 50 ? 'priority-medium' : 'priority-low');
-
-  // Personalise chat bubbles with customer name
-  const sentMsg = document.getElementById('l5-sent-msg');
-  sentMsg.innerHTML = sentMsg.innerHTML.replace('Farhan bhai', cu.name.split(' ')[0] + ' bhai');
-}
-
-/* ── Initialise on page load ── */
-document.addEventListener('DOMContentLoaded', function() {
-  showLevel(1);
+  // Check URL params for deep linking
+  const params = new URLSearchParams(location.search);
+  if (params.get('campaign')) { loadLevel4(params.get('campaign')); }
+  else if (params.get('product')) { loadLevel3(params.get('product')); }
+  else if (params.get('tenant')) { loadLevel2(params.get('tenant')); }
+  else { loadLevel1(); }
 });
+
+function breadcrumb(items) {
+  return '<div class="breadcrumb-nav">' + items.map((it,i) => {
+    if (i < items.length - 1) return '<a onclick="'+it.action+'">'+escapeHtml(it.label)+'</a><span class="sep">/</span>';
+    return '<span class="current">'+escapeHtml(it.label)+'</span>';
+  }).join('') + '</div>';
+}
+
+/* ── LEVEL 1: Platform ── */
+async function loadLevel1() {
+  currentLevel = 1; history.length = 0;
+  const page = document.getElementById('page-body');
+  page.innerHTML = '<div class="loading-spinner">Loading platform data...</div>';
+  try {
+    const data = await apiGet('/bi/saas-platform/dashboard');
+    const o = data.overview || {};
+    const tenants = data.tenants || [];
+    const sentiment = data.sentiment_breakdown || [];
+
+    const sentMap = {}; sentiment.forEach(s => sentMap[s.sentiment] = parseInt(s.count));
+
+    let tRows = '';
+    tenants.forEach(t => {
+      tRows += '<tr class="clickable-row" onclick="loadLevel2(\''+t.id+'\')"><td class="fw-600">'+escapeHtml(t.name)+'</td><td><span class="badge badge-primary">'+escapeHtml(t.plan)+'</span></td><td>'+fmtNum(t.product_count)+'</td><td>'+fmtNum(t.campaign_count)+'</td><td>'+fmtNum(t.customer_count)+'</td><td>'+statusBadge(t.status)+'</td></tr>';
+    });
+
+    page.innerHTML = `
+      ${breadcrumb([{label:'Platform'}])}
+      <div class="stats-grid mb-3">
+        <div class="stat-card border-primary"><div class="stat-info"><div class="stat-label">Tenants</div><div class="stat-value">${fmtNum(o.total_tenants)}</div></div></div>
+        <div class="stat-card border-accent"><div class="stat-info"><div class="stat-label">Products</div><div class="stat-value">${fmtNum(o.total_products)}</div></div></div>
+        <div class="stat-card border-success"><div class="stat-info"><div class="stat-label">Customers</div><div class="stat-value">${fmtNum(o.total_customers)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Campaigns</div><div class="stat-value">${fmtNum(o.total_campaigns)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Messages Sent</div><div class="stat-value">${fmtNum(o.total_messages_sent)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">MRR</div><div class="stat-value">${fmtCurrency(o.total_mrr)}</div></div></div>
+      </div>
+      <div class="grid-2 mb-3">
+        <div class="card"><div class="card-header"><h3>Sentiment</h3></div><div class="card-body"><div style="height:220px"><canvas id="sentChart"></canvas></div></div></div>
+        <div class="card"><div class="card-header"><h3>Tenants by Plan</h3></div><div class="card-body"><div style="height:220px"><canvas id="planChart"></canvas></div></div></div>
+      </div>
+      <div class="card"><div class="card-header"><h3>Tenants</h3><span class="text-muted">Click a row to drill down</span></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Plan</th><th>Products</th><th>Campaigns</th><th>Customers</th><th>Status</th></tr></thead><tbody>${tRows || '<tr><td colspan="6" class="text-center text-muted">No tenants</td></tr>'}</tbody></table></div></div>
+    `;
+
+    // Charts
+    new Chart(document.getElementById('sentChart'), { type:'doughnut', data:{ labels:['Positive','Neutral','Negative'], datasets:[{ data:[sentMap.positive||0, sentMap.neutral||0, sentMap.negative||0], backgroundColor:['#00B894','#74B9FF','#E17055'] }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ position:'bottom' } } } });
+
+    const planCounts = {}; tenants.forEach(t => { planCounts[t.plan] = (planCounts[t.plan]||0)+1; });
+    new Chart(document.getElementById('planChart'), { type:'bar', data:{ labels:Object.keys(planCounts), datasets:[{ label:'Tenants', data:Object.values(planCounts), backgroundColor:'#6C5CE7cc', borderRadius:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } } });
+  } catch(e) { page.innerHTML = '<div class="empty-state"><p>'+escapeHtml(e.message)+'</p><button class="btn btn-primary mt-2" onclick="loadLevel1()">Retry</button></div>'; }
+}
+
+/* ── LEVEL 2: Tenant ── */
+async function loadLevel2(tenantId) {
+  currentLevel = 2;
+  const page = document.getElementById('page-body');
+  page.innerHTML = '<div class="loading-spinner">Loading tenant...</div>';
+  try {
+    const data = await apiGet('/bi/tenant/'+tenantId+'/dashboard');
+    const t = data.tenant || {};
+    const k = data.kpis || {};
+    const products = data.products || [];
+    const campaigns = data.recent_campaigns || [];
+    const topCust = data.top_customers || [];
+
+    let pRows = ''; products.forEach(p => { pRows += '<tr class="clickable-row" onclick="loadLevel3(\''+p.id+'\')"><td class="fw-600">'+escapeHtml(p.name)+'</td><td>'+(p.price?fmtCurrency(p.price):'-')+'</td><td>'+fmtNum(p.customer_count)+'</td><td>'+statusBadge(p.status||'active')+'</td><td>'+fmtDate(p.created_at)+'</td></tr>'; });
+
+    let cRows = ''; campaigns.forEach(c => { cRows += '<tr class="clickable-row" onclick="loadLevel4(\''+c.id+'\')"><td class="fw-600">'+escapeHtml(c.name)+'</td><td>'+statusBadge(c.status)+'</td><td>'+fmtNum(c.sent_count)+'</td><td>'+fmtNum(c.reply_count)+'</td></tr>'; });
+
+    page.innerHTML = `
+      ${breadcrumb([{label:'Platform',action:'loadLevel1()'},{label:t.name||'Tenant'}])}
+      <div class="stats-grid mb-3">
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Products</div><div class="stat-value">${fmtNum(k.product_count)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Customers</div><div class="stat-value">${fmtNum(k.customer_count)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Campaigns</div><div class="stat-value">${fmtNum(k.campaign_count)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Sent</div><div class="stat-value">${fmtNum(k.messages_sent)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Replies</div><div class="stat-value">${fmtNum(k.total_replies)}</div></div></div>
+        <div class="stat-card"><div class="stat-info"><div class="stat-label">Conversions</div><div class="stat-value">${fmtNum(k.total_conversions)}</div></div></div>
+      </div>
+      <div class="grid-2 mb-3">
+        <div class="card"><div class="card-header"><h3>Products</h3></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Price</th><th>Customers</th><th>Status</th><th>Created</th></tr></thead><tbody>${pRows||'<tr><td colspan="5" class="text-center text-muted">No products</td></tr>'}</tbody></table></div></div>
+        <div class="card"><div class="card-header"><h3>Campaigns</h3></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Status</th><th>Sent</th><th>Replies</th></tr></thead><tbody>${cRows||'<tr><td colspan="4" class="text-center text-muted">No campaigns</td></tr>'}</tbody></table></div></div>
+      </div>
+      ${topCust.length ? '<div class="card"><div class="card-header"><h3>Top Customers</h3></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Priority</th><th>Reply Rate</th></tr></thead><tbody>'+topCust.map(c=>'<tr><td>'+escapeHtml(c.name||'-')+'</td><td>'+escapeHtml(c.phone)+'</td><td><strong>'+(c.priority_score||'-')+'</strong></td><td>'+fmtPct(c.reply_rate||0)+'</td></tr>').join('')+'</tbody></table></div></div>' : ''}
+    `;
+  } catch(e) { page.innerHTML = '<div class="empty-state"><p>'+escapeHtml(e.message)+'</p><button class="btn btn-primary mt-2" onclick="loadLevel1()">Back</button></div>'; }
+}
+
+/* ── LEVEL 3: Product ── */
+async function loadLevel3(productId) {
+  currentLevel = 3;
+  const page = document.getElementById('page-body');
+  page.innerHTML = '<div class="loading-spinner">Loading product...</div>';
+  try {
+    const data = await apiGet('/bi/product/'+productId+'/dashboard');
+    const pr = data.product || {};
+    const campaigns = data.campaigns || [];
+    const sentiment = data.sentiment_breakdown || [];
+
+    let cRows = ''; campaigns.forEach(c => { cRows += '<tr class="clickable-row" onclick="loadLevel4(\''+c.id+'\')"><td class="fw-600">'+escapeHtml(c.name)+'</td><td>'+statusBadge(c.status)+'</td><td>'+fmtNum(c.sent_count)+'</td><td>'+fmtNum(c.reply_count)+'</td><td>'+fmtNum(c.conversion_count)+'</td></tr>'; });
+
+    const sentMap = {}; sentiment.forEach(s => sentMap[s.sentiment] = parseInt(s.count));
+
+    page.innerHTML = `
+      ${breadcrumb([{label:'Platform',action:'loadLevel1()'},{label:'Tenant',action:'loadLevel2("'+pr.tenant_id+'")'},{label:pr.name||'Product'}])}
+      <div class="card mb-3"><div class="card-body"><h3>${escapeHtml(pr.name)}</h3><p class="text-muted">${escapeHtml(pr.description||'No description')} | ${pr.price?fmtCurrency(pr.price):'-'} | ${escapeHtml(pr.region||'-')}, ${escapeHtml(pr.city||'-')}</p></div></div>
+      <div class="grid-2 mb-3">
+        <div class="card"><div class="card-header"><h3>Sentiment</h3></div><div class="card-body"><div style="height:200px"><canvas id="pSent"></canvas></div></div></div>
+        <div class="card"><div class="card-header"><h3>Campaigns (${campaigns.length})</h3></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Status</th><th>Sent</th><th>Replies</th><th>Conv.</th></tr></thead><tbody>${cRows||'<tr><td colspan="5" class="text-center text-muted">None</td></tr>'}</tbody></table></div></div>
+      </div>
+    `;
+    new Chart(document.getElementById('pSent'), { type:'doughnut', data:{ labels:['Positive','Neutral','Negative'], datasets:[{ data:[sentMap.positive||0,sentMap.neutral||0,sentMap.negative||0], backgroundColor:['#00B894','#74B9FF','#E17055'] }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'60%' } });
+  } catch(e) { page.innerHTML = '<div class="empty-state"><p>'+escapeHtml(e.message)+'</p></div>'; }
+}
+
+/* ── LEVEL 4: Campaign ── */
+async function loadLevel4(campaignId) {
+  currentLevel = 4;
+  const page = document.getElementById('page-body');
+  page.innerHTML = '<div class="loading-spinner">Loading campaign...</div>';
+  try {
+    const data = await apiGet('/bi/campaign/'+campaignId+'/dashboard');
+    const c = data.campaign || {};
+    const f = data.funnel || {};
+    const sentiment = data.sentiment_breakdown || [];
+    const intent = data.intent_breakdown || [];
+    const recipients = data.recipients || [];
+    const responses = data.responses || [];
+
+    const total = parseInt(f.total_recipients)||1;
+    const funnelData = [
+      {label:'Sent',val:parseInt(f.sent)||0,color:'#6C5CE7'},
+      {label:'Delivered',val:parseInt(f.delivered)||0,color:'#74B9FF'},
+      {label:'Read',val:parseInt(f.read)||0,color:'#00CEC9'},
+      {label:'Replied',val:parseInt(f.replied)||0,color:'#00B894'},
+      {label:'Converted',val:parseInt(f.converted)||0,color:'#FDCB6E'}
+    ];
+    const funnelHTML = funnelData.map(s => '<div class="funnel-step"><span class="funnel-label">'+s.label+'</span><div class="funnel-bar" style="width:'+Math.max((s.val/total)*100,5)+'%;background:'+s.color+'">'+s.val+'</div></div>').join('');
+
+    let rRows = ''; responses.slice(0,20).forEach(r => {
+      rRows += '<tr class="clickable-row" onclick="loadLevel5(\''+r.id+'\')"><td>'+escapeHtml(r.customer_name||'-')+'</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(r.response_text||'')+'</td><td>'+sentimentBadge(r.sentiment)+'</td><td><span class="badge badge-info">'+(r.intent||'-')+'</span></td><td>'+fmtDate(r.received_at)+'</td></tr>';
+    });
+
+    page.innerHTML = `
+      ${breadcrumb([{label:'Platform',action:'loadLevel1()'},{label:'Tenant',action:'loadLevel2("'+c.tenant_id+'")'},{label:c.product_name||'Product',action:'loadLevel3("'+(c.product_id||'')+'")'},{label:c.name||'Campaign'}])}
+      <div class="card mb-3"><div class="card-body"><h3>${escapeHtml(c.name)} ${statusBadge(c.status)}</h3><p class="text-muted">${escapeHtml(c.description||'')} | Segment: ${c.target_segment||'all'} | Created: ${fmtDate(c.created_at)}</p></div></div>
+      <div class="card mb-3"><div class="card-header"><h3>Delivery Funnel</h3></div><div class="card-body">${funnelHTML}</div></div>
+      <div class="grid-2 mb-3">
+        <div class="card"><div class="card-header"><h3>Sentiment</h3></div><div class="card-body"><div style="height:200px"><canvas id="cSent"></canvas></div></div></div>
+        <div class="card"><div class="card-header"><h3>Intent</h3></div><div class="card-body"><div style="height:200px"><canvas id="cIntent"></canvas></div></div></div>
+      </div>
+      <div class="card"><div class="card-header"><h3>Responses (${responses.length})</h3><span class="text-muted">Click to see detail</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Reply</th><th>Sentiment</th><th>Intent</th><th>Date</th></tr></thead><tbody>${rRows||'<tr><td colspan="5" class="text-center text-muted">No responses</td></tr>'}</tbody></table></div></div>
+    `;
+
+    const sentMap = {}; sentiment.forEach(s => sentMap[s.sentiment]=parseInt(s.count));
+    new Chart(document.getElementById('cSent'), { type:'doughnut', data:{ labels:['Positive','Neutral','Negative'], datasets:[{ data:[sentMap.positive||0,sentMap.neutral||0,sentMap.negative||0], backgroundColor:['#00B894','#74B9FF','#E17055'] }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'60%' } });
+
+    const intLabels = intent.map(i=>i.intent); const intVals = intent.map(i=>parseInt(i.count));
+    new Chart(document.getElementById('cIntent'), { type:'bar', data:{ labels:intLabels, datasets:[{ label:'Count', data:intVals, backgroundColor:'#6C5CE7cc', borderRadius:6 }] }, options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{ legend:{ display:false } } } });
+  } catch(e) { page.innerHTML = '<div class="empty-state"><p>'+escapeHtml(e.message)+'</p></div>'; }
+}
+
+/* ── LEVEL 5: Response ── */
+async function loadLevel5(responseId) {
+  currentLevel = 5;
+  const page = document.getElementById('page-body');
+  page.innerHTML = '<div class="loading-spinner">Loading response...</div>';
+  try {
+    const r = await apiGet('/bi/response/'+responseId);
+    page.innerHTML = `
+      ${breadcrumb([{label:'Platform',action:'loadLevel1()'},{label:'Campaign',action:'loadLevel4("'+r.campaign_id+'")'},{label:'Response Detail'}])}
+      <div class="grid-2 mb-3">
+        <div class="card"><div class="card-header"><h3>Response</h3></div><div class="card-body">
+          <p style="font-size:1.1rem;line-height:1.6;padding:12px;background:var(--light);border-radius:8px">"${escapeHtml(r.response_text||'')}"</p>
+          <div class="stats-grid mt-2">
+            <div class="stat-card"><div class="stat-info"><div class="stat-label">Sentiment</div><div class="stat-value" style="font-size:1rem">${sentimentBadge(r.sentiment)}</div></div></div>
+            <div class="stat-card"><div class="stat-info"><div class="stat-label">Score</div><div class="stat-value">${r.sentiment_score||'-'}</div></div></div>
+            <div class="stat-card"><div class="stat-info"><div class="stat-label">Intent</div><div class="stat-value" style="font-size:1rem"><span class="badge badge-info">${r.intent||'-'}</span></div></div></div>
+            <div class="stat-card"><div class="stat-info"><div class="stat-label">Confidence</div><div class="stat-value">${r.ai_confidence?fmtPct(r.ai_confidence):'-'}</div></div></div>
+          </div>
+          ${r.key_phrases ? '<div class="mt-2"><strong>Key Phrases:</strong> '+(r.key_phrases||[]).map(p=>'<span class="badge badge-neutral" style="margin:2px">'+escapeHtml(p)+'</span>').join('')+'</div>' : ''}
+          ${r.suggested_reply ? '<div class="mt-2"><strong>Suggested Reply:</strong><br><em class="text-muted">'+escapeHtml(r.suggested_reply)+'</em></div>' : ''}
+        </div></div>
+        <div class="card"><div class="card-header"><h3>Customer</h3></div><div class="card-body">
+          <p><strong>Name:</strong> ${escapeHtml(r.customer_name||'-')}</p>
+          <p><strong>Phone:</strong> ${escapeHtml(r.customer_phone||'-')}</p>
+          <p><strong>Email:</strong> ${escapeHtml(r.customer_email||'-')}</p>
+          <p><strong>Location:</strong> ${escapeHtml(r.city||'-')}, ${escapeHtml(r.region||'-')}, ${escapeHtml(r.country||'-')}</p>
+          <hr style="margin:12px 0;border-color:var(--light-2)">
+          <p><strong>Priority Score:</strong> ${r.priority_score||'-'}/100</p>
+          <p><strong>Reply Rate:</strong> ${r.reply_rate?fmtPct(r.reply_rate):'-'}</p>
+          <p><strong>Campaigns Targeted:</strong> ${r.total_campaigns_targeted||'-'}</p>
+          <p><strong>Campaign:</strong> ${escapeHtml(r.campaign_name||'-')}</p>
+          <p><strong>Product:</strong> ${escapeHtml(r.product_name||'-')}</p>
+        </div></div>
+      </div>
+    `;
+  } catch(e) { page.innerHTML = '<div class="empty-state"><p>'+escapeHtml(e.message)+'</p></div>'; }
+}
 </script>
 </body>
 </html>

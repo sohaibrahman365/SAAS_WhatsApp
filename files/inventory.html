@@ -36,6 +36,49 @@
     }
     .file-drop-zone:hover, .file-drop-zone.drag-over { border-color:var(--primary); background:var(--primary-light); }
     .file-drop-zone svg { width:40px; height:40px; margin-bottom:0.5rem; color:var(--primary); }
+
+    /* ── Category filter bar ── */
+    .category-filter-bar {
+      display:flex; align-items:center; gap:0.5rem; padding:0.75rem 0;
+      overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+    }
+    .category-filter-bar::-webkit-scrollbar { display:none; }
+    .category-pill {
+      display:inline-flex; align-items:center; gap:0.35rem;
+      padding:0.35rem 0.85rem; border-radius:20px; font-size:0.82rem; font-weight:500;
+      white-space:nowrap; cursor:pointer; transition:var(--t); border:1.5px solid var(--primary);
+      background:transparent; color:var(--primary); user-select:none; flex-shrink:0;
+    }
+    .category-pill:hover { background:var(--primary-light); }
+    .category-pill.active { background:var(--primary); color:var(--text-inverse); }
+    .category-pill .pill-count {
+      font-size:0.72rem; background:rgba(255,255,255,0.25); border-radius:10px;
+      padding:0 0.4rem; line-height:1.5; min-width:1.2rem; text-align:center;
+    }
+    .category-pill.active .pill-count { background:rgba(255,255,255,0.3); }
+    .category-pill:not(.active) .pill-count { background:var(--primary-light); }
+
+    /* ── View toggle button ── */
+    .view-toggle-wrap { display:flex; align-items:center; gap:0.5rem; margin-left:auto; flex-shrink:0; }
+    .view-toggle {
+      display:inline-flex; align-items:center; gap:0.35rem;
+      padding:0.35rem 0.75rem; border-radius:var(--radius-sm); font-size:0.8rem; font-weight:500;
+      cursor:pointer; transition:var(--t); border:1.5px solid var(--light-3);
+      background:var(--white); color:var(--text-secondary);
+    }
+    .view-toggle:hover { border-color:var(--primary); color:var(--primary); }
+    .view-toggle.active { border-color:var(--primary); background:var(--primary-light); color:var(--primary); }
+    .view-toggle svg { width:14px; height:14px; }
+
+    /* ── Category group header ── */
+    .category-group-header {
+      display:flex; align-items:center; gap:0.6rem; padding:0.7rem 0.75rem;
+      background:var(--light); border-bottom:1px solid var(--light-2); font-weight:600;
+      font-size:0.9rem; color:var(--text-primary); position:sticky; top:0; z-index:2;
+    }
+    .category-group-header .group-count {
+      font-size:0.75rem; font-weight:500; color:var(--text-muted);
+    }
   </style>
 </head>
 <body>
@@ -148,6 +191,40 @@
 <script src="shared.js"></script>
 <script>
 let allProducts = [];
+let activeCategoryFilter = 'All';
+let searchQuery = '';
+let groupedView = false;
+
+function getUniqueCategories(products) {
+  const catCount = {};
+  products.forEach(p => {
+    (p.categories || []).forEach(c => { catCount[c] = (catCount[c] || 0) + 1; });
+  });
+  return Object.entries(catCount).sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function getFilteredProducts() {
+  let list = allProducts;
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter(x => (x.name||'').toLowerCase().includes(q) || (x.region||'').toLowerCase().includes(q) || (x.city||'').toLowerCase().includes(q));
+  }
+  if (activeCategoryFilter !== 'All') {
+    list = list.filter(x => (x.categories || []).includes(activeCategoryFilter));
+  }
+  return list;
+}
+
+function setCategoryFilter(cat) {
+  activeCategoryFilter = cat;
+  renderProducts(getFilteredProducts());
+}
+
+function toggleGroupedView() {
+  groupedView = !groupedView;
+  renderProducts(getFilteredProducts());
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const user = requireLogin(); if (!user) return;
   document.getElementById('sidebar').innerHTML = sidebarHTML('inventory.html');
@@ -162,7 +239,13 @@ async function loadTenants() {
 }
 
 async function loadProducts() {
-  try { allProducts = await apiGet('/products'); renderProducts(allProducts); }
+  try {
+    allProducts = await apiGet('/products');
+    activeCategoryFilter = 'All';
+    searchQuery = '';
+    groupedView = false;
+    renderProducts(allProducts);
+  }
   catch(e) { document.getElementById('page-body').innerHTML = '<div class="empty-state"><div class="empty-icon">&#9888;</div><p>'+escapeHtml(e.message)+'</p><button class="btn btn-primary mt-2" onclick="loadProducts()">Retry</button></div>'; }
 }
 
@@ -193,23 +276,77 @@ function importBtnHtml() {
   '</div>';
 }
 
+function buildProductRow(x) {
+  const imgHtml = x.image_url ? '<img src="'+escapeHtml(x.image_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;margin-right:8px;vertical-align:middle">' : '';
+  const cats = (x.categories||[]).map(c => '<span class="badge badge-primary" style="margin:0 3px 3px 0">'+escapeHtml(c)+'</span>').join('');
+  return '<tr><td class="fw-600">'+imgHtml+escapeHtml(x.name)+'</td><td>'+(x.price?fmtCurrency(x.price):'-')+'</td><td>'+escapeHtml(x.region||'-')+'</td><td>'+escapeHtml(x.city||'-')+'</td><td>'+(cats||'-')+'</td><td>'+statusBadge(x.status||'active')+'</td><td>'+fmtDate(x.created_at)+'</td><td><a href="bi.html?product='+x.id+'" class="btn btn-secondary btn-sm">View</a></td></tr>';
+}
+
+function categoryFilterBarHtml() {
+  const cats = getUniqueCategories(allProducts);
+  if (!cats.length) return '';
+  const totalCount = allProducts.length;
+  let html = '<div class="category-filter-bar">';
+  html += '<span class="category-pill' + (activeCategoryFilter === 'All' ? ' active' : '') + '" onclick="setCategoryFilter(\'All\')">All <span class="pill-count">' + totalCount + '</span></span>';
+  cats.forEach(([name, count]) => {
+    const isActive = activeCategoryFilter === name;
+    html += '<span class="category-pill' + (isActive ? ' active' : '') + '" onclick="setCategoryFilter(\'' + escapeHtml(name).replace(/'/g, "\\'") + '\')">' + escapeHtml(name) + ' <span class="pill-count">' + count + '</span></span>';
+  });
+  html += '<div class="view-toggle-wrap">';
+  html += '<button class="view-toggle' + (groupedView ? ' active' : '') + '" onclick="toggleGroupedView()" title="Toggle grouped view">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>';
+  html += (groupedView ? 'Grouped' : 'Group by Category');
+  html += '</button></div></div>';
+  return html;
+}
+
+function renderProductsGrouped(list) {
+  const groups = {};
+  const uncategorized = [];
+  list.forEach(x => {
+    const cats = x.categories || [];
+    if (!cats.length) { uncategorized.push(x); return; }
+    cats.forEach(c => { if (!groups[c]) groups[c] = []; groups[c].push(x); });
+  });
+  const sortedNames = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+  let html = '';
+  sortedNames.forEach(name => {
+    html += '<div class="category-group-header">' + escapeHtml(name) + ' <span class="group-count">(' + groups[name].length + ')</span></div>';
+    html += '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Price</th><th>Region</th><th>City</th><th>Categories</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>';
+    groups[name].forEach(x => { html += buildProductRow(x); });
+    html += '</tbody></table></div>';
+  });
+  if (uncategorized.length) {
+    html += '<div class="category-group-header">Uncategorized <span class="group-count">(' + uncategorized.length + ')</span></div>';
+    html += '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Price</th><th>Region</th><th>City</th><th>Categories</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>';
+    uncategorized.forEach(x => { html += buildProductRow(x); });
+    html += '</tbody></table></div>';
+  }
+  return html;
+}
+
 function renderProducts(list) {
   const p = document.getElementById('page-body');
-  var actionsHtml = '<input class="form-control" placeholder="Search..." style="width:220px" oninput="filterProducts(this.value)">' + importBtnHtml() + '<button class="btn btn-primary" onclick="openModal(\'addProductModal\')">+ Add Product</button>';
-  if (!list.length) {
+  var actionsHtml = '<input class="form-control" placeholder="Search..." style="width:220px" value="' + escapeHtml(searchQuery) + '" oninput="filterProducts(this.value)">' + importBtnHtml() + '<button class="btn btn-primary" onclick="openModal(\'addProductModal\')">+ Add Product</button>';
+  if (!allProducts.length) {
     p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Products</h1><p>0 products</p></div><div class="page-header-actions">' + actionsHtml + '</div></div><div class="empty-state"><div class="empty-icon">&#128230;</div><h3>No products yet</h3><p>Add your first product or import from a website, file, or META catalog.</p></div>';
     return;
   }
-  let rows = '';
-  list.forEach(x => {
-    const imgHtml = x.image_url ? '<img src="'+escapeHtml(x.image_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;margin-right:8px;vertical-align:middle">' : '';
-    const cats = (x.categories||[]).map(c => '<span class="badge badge-primary" style="margin:0 3px 3px 0">'+escapeHtml(c)+'</span>').join('');
-    rows += '<tr><td class="fw-600">'+imgHtml+escapeHtml(x.name)+'</td><td>'+(x.price?fmtCurrency(x.price):'-')+'</td><td>'+escapeHtml(x.region||'-')+'</td><td>'+escapeHtml(x.city||'-')+'</td><td>'+(cats||'-')+'</td><td>'+statusBadge(x.status||'active')+'</td><td>'+fmtDate(x.created_at)+'</td><td><a href="bi.html?product='+x.id+'" class="btn btn-secondary btn-sm">View</a></td></tr>';
-  });
-  p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Products</h1><p>'+list.length+' products</p></div><div class="page-header-actions">' + actionsHtml + '</div></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Price</th><th>Region</th><th>City</th><th>Categories</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  const filterBar = categoryFilterBarHtml();
+  let tableHtml;
+  if (groupedView) {
+    tableHtml = '<div class="card">' + renderProductsGrouped(list) + '</div>';
+  } else {
+    let rows = '';
+    list.forEach(x => { rows += buildProductRow(x); });
+    tableHtml = '<div class="card"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Price</th><th>Region</th><th>City</th><th>Categories</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  }
+  const countLabel = list.length === allProducts.length ? list.length + ' products' : list.length + ' of ' + allProducts.length + ' products';
+  const emptyFiltered = !list.length ? '<div class="empty-state" style="padding:2rem"><div class="empty-icon">&#128269;</div><h3>No matching products</h3><p>Try a different category or search term.</p></div>' : '';
+  p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Products</h1><p>' + countLabel + '</p></div><div class="page-header-actions">' + actionsHtml + '</div></div>' + filterBar + (list.length ? tableHtml : emptyFiltered);
 }
 
-function filterProducts(q) { const l = q.toLowerCase(); renderProducts(allProducts.filter(x => (x.name||'').toLowerCase().includes(l)||(x.region||'').toLowerCase().includes(l)||(x.city||'').toLowerCase().includes(l))); }
+function filterProducts(q) { searchQuery = q; renderProducts(getFilteredProducts()); }
 
 async function submitProduct() {
   const name = document.getElementById('pName').value.trim();

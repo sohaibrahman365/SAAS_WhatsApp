@@ -1,6 +1,6 @@
 const express = require('express');
 const pool    = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -70,7 +70,7 @@ router.get('/saas-platform/dashboard', requireAuth, requireRole('super_admin'), 
 // Level 2 — Tenant Dashboard
 // GET /api/bi/tenant/:tenantId/dashboard
 // ═══════════════════════════════════════════════════════════════
-router.get('/tenant/:tenantId/dashboard', requireAuth, async (req, res, next) => {
+router.get('/tenant/:tenantId/dashboard', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
   try {
     const tenantId = req.params.tenantId;
     if (req.user.role !== 'super_admin' && req.user.tenantId !== tenantId) {
@@ -126,7 +126,7 @@ router.get('/tenant/:tenantId/dashboard', requireAuth, async (req, res, next) =>
 // Level 3 — Product Dashboard
 // GET /api/bi/product/:productId/dashboard
 // ═══════════════════════════════════════════════════════════════
-router.get('/product/:productId/dashboard', requireAuth, async (req, res, next) => {
+router.get('/product/:productId/dashboard', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
   try {
     const { rows: products } = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.productId]);
     if (!products[0]) return res.status(404).json({ error: 'Product not found' });
@@ -166,7 +166,7 @@ router.get('/product/:productId/dashboard', requireAuth, async (req, res, next) 
 // Level 4 — Campaign Dashboard
 // GET /api/bi/campaign/:campaignId/dashboard
 // ═══════════════════════════════════════════════════════════════
-router.get('/campaign/:campaignId/dashboard', requireAuth, async (req, res, next) => {
+router.get('/campaign/:campaignId/dashboard', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
   try {
     const { rows: campaigns } = await pool.query(
       `SELECT c.*, p.name AS product_name
@@ -242,7 +242,7 @@ router.get('/campaign/:campaignId/dashboard', requireAuth, async (req, res, next
 // Level 5 — Response Detail
 // GET /api/bi/response/:responseId
 // ═══════════════════════════════════════════════════════════════
-router.get('/response/:responseId', requireAuth, async (req, res, next) => {
+router.get('/response/:responseId', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
       SELECT crp.*,
@@ -282,7 +282,7 @@ router.get('/response/:responseId', requireAuth, async (req, res, next) => {
 // Customer engagement endpoint
 // GET /api/bi/customer/:phone/engagement
 // ═══════════════════════════════════════════════════════════════
-router.get('/customer/:phone/engagement', requireAuth, async (req, res, next) => {
+router.get('/customer/:phone/engagement', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
   try {
     const { rows: customers } = await pool.query(
       'SELECT * FROM customers WHERE phone = $1', [req.params.phone]

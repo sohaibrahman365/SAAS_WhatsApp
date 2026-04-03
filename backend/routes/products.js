@@ -1,19 +1,14 @@
 const express = require('express');
 const pool    = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
+const { resolveTenantId } = require('../middleware/tenantScope');
 
 const router = express.Router();
 
-// Returns the tenant scope: super_admin can pass ?tenantId=xxx; others always use their own
-function tenantScope(req) {
-  if (req.user.role === 'super_admin') return req.query.tenantId || null;
-  return req.user.tenantId;
-}
-
 // GET /api/products
-router.get('/', requireAuth, async (req, res, next) => {
+router.get('/', requireAuth, requirePermission('products', 'view'), async (req, res, next) => {
   try {
-    const tenantId = tenantScope(req);
+    const tenantId = resolveTenantId(req);
 
     let query, params;
     if (tenantId) {
@@ -34,9 +29,9 @@ router.get('/', requireAuth, async (req, res, next) => {
 });
 
 // POST /api/products
-router.post('/', requireAuth, requireRole('super_admin', 'admin', 'manager'), async (req, res, next) => {
+router.post('/', requireAuth, requirePermission('products', 'create'), async (req, res, next) => {
   try {
-    const tenantId = tenantScope(req) || req.body.tenantId;
+    const tenantId = resolveTenantId(req) || req.body.tenantId;
     if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
 
     const {
@@ -80,9 +75,9 @@ router.post('/', requireAuth, requireRole('super_admin', 'admin', 'manager'), as
 });
 
 // GET /api/products/:id
-router.get('/:id', requireAuth, async (req, res, next) => {
+router.get('/:id', requireAuth, requirePermission('products', 'view'), async (req, res, next) => {
   try {
-    const tenantId = tenantScope(req);
+    const tenantId = resolveTenantId(req);
 
     let query, params;
     if (tenantId) {

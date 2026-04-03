@@ -1,13 +1,9 @@
 const express = require('express');
 const pool    = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
+const { resolveTenantId } = require('../middleware/tenantScope');
 
 const router = express.Router();
-
-function resolvedTenantId(req) {
-  if (req.user.role === 'super_admin' && req.query.tenantId) return req.query.tenantId;
-  return req.user.tenantId;
-}
 
 async function getUserPermissions(userId) {
   const { rows: users } = await pool.query('SELECT role, role_id FROM users WHERE id = $1', [userId]);
@@ -37,9 +33,9 @@ async function getUserPermissions(userId) {
 }
 
 // ── GET /api/roles ──────────────────────────────────────────
-router.get('/', requireAuth, async (req, res, next) => {
+router.get('/', requireAuth, requirePermission('team', 'view'), async (req, res, next) => {
   try {
-    const tenantId = resolvedTenantId(req);
+    const tenantId = resolveTenantId(req);
     const { rows } = await pool.query(`
       SELECT r.id, r.tenant_id, r.name, r.slug, r.description, r.is_system, r.created_at,
              COUNT(rp.id)::int AS permission_count
@@ -56,7 +52,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 // NOTE: Static paths must be registered before /:id to avoid Express matching them as params
 
 // ── GET /api/roles/permissions/all ──────────────────────────
-router.get('/permissions/all', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.get('/permissions/all', requireAuth, requirePermission('team', 'edit_role'), async (req, res, next) => {
   try {
     const { rows } = await pool.query('SELECT * FROM permissions ORDER BY module, action');
     const grouped = {};
@@ -95,9 +91,9 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 });
 
 // ── POST /api/roles ─────────────────────────────────────────
-router.post('/', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.post('/', requireAuth, requirePermission('team', 'edit_role'), async (req, res, next) => {
   try {
-    const tenantId = resolvedTenantId(req);
+    const tenantId = resolveTenantId(req);
     const { name, slug, description, permissionIds } = req.body;
     if (!name || !slug) return res.status(400).json({ error: 'Name and slug are required' });
 
@@ -124,7 +120,7 @@ router.post('/', requireAuth, requireRole('super_admin', 'admin'), async (req, r
 });
 
 // ── PUT /api/roles/:id ──────────────────────────────────────
-router.put('/:id', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.put('/:id', requireAuth, requirePermission('team', 'edit_role'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, description, permissionIds } = req.body;
@@ -168,7 +164,7 @@ router.put('/:id', requireAuth, requireRole('super_admin', 'admin'), async (req,
 });
 
 // ── DELETE /api/roles/:id ───────────────────────────────────
-router.delete('/:id', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.delete('/:id', requireAuth, requirePermission('team', 'edit_role'), async (req, res, next) => {
   try {
     const [{ rows }, { rows: users }] = await Promise.all([
       pool.query('SELECT * FROM roles WHERE id = $1', [req.params.id]),

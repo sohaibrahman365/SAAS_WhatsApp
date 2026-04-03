@@ -1,12 +1,12 @@
 const express = require('express');
 const pool    = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 const { analyzeResponse, isStubMode } = require('../services/ai');
 
 const router = express.Router();
 
 // GET /api/ai/status — check if Claude API is configured
-router.get('/status', requireAuth, requireRole('super_admin', 'admin'), (req, res) => {
+router.get('/status', requireAuth, requirePermission('ai', 'view'), (req, res) => {
   res.json({
     configured: !isStubMode(),
     stub_mode: isStubMode(),
@@ -15,7 +15,7 @@ router.get('/status', requireAuth, requireRole('super_admin', 'admin'), (req, re
 
 // POST /api/ai/analyze — manually analyze a text
 // Body: { text, campaignId? }
-router.post('/analyze', requireAuth, requireRole('super_admin', 'admin', 'manager'), async (req, res, next) => {
+router.post('/analyze', requireAuth, requirePermission('ai', 'analyze'), async (req, res, next) => {
   try {
     const { text, campaignId } = req.body;
     if (!text) return res.status(400).json({ error: 'text is required' });
@@ -46,7 +46,7 @@ router.post('/analyze', requireAuth, requireRole('super_admin', 'admin', 'manage
 });
 
 // POST /api/ai/analyze-response/:responseId — analyze an existing campaign_response row
-router.post('/analyze-response/:responseId', requireAuth, requireRole('super_admin', 'admin', 'manager'), async (req, res, next) => {
+router.post('/analyze-response/:responseId', requireAuth, requirePermission('ai', 'analyze'), async (req, res, next) => {
   try {
     const { rows: responses } = await pool.query(
       `SELECT cr.response_text, cr.campaign_id,
@@ -99,7 +99,7 @@ router.post('/analyze-response/:responseId', requireAuth, requireRole('super_adm
 });
 
 // POST /api/ai/bulk-analyze/:campaignId — analyze all unanalyzed responses for a campaign
-router.post('/bulk-analyze/:campaignId', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.post('/bulk-analyze/:campaignId', requireAuth, requirePermission('ai', 'analyze'), async (req, res, next) => {
   try {
     const { rows: responses } = await pool.query(
       `SELECT cr.id, cr.response_text, c.name AS campaign_name, c.message_template, p.name AS product_name

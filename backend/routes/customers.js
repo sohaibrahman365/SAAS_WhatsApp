@@ -1,18 +1,14 @@
 const express = require('express');
 const pool    = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
+const { resolveTenantId } = require('../middleware/tenantScope');
 
 const router = express.Router();
 
-function tenantScope(req) {
-  if (req.user.role === 'super_admin') return req.query.tenantId || null;
-  return req.user.tenantId;
-}
-
 // GET /api/customers
-router.get('/', requireAuth, async (req, res, next) => {
+router.get('/', requireAuth, requirePermission('customers', 'view'), async (req, res, next) => {
   try {
-    const tenantId = tenantScope(req);
+    const tenantId = resolveTenantId(req);
 
     let query, params;
     if (tenantId) {
@@ -33,9 +29,9 @@ router.get('/', requireAuth, async (req, res, next) => {
 });
 
 // POST /api/customers
-router.post('/', requireAuth, requireRole('super_admin', 'admin', 'manager'), async (req, res, next) => {
+router.post('/', requireAuth, requirePermission('customers', 'create'), async (req, res, next) => {
   try {
-    const tenantId = tenantScope(req) || req.body.tenantId;
+    const tenantId = resolveTenantId(req) || req.body.tenantId;
     if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
 
     const { name, phone, email, age, gender, city, region, country, source } = req.body;
@@ -73,9 +69,9 @@ router.post('/', requireAuth, requireRole('super_admin', 'admin', 'manager'), as
 });
 
 // GET /api/customers/:id
-router.get('/:id', requireAuth, async (req, res, next) => {
+router.get('/:id', requireAuth, requirePermission('customers', 'view'), async (req, res, next) => {
   try {
-    const tenantId = tenantScope(req);
+    const tenantId = resolveTenantId(req);
 
     let query, params;
     if (tenantId) {

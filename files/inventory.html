@@ -6,6 +6,37 @@
   <title>Products — GeniSearch</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared.css">
+  <style>
+    .import-dropdown { position:relative; display:inline-block; }
+    .import-dropdown-menu {
+      display:none; position:absolute; right:0; top:100%; margin-top:4px;
+      background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow-lg);
+      min-width:200px; z-index:50; border:1px solid var(--light-2); overflow:hidden;
+    }
+    .import-dropdown-menu.open { display:block; }
+    .import-dropdown-item {
+      display:flex; align-items:center; gap:0.75rem; padding:0.7rem 1rem;
+      font-size:0.85rem; cursor:pointer; border:none; background:none; width:100%; text-align:left;
+      color:var(--text-primary); transition:var(--t);
+    }
+    .import-dropdown-item:hover { background:var(--light); }
+    .import-dropdown-item svg { width:18px; height:18px; color:var(--primary); flex-shrink:0; }
+    .import-dropdown-item small { display:block; color:var(--text-muted); font-size:0.75rem; margin-top:1px; }
+
+    .preview-table { width:100%; border-collapse:collapse; font-size:0.82rem; margin:1rem 0; }
+    .preview-table th, .preview-table td { padding:0.5rem 0.6rem; border:1px solid var(--light-2); text-align:left; }
+    .preview-table th { background:var(--light); font-weight:600; position:sticky; top:0; }
+    .preview-table img { width:40px; height:40px; object-fit:cover; border-radius:4px; }
+    .preview-wrap { max-height:350px; overflow-y:auto; border:1px solid var(--light-2); border-radius:var(--radius-sm); }
+    .preview-count { font-size:0.85rem; color:var(--text-secondary); margin:0.75rem 0; }
+
+    .file-drop-zone {
+      border:2px dashed var(--light-3); border-radius:var(--radius); padding:2rem; text-align:center;
+      cursor:pointer; transition:var(--t); color:var(--text-muted);
+    }
+    .file-drop-zone:hover, .file-drop-zone.drag-over { border-color:var(--primary); background:var(--primary-light); }
+    .file-drop-zone svg { width:40px; height:40px; margin-bottom:0.5rem; color:var(--primary); }
+  </style>
 </head>
 <body>
 <div class="app">
@@ -51,6 +82,68 @@
   </div>
 </div>
 
+<!-- URL Scrape Modal -->
+<div class="modal-overlay" id="scrapeModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header"><h3>Import from Website</h3><button class="modal-close" onclick="closeModal('scrapeModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Website URL</label>
+        <div style="display:flex;gap:0.5rem">
+          <input id="scrapeUrl" class="form-control" placeholder="https://example.com/products" style="flex:1">
+          <button class="btn btn-primary" id="scrapeBtn" onclick="scrapeUrl()">Scan</button>
+        </div>
+        <small style="color:var(--text-muted)">We'll extract product names, prices, images and descriptions from this page.</small>
+      </div>
+      <div id="scrapePreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('scrapeModal')">Cancel</button>
+      <button class="btn btn-primary" id="scrapeConfirmBtn" style="display:none" onclick="confirmImport('website')">Import Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- File Upload Modal -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header"><h3>Import from File</h3><button class="modal-close" onclick="closeModal('uploadModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="file-drop-zone" id="fileDropZone" onclick="document.getElementById('fileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div>Drop your Excel or CSV file here, or click to browse</div>
+        <small>.xlsx, .xls, .csv supported</small>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadFile(this)">
+      <div id="uploadPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('uploadModal')">Cancel</button>
+      <button class="btn btn-primary" id="uploadConfirmBtn" style="display:none" onclick="confirmImport('file')">Import Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- META Catalog Modal -->
+<div class="modal-overlay" id="metaModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header"><h3>Import from META Catalog</h3><button class="modal-close" onclick="closeModal('metaModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Catalog ID</label><input id="metaCatalogId" class="form-control" placeholder="Catalog ID from Meta Business Suite"></div>
+        <div class="form-group"><label>Access Token (optional)</label><input id="metaToken" class="form-control" placeholder="Uses tenant settings if blank"></div>
+      </div>
+      <button class="btn btn-primary" id="metaFetchBtn" onclick="fetchMeta()">Fetch Products</button>
+      <small style="color:var(--text-muted);display:block;margin-top:0.5rem">Leave credentials blank to use your configured META settings.</small>
+      <div id="metaPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('metaModal')">Cancel</button>
+      <button class="btn btn-primary" id="metaConfirmBtn" style="display:none" onclick="confirmImport('meta')">Import Selected</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 <script src="shared.js"></script>
 <script>
@@ -73,18 +166,47 @@ async function loadProducts() {
   catch(e) { document.getElementById('page-body').innerHTML = '<div class="empty-state"><div class="empty-icon">&#9888;</div><p>'+escapeHtml(e.message)+'</p><button class="btn btn-primary mt-2" onclick="loadProducts()">Retry</button></div>'; }
 }
 
+var importDropOpen = false;
+function toggleImportDrop() { importDropOpen = !importDropOpen; document.getElementById('importDropMenu').classList.toggle('open', importDropOpen); }
+document.addEventListener('click', function(e) { if (!e.target.closest('.import-dropdown')) { importDropOpen = false; var m = document.getElementById('importDropMenu'); if (m) m.classList.remove('open'); } });
+
+function importBtnHtml() {
+  return '<div class="import-dropdown">' +
+    '<button class="btn btn-outline-primary" onclick="toggleImportDrop()">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+      'Import' +
+    '</button>' +
+    '<div class="import-dropdown-menu" id="importDropMenu">' +
+      '<button class="import-dropdown-item" onclick="openModal(\'scrapeModal\');toggleImportDrop()">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' +
+        '<div>From Website<small>Scrape products from a URL</small></div>' +
+      '</button>' +
+      '<button class="import-dropdown-item" onclick="openModal(\'uploadModal\');toggleImportDrop()">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+        '<div>From File<small>Upload Excel or CSV</small></div>' +
+      '</button>' +
+      '<button class="import-dropdown-item" onclick="openModal(\'metaModal\');toggleImportDrop()">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>' +
+        '<div>From META<small>Facebook/Instagram catalog</small></div>' +
+      '</button>' +
+    '</div>' +
+  '</div>';
+}
+
 function renderProducts(list) {
   const p = document.getElementById('page-body');
+  var actionsHtml = '<input class="form-control" placeholder="Search..." style="width:220px" oninput="filterProducts(this.value)">' + importBtnHtml() + '<button class="btn btn-primary" onclick="openModal(\'addProductModal\')">+ Add Product</button>';
   if (!list.length) {
-    p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Products</h1><p>0 products</p></div><div class="page-header-actions"><button class="btn btn-primary" onclick="openModal(\'addProductModal\')">+ Add Product</button></div></div><div class="empty-state"><div class="empty-icon">&#128230;</div><h3>No products yet</h3><p>Add your first product to get started.</p></div>';
+    p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Products</h1><p>0 products</p></div><div class="page-header-actions">' + actionsHtml + '</div></div><div class="empty-state"><div class="empty-icon">&#128230;</div><h3>No products yet</h3><p>Add your first product or import from a website, file, or META catalog.</p></div>';
     return;
   }
   let rows = '';
   list.forEach(x => {
+    const imgHtml = x.image_url ? '<img src="'+escapeHtml(x.image_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;margin-right:8px;vertical-align:middle">' : '';
     const cats = (x.categories||[]).map(c => '<span class="badge badge-primary" style="margin:0 3px 3px 0">'+escapeHtml(c)+'</span>').join('');
-    rows += '<tr><td class="fw-600">'+escapeHtml(x.name)+'</td><td>'+(x.price?fmtCurrency(x.price):'-')+'</td><td>'+escapeHtml(x.region||'-')+'</td><td>'+escapeHtml(x.city||'-')+'</td><td>'+(cats||'-')+'</td><td>'+statusBadge(x.status||'active')+'</td><td>'+fmtDate(x.created_at)+'</td><td><a href="bi.html?product='+x.id+'" class="btn btn-secondary btn-sm">View</a></td></tr>';
+    rows += '<tr><td class="fw-600">'+imgHtml+escapeHtml(x.name)+'</td><td>'+(x.price?fmtCurrency(x.price):'-')+'</td><td>'+escapeHtml(x.region||'-')+'</td><td>'+escapeHtml(x.city||'-')+'</td><td>'+(cats||'-')+'</td><td>'+statusBadge(x.status||'active')+'</td><td>'+fmtDate(x.created_at)+'</td><td><a href="bi.html?product='+x.id+'" class="btn btn-secondary btn-sm">View</a></td></tr>';
   });
-  p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Products</h1><p>'+list.length+' products</p></div><div class="page-header-actions"><input class="form-control" placeholder="Search..." style="width:220px" oninput="filterProducts(this.value)"><button class="btn btn-primary" onclick="openModal(\'addProductModal\')">+ Add Product</button></div></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Price</th><th>Region</th><th>City</th><th>Categories</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Products</h1><p>'+list.length+' products</p></div><div class="page-header-actions">' + actionsHtml + '</div></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Price</th><th>Region</th><th>City</th><th>Categories</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 
 function filterProducts(q) { const l = q.toLowerCase(); renderProducts(allProducts.filter(x => (x.name||'').toLowerCase().includes(l)||(x.region||'').toLowerCase().includes(l)||(x.city||'').toLowerCase().includes(l))); }
@@ -96,6 +218,133 @@ async function submitProduct() {
   const t = document.getElementById('pTenant'); if (t.value) body.tenantId = t.value;
   try { await apiPost('/products', body); toast('Product added!','success'); closeModal('addProductModal'); document.getElementById('productForm').reset(); loadProducts(); }
   catch(e) { toast(e.message,'error'); }
+}
+
+/* ── Import: shared state ── */
+var pendingImport = { products: [], source: '', sourceUrl: '', fileName: '' };
+
+function previewTableHtml(products) {
+  if (!products.length) return '<p style="color:var(--text-muted);margin:1rem 0">No products found.</p>';
+  var html = '<div class="preview-count"><strong>' + products.length + '</strong> products found. Select which to import:</div>' +
+    '<div class="preview-wrap"><table class="preview-table"><thead><tr><th><input type="checkbox" checked onchange="toggleAllImport(this)"></th><th>Image</th><th>Name</th><th>Price</th><th>Description</th></tr></thead><tbody>';
+  products.forEach(function(p, i) {
+    var img = p.image_url ? '<img src="'+escapeHtml(p.image_url)+'" onerror="this.style.display=\'none\'">' : '—';
+    html += '<tr><td><input type="checkbox" class="import-check" data-idx="'+i+'" checked></td><td>'+img+'</td><td>'+escapeHtml(p.name||'')+'</td><td>'+(p.price ? '$'+p.price : '—')+'</td><td>'+escapeHtml((p.description||'').slice(0,80))+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function toggleAllImport(cb) {
+  document.querySelectorAll('.import-check').forEach(function(c) { c.checked = cb.checked; });
+}
+
+function getSelectedProducts() {
+  var selected = [];
+  document.querySelectorAll('.import-check:checked').forEach(function(c) {
+    var idx = parseInt(c.dataset.idx);
+    if (pendingImport.products[idx]) selected.push(pendingImport.products[idx]);
+  });
+  return selected;
+}
+
+/* ── Import: URL Scrape ── */
+async function scrapeUrl() {
+  var url = document.getElementById('scrapeUrl').value.trim();
+  if (!url) return toast('Enter a URL', 'error');
+  document.getElementById('scrapeBtn').textContent = 'Scanning...';
+  document.getElementById('scrapeBtn').disabled = true;
+  document.getElementById('scrapePreview').innerHTML = '<div class="loading-spinner">Scanning website...</div>';
+  try {
+    var data = await apiPost('/product-imports/scrape', { url: url });
+    pendingImport = { products: data.products, source: 'website', sourceUrl: url, fileName: '' };
+    document.getElementById('scrapePreview').innerHTML = previewTableHtml(data.products);
+    if (data.products.length) document.getElementById('scrapeConfirmBtn').style.display = '';
+  } catch(e) {
+    document.getElementById('scrapePreview').innerHTML = '<p style="color:var(--danger)">'+escapeHtml(e.message)+'</p>';
+  }
+  document.getElementById('scrapeBtn').textContent = 'Scan';
+  document.getElementById('scrapeBtn').disabled = false;
+}
+
+/* ── Import: File Upload ── */
+async function uploadFile(input) {
+  if (!input.files[0]) return;
+  var file = input.files[0];
+  var formData = new FormData();
+  formData.append('file', file);
+  document.getElementById('uploadPreview').innerHTML = '<div class="loading-spinner">Parsing file...</div>';
+  try {
+    var token = localStorage.getItem('token');
+    var resp = await fetch(API_BASE + '/product-imports/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Upload failed');
+    pendingImport = { products: data.products, source: 'file', sourceUrl: '', fileName: data.filename };
+    document.getElementById('uploadPreview').innerHTML = previewTableHtml(data.products) +
+      (data.skipped ? '<p style="color:var(--warning);font-size:0.82rem">' + data.skipped + ' rows skipped (missing name)</p>' : '');
+    if (data.products.length) document.getElementById('uploadConfirmBtn').style.display = '';
+  } catch(e) {
+    document.getElementById('uploadPreview').innerHTML = '<p style="color:var(--danger)">'+escapeHtml(e.message)+'</p>';
+  }
+  input.value = '';
+}
+
+// Drag-and-drop
+var dropZone = document.getElementById('fileDropZone');
+if (dropZone) {
+  dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('drag-over'); });
+  dropZone.addEventListener('drop', function(e) {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) { document.getElementById('fileInput').files = e.dataTransfer.files; uploadFile(document.getElementById('fileInput')); }
+  });
+}
+
+/* ── Import: META Catalog ── */
+async function fetchMeta() {
+  document.getElementById('metaFetchBtn').textContent = 'Fetching...';
+  document.getElementById('metaFetchBtn').disabled = true;
+  document.getElementById('metaPreview').innerHTML = '<div class="loading-spinner">Fetching from META...</div>';
+  try {
+    var body = {};
+    var catId = document.getElementById('metaCatalogId').value.trim();
+    var token = document.getElementById('metaToken').value.trim();
+    if (catId) body.catalogId = catId;
+    if (token) body.accessToken = token;
+    var data = await apiPost('/product-imports/meta', body);
+    pendingImport = { products: data.products, source: 'meta', sourceUrl: '', fileName: '' };
+    document.getElementById('metaPreview').innerHTML = previewTableHtml(data.products);
+    if (data.products.length) document.getElementById('metaConfirmBtn').style.display = '';
+  } catch(e) {
+    document.getElementById('metaPreview').innerHTML = '<p style="color:var(--danger)">'+escapeHtml(e.message)+'</p>';
+  }
+  document.getElementById('metaFetchBtn').textContent = 'Fetch Products';
+  document.getElementById('metaFetchBtn').disabled = false;
+}
+
+/* ── Import: Confirm ── */
+async function confirmImport(source) {
+  var selected = getSelectedProducts();
+  if (!selected.length) return toast('Select at least one product', 'error');
+  try {
+    var data = await apiPost('/product-imports/confirm', {
+      products: selected,
+      source: pendingImport.source,
+      sourceUrl: pendingImport.sourceUrl,
+      fileName: pendingImport.fileName
+    });
+    toast(data.total_imported + ' products imported!', 'success');
+    closeModal('scrapeModal'); closeModal('uploadModal'); closeModal('metaModal');
+    pendingImport = { products: [], source: '', sourceUrl: '', fileName: '' };
+    // Reset previews
+    ['scrapePreview','uploadPreview','metaPreview'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
+    ['scrapeConfirmBtn','uploadConfirmBtn','metaConfirmBtn'].forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    loadProducts();
+  } catch(e) { toast(e.message, 'error'); }
 }
 </script>
 </body>

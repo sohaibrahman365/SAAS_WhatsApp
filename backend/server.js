@@ -48,6 +48,9 @@ app.use('/api/team', require('./routes/team'));
 // Phase 9 — Dynamic Roles & Permissions
 app.use('/api/roles', require('./routes/roles').router);
 
+// Phase 10 — Product Imports (scrape, upload, META)
+app.use('/api/product-imports', require('./routes/productImports'));
+
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

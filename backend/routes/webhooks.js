@@ -1,6 +1,6 @@
 const express = require('express');
 const pool    = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -30,7 +30,7 @@ async function fireWebhook(event, data) {
 }
 
 // GET /api/webhooks/status — check n8n config
-router.get('/status', requireAuth, requireRole('super_admin', 'admin'), (req, res) => {
+router.get('/status', requireAuth, requirePermission('webhooks', 'view'), (req, res) => {
   res.json({
     configured: isN8nConfigured(),
     stub_mode: !isN8nConfigured(),
@@ -41,7 +41,7 @@ router.get('/status', requireAuth, requireRole('super_admin', 'admin'), (req, re
 
 // POST /api/webhooks/campaign-launched
 // Fires when a campaign is launched (also called automatically from campaign launch)
-router.post('/campaign-launched', requireAuth, requireRole('super_admin', 'admin', 'manager'), async (req, res, next) => {
+router.post('/campaign-launched', requireAuth, requirePermission('webhooks', 'trigger'), async (req, res, next) => {
   try {
     const { campaignId } = req.body;
     if (!campaignId) return res.status(400).json({ error: 'campaignId is required' });
@@ -65,7 +65,7 @@ router.post('/campaign-launched', requireAuth, requireRole('super_admin', 'admin
 
 // POST /api/webhooks/new-reply
 // Fires when a customer replies (for Slack alerts, CRM sync, Google Sheets logging)
-router.post('/new-reply', requireAuth, requireRole('super_admin', 'admin', 'manager'), async (req, res, next) => {
+router.post('/new-reply', requireAuth, requirePermission('webhooks', 'trigger'), async (req, res, next) => {
   try {
     const { responseId } = req.body;
     if (!responseId) return res.status(400).json({ error: 'responseId is required' });
@@ -92,7 +92,7 @@ router.post('/new-reply', requireAuth, requireRole('super_admin', 'admin', 'mana
 
 // POST /api/webhooks/high-priority-alert
 // Fires when a high-priority customer engages (priority_score >= 80)
-router.post('/high-priority-alert', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.post('/high-priority-alert', requireAuth, requirePermission('webhooks', 'trigger'), async (req, res, next) => {
   try {
     const { customerId, tenantId } = req.body;
     if (!customerId || !tenantId) {
@@ -120,7 +120,7 @@ router.post('/high-priority-alert', requireAuth, requireRole('super_admin', 'adm
 
 // POST /api/webhooks/negative-sentiment-alert
 // Fires for negative sentiment responses — triggers CRM escalation
-router.post('/negative-sentiment-alert', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.post('/negative-sentiment-alert', requireAuth, requirePermission('webhooks', 'trigger'), async (req, res, next) => {
   try {
     const { responseId } = req.body;
     if (!responseId) return res.status(400).json({ error: 'responseId is required' });

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenant Management — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+    .page-header-left h1 { font-size:1.6rem; font-weight:700; color:var(--text-primary); }
+    .page-header-left p { color:var(--text-secondary); font-size:0.85rem; margin-top:0.15rem; }
+
+    .tenant-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+    .t-stat-card {
+      background:var(--white); border-radius:var(--radius); padding:1.25rem 1.5rem;
+      box-shadow:var(--shadow); display:flex; align-items:center; gap:1rem;
+    }
+    .t-stat-icon {
+      width:44px; height:44px; border-radius:var(--radius-sm);
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .t-stat-icon svg { width:22px; height:22px; }
+    .t-stat-icon.purple { background:var(--primary-light); color:var(--primary); }
+    .t-stat-icon.green  { background:var(--success-light); color:var(--success); }
+    .t-stat-icon.blue   { background:var(--info-light); color:var(--info); }
+    .t-stat-icon.orange { background:var(--warning-light); color:var(--warning); }
+    .t-stat-value { font-size:1.4rem; font-weight:700; color:var(--text-primary); }
+    .t-stat-label { font-size:0.78rem; color:var(--text-secondary); }
+
+    .tenant-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:1rem; }
+    .tenant-card {
+      background:var(--white); border-radius:var(--radius); padding:1.5rem;
+      box-shadow:var(--shadow); border-left:4px solid var(--primary); transition:var(--t);
+    }
+    .tenant-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-2px); }
+    .tenant-card.suspended { border-left-color:var(--danger); opacity:0.7; }
+    .tenant-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+    .tenant-card-name { font-size:1.1rem; font-weight:600; color:var(--text-primary); }
+    .tenant-card-email { font-size:0.8rem; color:var(--text-secondary); margin-top:0.15rem; }
+    .tenant-card-meta { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin:1rem 0; }
+    .tenant-card-meta-item { font-size:0.8rem; }
+    .tenant-card-meta-label { color:var(--text-muted); }
+    .tenant-card-meta-value { font-weight:600; color:var(--text-primary); }
+    .tenant-card-actions { display:flex; gap:0.5rem; margin-top:1rem; padding-top:1rem; border-top:1px solid var(--light); }
+    .tenant-card-actions .btn { flex:1; font-size:0.78rem; padding:0.4rem; }
+
+    /* Modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:var(--white); border-radius:var(--radius); padding:2rem; width:90%; max-width:520px; max-height:90vh; overflow-y:auto; }
+    .modal h2 { font-size:1.2rem; font-weight:700; margin-bottom:1.25rem; }
+    .modal .form-group { margin-bottom:1rem; }
+    .modal label { display:block; font-size:0.82rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.35rem; }
+    .modal input, .modal select { width:100%; padding:0.6rem 0.75rem; border:1px solid var(--light-2); border-radius:var(--radius-sm); font-size:0.88rem; }
+    .modal-actions { display:flex; gap:0.75rem; margin-top:1.5rem; justify-content:flex-end; }
+
+    @media (max-width:768px) {
+      .tenant-stats { grid-template-columns:1fr 1fr; }
+      .tenant-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page" id="page-body">
+      <div class="loading-spinner">Loading tenants...</div>
+    </div>
+  </div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Create/Edit Modal -->
+<div class="modal-overlay" id="tenant-modal">
+  <div class="modal">
+    <h2 id="modal-title">Create Tenant</h2>
+    <input type="hidden" id="modal-tenant-id">
+    <div class="form-group">
+      <label>Business Name *</label>
+      <input type="text" id="modal-name" placeholder="Acme Corp">
+    </div>
+    <div class="form-group">
+      <label>Email *</label>
+      <input type="email" id="modal-email" placeholder="admin@acme.com">
+    </div>
+    <div class="form-group">
+      <label>Phone</label>
+      <input type="text" id="modal-phone" placeholder="+1 555 000 0000">
+    </div>
+    <div class="form-group">
+      <label>Plan</label>
+      <select id="modal-plan">
+        <option value="starter">Starter</option>
+        <option value="business">Business</option>
+        <option value="pro">Pro</option>
+        <option value="enterprise">Enterprise</option>
+      </select>
+    </div>
+    <div class="form-group" id="modal-status-group" style="display:none">
+      <label>Status</label>
+      <select id="modal-status">
+        <option value="active">Active</option>
+        <option value="suspended">Suspended</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="form-group" id="modal-mrr-group" style="display:none">
+      <label>MRR ($)</label>
+      <input type="number" id="modal-mrr" placeholder="0" step="0.01">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTenant()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+const planColors = { enterprise:'primary', pro:'info', business:'success', starter:'warning', free:'neutral' };
+
+async function loadPage() {
+  var stats = {};
+  try { stats = await apiGet('/tenants/stats'); } catch(e) { console.error(e); }
+
+  var html =
+    '<div class="page-header">' +
+      '<div class="page-header-left">' +
+        '<h1>Tenant Management</h1>' +
+        '<p>Manage all businesses on the platform</p>' +
+      '</div>' +
+      '<button class="btn btn-primary" onclick="openCreateModal()">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        'Add Tenant' +
+      '</button>' +
+    '</div>' +
+
+    '<div class="tenant-stats">' +
+      statCard('purple', 'Total', stats.total_tenants || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>') +
+      statCard('green', 'Active', stats.active_tenants || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>') +
+      statCard('blue', 'New (30d)', stats.new_this_month || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>') +
+      statCard('orange', 'Total MRR', '$' + Number(stats.total_mrr || 0).toLocaleString(), '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>') +
+    '</div>' +
+
+    '<div class="tenant-grid" id="tenant-grid"><div class="loading-spinner">Loading...</div></div>';
+
+  document.getElementById('page-body').innerHTML = html;
+  loadTenants();
+}
+
+function statCard(color, label, value, icon) {
+  return '<div class="t-stat-card">' +
+    '<div class="t-stat-icon ' + color + '">' + icon + '</div>' +
+    '<div><div class="t-stat-value">' + value + '</div><div class="t-stat-label">' + label + '</div></div>' +
+  '</div>';
+}
+
+async function loadTenants() {
+  try {
+    var tenants = await apiGet('/tenants');
+    var grid = document.getElementById('tenant-grid');
+    if (!tenants.length) {
+      grid.innerHTML = '<div class="empty-state"><h3>No tenants yet</h3><p>Create your first tenant to get started.</p></div>';
+      return;
+    }
+    grid.innerHTML = tenants.map(tenantCard).join('');
+  } catch(e) {
+    document.getElementById('tenant-grid').innerHTML = '<p style="color:var(--danger)">Error: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+function tenantCard(t) {
+  var planBadge = '<span class="badge badge-' + (planColors[t.plan] || 'neutral') + '">' + escapeHtml(t.plan || 'starter') + '</span>';
+  var statusBadge = t.status === 'active'
+    ? '<span class="badge badge-success">Active</span>'
+    : '<span class="badge badge-danger">' + escapeHtml(t.status) + '</span>';
+
+  return '<div class="tenant-card' + (t.status !== 'active' ? ' suspended' : '') + '">' +
+    '<div class="tenant-card-header">' +
+      '<div>' +
+        '<div class="tenant-card-name">' + escapeHtml(t.name) + '</div>' +
+        '<div class="tenant-card-email">' + escapeHtml(t.email || '') + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:0.4rem">' + planBadge + statusBadge + '</div>' +
+    '</div>' +
+    '<div class="tenant-card-meta">' +
+      metaItem('Phone', t.phone || '—') +
+      metaItem('MRR', '$' + Number(t.mrr || 0).toLocaleString()) +
+      metaItem('Created', new Date(t.created_at).toLocaleDateString()) +
+      metaItem('ID', String(t.id).slice(0,8) + '...') +
+    '</div>' +
+    '<div class="tenant-card-actions">' +
+      '<button class="btn btn-outline-primary" onclick="openEditModal(\'' + t.id + '\')">Edit</button>' +
+      (t.status === 'active'
+        ? '<button class="btn btn-outline-warning" onclick="toggleStatus(\'' + t.id + '\',\'suspended\')">Suspend</button>'
+        : '<button class="btn btn-outline-success" onclick="toggleStatus(\'' + t.id + '\',\'active\')">Activate</button>') +
+      '<button class="btn btn-outline-danger" onclick="deleteTenant(\'' + t.id + '\',\'' + escapeHtml(t.name) + '\')">Delete</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function metaItem(label, value) {
+  return '<div class="tenant-card-meta-item"><div class="tenant-card-meta-label">' + label + '</div><div class="tenant-card-meta-value">' + escapeHtml(String(value)) + '</div></div>';
+}
+
+function openCreateModal() {
+  document.getElementById('modal-title').textContent = 'Create Tenant';
+  document.getElementById('modal-tenant-id').value = '';
+  document.getElementById('modal-name').value = '';
+  document.getElementById('modal-email').value = '';
+  document.getElementById('modal-phone').value = '';
+  document.getElementById('modal-plan').value = 'starter';
+  document.getElementById('modal-status-group').style.display = 'none';
+  document.getElementById('modal-mrr-group').style.display = 'none';
+  document.getElementById('tenant-modal').classList.add('open');
+}
+
+async function openEditModal(id) {
+  try {
+    var t = await apiGet('/tenants/' + id);
+    document.getElementById('modal-title').textContent = 'Edit Tenant';
+    document.getElementById('modal-tenant-id').value = t.id;
+    document.getElementById('modal-name').value = t.name || '';
+    document.getElementById('modal-email').value = t.email || '';
+    document.getElementById('modal-phone').value = t.phone || '';
+    document.getElementById('modal-plan').value = t.plan || 'starter';
+    document.getElementById('modal-status').value = t.status || 'active';
+    document.getElementById('modal-mrr').value = t.mrr || '';
+    document.getElementById('modal-status-group').style.display = '';
+    document.getElementById('modal-mrr-group').style.display = '';
+    document.getElementById('tenant-modal').classList.add('open');
+  } catch(e) {
+    toast('Failed to load tenant: ' + e.message, 'error');
+  }
+}
+
+function closeModal() {
+  document.getElementById('tenant-modal').classList.remove('open');
+}
+
+async function saveTenant() {
+  var id = document.getElementById('modal-tenant-id').value;
+  var body = {
+    name:   document.getElementById('modal-name').value.trim(),
+    email:  document.getElementById('modal-email').value.trim(),
+    phone:  document.getElementById('modal-phone').value.trim() || null,
+    plan:   document.getElementById('modal-plan').value,
+  };
+  if (!body.name || !body.email) return toast('Name and email are required', 'error');
+
+  try {
+    if (id) {
+      body.status = document.getElementById('modal-status').value;
+      body.mrr = parseFloat(document.getElementById('modal-mrr').value) || 0;
+      await apiPut('/tenants/' + id, body);
+      toast('Tenant updated', 'success');
+    } else {
+      await apiPost('/tenants', body);
+      toast('Tenant created', 'success');
+    }
+    closeModal();
+    loadPage();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function toggleStatus(id, status) {
+  if (!confirm('Set tenant status to "' + status + '"?')) return;
+  try {
+    await apiPatch('/tenants/' + id + '/status', { status: status });
+    toast('Status updated', 'success');
+    loadTenants();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteTenant(id, name) {
+  if (!confirm('Delete tenant "' + name + '"? This cannot be undone.')) return;
+  try {
+    await apiDelete('/tenants/' + id);
+    toast('Tenant deleted', 'success');
+    loadPage();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// Close modal on backdrop click
+document.getElementById('tenant-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+initPage(loadPage);
+</script>
+</body>
+</html>

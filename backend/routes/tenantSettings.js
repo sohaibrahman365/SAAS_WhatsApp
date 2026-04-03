@@ -1,21 +1,16 @@
 const express = require('express');
 const pool    = require('../config/db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
+const { resolveTenantId } = require('../middleware/tenantScope');
 const { clearCache } = require('../services/tenantSettings');
 
 const router = express.Router();
 
-// Helper: which tenant is the caller managing?
-function resolvedTenantId(req) {
-  if (req.user.role === 'super_admin' && req.query.tenantId) return req.query.tenantId;
-  return req.user.tenantId;
-}
-
 // ── GET /api/tenant-settings ────────────────────────────────
 // Returns settings for the caller's tenant (or ?tenantId= for super_admin)
-router.get('/', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.get('/', requireAuth, requirePermission('settings', 'view'), async (req, res, next) => {
   try {
-    const tenantId = resolvedTenantId(req);
+    const tenantId = resolveTenantId(req);
     if (!tenantId) return res.status(400).json({ error: 'No tenant context' });
 
     const { rows } = await pool.query(
@@ -41,9 +36,9 @@ router.get('/', requireAuth, requireRole('super_admin', 'admin'), async (req, re
 
 // ── PUT /api/tenant-settings ────────────────────────────────
 // Create or update settings for a tenant (upsert)
-router.put('/', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.put('/', requireAuth, requirePermission('settings', 'edit'), async (req, res, next) => {
   try {
-    const tenantId = resolvedTenantId(req);
+    const tenantId = resolveTenantId(req);
     if (!tenantId) return res.status(400).json({ error: 'No tenant context' });
 
     const {
@@ -102,9 +97,9 @@ router.put('/', requireAuth, requireRole('super_admin', 'admin'), async (req, re
 
 // ── GET /api/tenant-settings/status ─────────────────────────
 // Quick status check: which integrations are configured for this tenant?
-router.get('/status', requireAuth, async (req, res, next) => {
+router.get('/status', requireAuth, requirePermission('settings', 'view'), async (req, res, next) => {
   try {
-    const tenantId = resolvedTenantId(req);
+    const tenantId = resolveTenantId(req);
     const { rows } = await pool.query(
       'SELECT * FROM tenant_settings WHERE tenant_id = $1', [tenantId]
     );
@@ -125,9 +120,9 @@ router.get('/status', requireAuth, async (req, res, next) => {
 
 // ── DELETE /api/tenant-settings/key/:field ───────────────────
 // Clear a specific API key (set to NULL)
-router.delete('/key/:field', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
+router.delete('/key/:field', requireAuth, requirePermission('settings', 'manage_api_keys'), async (req, res, next) => {
   try {
-    const tenantId = resolvedTenantId(req);
+    const tenantId = resolveTenantId(req);
     const allowed = [
       'whatsapp_api_token', 'whatsapp_phone_number_id', 'whatsapp_verify_token',
       'anthropic_api_key', 'n8n_webhook_url', 'meta_page_id', 'google_analytics_id',

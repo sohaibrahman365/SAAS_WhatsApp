@@ -102,22 +102,25 @@
         <div class="form-hint">We'll scrape products, images & prices from this URL automatically</div>
       </div>
 
-      <div class="form-section-title">META Business Integration</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>META Catalog ID</label>
-          <input id="modal-meta-catalog" class="form-control" placeholder="123456789">
-        </div>
-        <div class="form-group">
-          <label>META Access Token</label>
-          <input id="modal-meta-token" class="form-control" placeholder="EAAx...">
-        </div>
+      <div class="form-section-title">META / Facebook Integration</div>
+      <div class="form-group">
+        <label>Facebook Page URL</label>
+        <input id="modal-fb-url" class="form-control" placeholder="https://www.facebook.com/mybusiness">
+        <div class="form-hint">We'll auto-discover Page ID, Catalog ID & import products</div>
       </div>
       <div class="form-group">
-        <label>META Page ID</label>
-        <input id="modal-meta-page" class="form-control" placeholder="Facebook Page ID">
-        <div class="form-hint">Used for WhatsApp Business and product catalog sync</div>
+        <label>META Access Token</label>
+        <input id="modal-meta-token" class="form-control" placeholder="EAAx... (from Meta Business Suite → Settings → Access Tokens)">
+        <div class="form-hint">Required for catalog access. <a href="https://business.facebook.com/settings/system-users" target="_blank" style="color:var(--primary)">Get token here</a></div>
       </div>
+      <div id="meta-discover-result" style="display:none;margin-top:0.75rem">
+        <div style="padding:0.6rem 0.75rem;background:var(--success-light);border-radius:var(--radius-sm);font-size:0.82rem">
+          <div id="meta-page-info"></div>
+          <div id="meta-catalog-info" style="margin-top:0.3rem"></div>
+        </div>
+      </div>
+      <input type="hidden" id="modal-meta-catalog">
+      <input type="hidden" id="modal-meta-page">
 
       <div class="form-group" id="modal-status-group" style="display:none">
         <div class="form-section-title" style="border:none;margin-top:0">Admin</div>
@@ -240,9 +243,11 @@ function openCreateModal() {
   document.getElementById('modal-phone').value = '';
   document.getElementById('modal-plan').value = 'starter';
   document.getElementById('modal-website').value = '';
-  document.getElementById('modal-meta-catalog').value = '';
+  document.getElementById('modal-fb-url').value = '';
   document.getElementById('modal-meta-token').value = '';
+  document.getElementById('modal-meta-catalog').value = '';
   document.getElementById('modal-meta-page').value = '';
+  document.getElementById('meta-discover-result').style.display = 'none';
   document.getElementById('modal-status-group').style.display = 'none';
   document.getElementById('saveBtn').textContent = 'Create Tenant';
   document.getElementById('scrapeStatus').className = 'scrape-status';
@@ -263,9 +268,11 @@ async function openEditModal(id) {
     document.getElementById('modal-phone').value = t.phone || '';
     document.getElementById('modal-plan').value = t.plan || 'starter';
     document.getElementById('modal-website').value = t.website_url || settings.business_domain || '';
-    document.getElementById('modal-meta-catalog').value = settings.meta_catalog_id || '';
+    document.getElementById('modal-fb-url').value = settings.meta_page_id ? 'facebook.com/' + settings.meta_page_id : '';
     document.getElementById('modal-meta-token').value = '';
+    document.getElementById('modal-meta-catalog').value = settings.meta_catalog_id || '';
     document.getElementById('modal-meta-page').value = settings.meta_page_id || '';
+    document.getElementById('meta-discover-result').style.display = 'none';
     document.getElementById('modal-status').value = t.status || 'active';
     document.getElementById('modal-mrr').value = t.mrr || '';
     document.getElementById('modal-status-group').style.display = '';
@@ -288,8 +295,9 @@ async function saveTenant() {
   };
   if (!body.name || !body.email) return toast('Name and email are required', 'error');
 
-  var metaCatalog = document.getElementById('modal-meta-catalog').value.trim();
+  var fbUrl = document.getElementById('modal-fb-url').value.trim();
   var metaToken = document.getElementById('modal-meta-token').value.trim();
+  var metaCatalog = document.getElementById('modal-meta-catalog').value.trim();
   var metaPage = document.getElementById('modal-meta-page').value.trim();
 
   var saveBtn = document.getElementById('saveBtn');
@@ -322,47 +330,54 @@ async function saveTenant() {
       } catch(e) { console.error('Settings save:', e); }
     }
 
-    // Auto-scrape products from website if URL provided
-    if (body.website_url && !id) {
+    // Run website scrape + META discovery in parallel (they're independent)
+    var isNew = !id;
+    var importTasks = [];
+
+    if (body.website_url && isNew) {
       showScrapeStatus('Scraping products from ' + body.website_url + '...');
-      try {
-        var scraped = await apiPost('/product-imports/scrape', { url: body.website_url });
-        if (scraped.products && scraped.products.length > 0) {
-          showScrapeStatus('Found ' + scraped.products.length + ' products. Importing...');
-          var imported = await apiPost('/product-imports/confirm?tenantId=' + tenantId, {
-            products: scraped.products,
-            source: 'website',
-            sourceUrl: body.website_url,
-          });
-          showScrapeStatus('Imported ' + imported.total_imported + ' products from website!');
-          toast(imported.total_imported + ' products auto-imported!', 'success');
-        } else {
-          showScrapeStatus('No products found on the website. You can add them manually later.');
-        }
-      } catch(e) {
-        showScrapeStatus('Scrape failed: ' + e.message + '. You can import products later from the Products page.');
-      }
+      importTasks.push(
+        apiPost('/product-imports/scrape', { url: body.website_url }).then(async function(scraped) {
+          if (scraped.products && scraped.products.length > 0) {
+            showScrapeStatus('Found ' + scraped.products.length + ' products from website. Importing...');
+            var imported = await apiPost('/product-imports/confirm?tenantId=' + tenantId, {
+              products: scraped.products, source: 'website', sourceUrl: body.website_url,
+            });
+            toast(imported.total_imported + ' products auto-imported!', 'success');
+          } else {
+            showScrapeStatus('No products found on the website.');
+          }
+        }).catch(function(e) { showScrapeStatus('Scrape failed: ' + e.message); })
+      );
     }
 
-    // Auto-import from META if catalog provided
-    if (metaCatalog && metaToken && !id) {
-      showScrapeStatus('Fetching products from META catalog...');
-      try {
-        var metaResult = await apiPost('/product-imports/meta?tenantId=' + tenantId, {
-          catalogId: metaCatalog,
-          accessToken: metaToken,
-        });
-        if (metaResult.products && metaResult.products.length > 0) {
-          var metaImported = await apiPost('/product-imports/confirm?tenantId=' + tenantId, {
-            products: metaResult.products,
-            source: 'meta',
-          });
-          toast(metaImported.total_imported + ' products imported from META!', 'success');
-        }
-      } catch(e) {
-        console.error('META import:', e);
-      }
+    if (fbUrl && metaToken && isNew) {
+      showScrapeStatus('Discovering META page & catalog...');
+      importTasks.push(
+        apiPost('/product-imports/meta-discover', { pageUrl: fbUrl, accessToken: metaToken }).then(async function(discovered) {
+          if (discovered.page) {
+            var discSettings = { meta_page_id: discovered.page.id, meta_access_token: metaToken };
+            if (discovered.catalogs && discovered.catalogs.length > 0) {
+              discSettings.meta_catalog_id = discovered.catalogs[0].id;
+            }
+            try { await apiPut('/tenant-settings?tenantId=' + tenantId, discSettings); } catch(e) {}
+          }
+          if (discovered.products && discovered.products.length > 0) {
+            showScrapeStatus('Found ' + discovered.products.length + ' META products. Importing...');
+            var metaImported = await apiPost('/product-imports/confirm?tenantId=' + tenantId, {
+              products: discovered.products, source: 'meta',
+            });
+            toast(metaImported.total_imported + ' products imported from META!', 'success');
+          } else if (discovered.catalogs && discovered.catalogs.length > 0) {
+            showScrapeStatus('Catalog found (' + discovered.catalogs[0].name + ') but no products yet.');
+          } else {
+            showScrapeStatus('Page found but no product catalog linked.');
+          }
+        }).catch(function(e) { showScrapeStatus('META discovery: ' + e.message); })
+      );
     }
+
+    if (importTasks.length > 0) await Promise.allSettled(importTasks);
 
     setTimeout(function() { closeModal('tenantModal'); loadAll(); }, 1500);
   } catch(e) {

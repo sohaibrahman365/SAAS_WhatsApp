@@ -5,7 +5,7 @@ const { requireAuth, requirePermission } = require('../middleware/auth');
 const { resolveTenantId } = require('../middleware/tenantScope');
 const { scrapeProducts }   = require('../services/scraper');
 const { parseProductFile } = require('../services/fileParser');
-const { fetchCatalogProducts } = require('../services/metaCatalog');
+const { fetchCatalogProducts, autoDiscoverMeta } = require('../services/metaCatalog');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -82,6 +82,25 @@ router.post('/meta', requireAuth, requirePermission('products', 'create'), async
     if (err.message.includes('META API')) {
       return res.status(400).json({ error: err.message });
     }
+    next(err);
+  }
+});
+
+// ── POST /api/product-imports/meta-discover ─────────────────
+// Auto-discover Page ID, Catalog ID, and products from a Facebook page URL + token
+router.post('/meta-discover', requireAuth, requirePermission('products', 'create'), async (req, res, next) => {
+  try {
+    const { pageUrl, accessToken } = req.body;
+    if (!pageUrl || !accessToken) {
+      return res.status(400).json({ error: 'Facebook page URL and access token are required' });
+    }
+
+    const result = await autoDiscoverMeta(pageUrl, accessToken);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json(result);
+  } catch (err) {
     next(err);
   }
 });

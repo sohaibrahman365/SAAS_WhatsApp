@@ -4,8 +4,8 @@ const pool    = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
+const ALLOWED_ROLES = ['admin', 'manager', 'analyst'];
 
-// Helper: tenant scope
 function resolvedTenantId(req) {
   if (req.user.role === 'super_admin' && req.query.tenantId) return req.query.tenantId;
   return req.user.tenantId;
@@ -63,16 +63,12 @@ router.post('/invite', requireAuth, requireRole('super_admin', 'admin'), async (
     if (!email) return res.status(400).json({ error: 'Email is required' });
     if (!password || password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
-    // Validate role — cannot invite super_admin
-    const allowedRoles = ['admin', 'manager', 'analyst'];
-    const assignRole = allowedRoles.includes(role) ? role : 'analyst';
+    const assignRole = ALLOWED_ROLES.includes(role) ? role : 'analyst';
 
-    // Admin can only invite manager/analyst, not other admins
     if (req.user.role === 'admin' && assignRole === 'admin') {
       return res.status(403).json({ error: 'Admins cannot invite other admins' });
     }
 
-    // Check if email already exists
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows[0]) {
       return res.status(409).json({ error: 'A user with this email already exists' });
@@ -99,22 +95,18 @@ router.patch('/:userId/role', requireAuth, requireRole('super_admin', 'admin'), 
     const { userId } = req.params;
     const { role, roleId } = req.body;
 
-    const allowedRoles = ['admin', 'manager', 'analyst'];
-    if (role && !allowedRoles.includes(role)) {
+    if (role && !ALLOWED_ROLES.includes(role)) {
       return res.status(400).json({ error: 'Invalid role. Must be admin, manager, or analyst' });
     }
 
-    // Admin can only assign manager/analyst
     if (req.user.role === 'admin' && role === 'admin') {
       return res.status(403).json({ error: 'Admins cannot promote to admin' });
     }
 
-    // Cannot change own role
     if (userId === req.user.userId) {
       return res.status(400).json({ error: 'Cannot change your own role' });
     }
 
-    // Build dynamic SET clause
     const sets = [];
     const params = [];
     let idx = 1;
@@ -162,7 +154,7 @@ router.patch('/:userId/status', requireAuth, requireRole('super_admin', 'admin')
       return res.status(400).json({ error: 'Status must be active or suspended' });
     }
 
-    if (userId === req.user.id) {
+    if (userId === req.user.userId) {
       return res.status(400).json({ error: 'Cannot change your own status' });
     }
 
@@ -191,7 +183,7 @@ router.delete('/:userId', requireAuth, requireRole('super_admin', 'admin'), asyn
     const tenantId = resolvedTenantId(req);
     const { userId } = req.params;
 
-    if (userId === req.user.id) {
+    if (userId === req.user.userId) {
       return res.status(400).json({ error: 'Cannot remove yourself' });
     }
 

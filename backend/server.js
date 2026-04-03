@@ -46,7 +46,7 @@ app.use('/api/tenant-settings', require('./routes/tenantSettings'));
 app.use('/api/team', require('./routes/team'));
 
 // Phase 9 — Dynamic Roles & Permissions
-app.use('/api/roles', require('./routes/roles'));
+app.use('/api/roles', require('./routes/roles').router);
 
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {

@@ -9,8 +9,34 @@ function resolvedTenantId(req) {
   return req.user.tenantId;
 }
 
+async function getUserPermissions(userId) {
+  const { rows: users } = await pool.query('SELECT role, role_id FROM users WHERE id = $1', [userId]);
+  if (!users[0]) return { permissions: [] };
+
+  if (users[0].role === 'super_admin') {
+    const { rows: all } = await pool.query('SELECT module, action FROM permissions');
+    return { role: 'super_admin', permissions: all };
+  }
+
+  if (users[0].role_id) {
+    const { rows: perms } = await pool.query(`
+      SELECT p.module, p.action FROM role_permissions rp
+      JOIN permissions p ON p.id = rp.permission_id
+      WHERE rp.role_id = $1
+    `, [users[0].role_id]);
+    return { role_id: users[0].role_id, permissions: perms };
+  }
+
+  const { rows: perms } = await pool.query(`
+    SELECT p.module, p.action FROM role_permissions rp
+    JOIN permissions p ON p.id = rp.permission_id
+    JOIN roles r ON r.id = rp.role_id
+    WHERE r.slug = $1 AND r.tenant_id IS NULL
+  `, [users[0].role]);
+  return { role: users[0].role, permissions: perms };
+}
+
 // ── GET /api/roles ──────────────────────────────────────────
-// List roles available to this tenant (platform + tenant-specific)
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const tenantId = resolvedTenantId(req);
@@ -27,31 +53,12 @@ router.get('/', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// ── GET /api/roles/:id ──────────────────────────────────────
-// Get role with its permissions
-router.get('/:id', requireAuth, async (req, res, next) => {
-  try {
-    const { rows: roles } = await pool.query('SELECT * FROM roles WHERE id = $1', [req.params.id]);
-    if (!roles[0]) return res.status(404).json({ error: 'Role not found' });
-
-    const { rows: perms } = await pool.query(`
-      SELECT p.id, p.module, p.action, p.description
-        FROM role_permissions rp
-        JOIN permissions p ON p.id = rp.permission_id
-       WHERE rp.role_id = $1
-       ORDER BY p.module, p.action
-    `, [req.params.id]);
-
-    res.json({ ...roles[0], permissions: perms });
-  } catch (err) { next(err); }
-});
+// NOTE: Static paths must be registered before /:id to avoid Express matching them as params
 
 // ── GET /api/roles/permissions/all ──────────────────────────
-// List all available permissions (for building role editor UI)
 router.get('/permissions/all', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
   try {
     const { rows } = await pool.query('SELECT * FROM permissions ORDER BY module, action');
-    // Group by module
     const grouped = {};
     rows.forEach(p => {
       if (!grouped[p.module]) grouped[p.module] = [];
@@ -61,8 +68,33 @@ router.get('/permissions/all', requireAuth, requireRole('super_admin', 'admin'),
   } catch (err) { next(err); }
 });
 
+// ── GET /api/roles/user/:userId/permissions ─────────────────
+router.get('/user/:userId/permissions', requireAuth, async (req, res, next) => {
+  try {
+    const perms = await getUserPermissions(req.params.userId);
+    res.json(perms);
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/roles/:id ──────────────────────────────────────
+router.get('/:id', requireAuth, async (req, res, next) => {
+  try {
+    const [{ rows: roles }, { rows: perms }] = await Promise.all([
+      pool.query('SELECT * FROM roles WHERE id = $1', [req.params.id]),
+      pool.query(`
+        SELECT p.id, p.module, p.action, p.description
+          FROM role_permissions rp
+          JOIN permissions p ON p.id = rp.permission_id
+         WHERE rp.role_id = $1
+         ORDER BY p.module, p.action
+      `, [req.params.id])
+    ]);
+    if (!roles[0]) return res.status(404).json({ error: 'Role not found' });
+    res.json({ ...roles[0], permissions: perms });
+  } catch (err) { next(err); }
+});
+
 // ── POST /api/roles ─────────────────────────────────────────
-// Create a custom role for this tenant
 router.post('/', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
   try {
     const tenantId = resolvedTenantId(req);
@@ -79,11 +111,9 @@ router.post('/', requireAuth, requireRole('super_admin', 'admin'), async (req, r
 
     const role = rows[0];
 
-    // Assign permissions
     if (permissionIds && permissionIds.length > 0) {
       const values = permissionIds.map((pid, i) => `($1, $${i + 2})`).join(',');
-      const params = [role.id, ...permissionIds];
-      await pool.query(`INSERT INTO role_permissions (role_id, permission_id) VALUES ${values} ON CONFLICT DO NOTHING`, params);
+      await pool.query(`INSERT INTO role_permissions (role_id, permission_id) VALUES ${values} ON CONFLICT DO NOTHING`, [role.id, ...permissionIds]);
     }
 
     res.status(201).json(role);
@@ -94,28 +124,24 @@ router.post('/', requireAuth, requireRole('super_admin', 'admin'), async (req, r
 });
 
 // ── PUT /api/roles/:id ──────────────────────────────────────
-// Update role name/description and replace permissions
 router.put('/:id', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, description, permissionIds } = req.body;
 
-    // Check role exists and is not a system role (unless super_admin)
     const { rows: roles } = await pool.query('SELECT * FROM roles WHERE id = $1', [id]);
     if (!roles[0]) return res.status(404).json({ error: 'Role not found' });
     if (roles[0].is_system && req.user.role !== 'super_admin') {
       return res.status(403).json({ error: 'System roles can only be modified by super admins' });
     }
 
-    // Update role metadata
     if (name || description !== undefined) {
       await pool.query(
-        'UPDATE roles SET name = COALESCE($1, name), description = COALESCE($2, description) WHERE id = $3',
+        'UPDATE roles SET name = COALESCE($1, name), description = COALESCE($2, description) WHERE id = $3 RETURNING *',
         [name, description, id]
       );
     }
 
-    // Replace permissions
     if (permissionIds) {
       await pool.query('DELETE FROM role_permissions WHERE role_id = $1', [id]);
       if (permissionIds.length > 0) {
@@ -127,13 +153,15 @@ router.put('/:id', requireAuth, requireRole('super_admin', 'admin'), async (req,
       }
     }
 
-    // Return updated role with permissions
-    const { rows: updated } = await pool.query('SELECT * FROM roles WHERE id = $1', [id]);
-    const { rows: perms } = await pool.query(`
-      SELECT p.id, p.module, p.action, p.description
-        FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id
-       WHERE rp.role_id = $1 ORDER BY p.module, p.action
-    `, [id]);
+    // Re-fetch with permissions for response
+    const [{ rows: updated }, { rows: perms }] = await Promise.all([
+      pool.query('SELECT * FROM roles WHERE id = $1', [id]),
+      pool.query(`
+        SELECT p.id, p.module, p.action, p.description
+          FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id
+         WHERE rp.role_id = $1 ORDER BY p.module, p.action
+      `, [id])
+    ]);
 
     res.json({ ...updated[0], permissions: perms });
   } catch (err) { next(err); }
@@ -142,12 +170,12 @@ router.put('/:id', requireAuth, requireRole('super_admin', 'admin'), async (req,
 // ── DELETE /api/roles/:id ───────────────────────────────────
 router.delete('/:id', requireAuth, requireRole('super_admin', 'admin'), async (req, res, next) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM roles WHERE id = $1', [req.params.id]);
+    const [{ rows }, { rows: users }] = await Promise.all([
+      pool.query('SELECT * FROM roles WHERE id = $1', [req.params.id]),
+      pool.query('SELECT COUNT(*)::int AS count FROM users WHERE role_id = $1', [req.params.id])
+    ]);
     if (!rows[0]) return res.status(404).json({ error: 'Role not found' });
     if (rows[0].is_system) return res.status(403).json({ error: 'Cannot delete system roles' });
-
-    // Check no users assigned
-    const { rows: users } = await pool.query('SELECT COUNT(*)::int AS count FROM users WHERE role_id = $1', [req.params.id]);
     if (users[0].count > 0) return res.status(409).json({ error: `${users[0].count} user(s) still assigned to this role. Reassign them first.` });
 
     await pool.query('DELETE FROM roles WHERE id = $1', [req.params.id]);
@@ -155,38 +183,4 @@ router.delete('/:id', requireAuth, requireRole('super_admin', 'admin'), async (r
   } catch (err) { next(err); }
 });
 
-// ── GET /api/roles/user/:userId/permissions ─────────────────
-// Get effective permissions for a specific user
-router.get('/user/:userId/permissions', requireAuth, async (req, res, next) => {
-  try {
-    const { rows: users } = await pool.query('SELECT role, role_id FROM users WHERE id = $1', [req.params.userId]);
-    if (!users[0]) return res.status(404).json({ error: 'User not found' });
-
-    // Super admin gets all permissions
-    if (users[0].role === 'super_admin') {
-      const { rows: all } = await pool.query('SELECT module, action FROM permissions');
-      return res.json({ role: 'super_admin', permissions: all });
-    }
-
-    // If user has role_id, use dynamic permissions
-    if (users[0].role_id) {
-      const { rows: perms } = await pool.query(`
-        SELECT p.module, p.action FROM role_permissions rp
-        JOIN permissions p ON p.id = rp.permission_id
-        WHERE rp.role_id = $1
-      `, [users[0].role_id]);
-      return res.json({ role_id: users[0].role_id, permissions: perms });
-    }
-
-    // Fallback: match by legacy role slug
-    const { rows: perms } = await pool.query(`
-      SELECT p.module, p.action FROM role_permissions rp
-      JOIN permissions p ON p.id = rp.permission_id
-      JOIN roles r ON r.id = rp.role_id
-      WHERE r.slug = $1 AND r.tenant_id IS NULL
-    `, [users[0].role]);
-    res.json({ role: users[0].role, permissions: perms });
-  } catch (err) { next(err); }
-});
-
-module.exports = router;
+module.exports = { router, getUserPermissions };

@@ -3,6 +3,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const pool    = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
+const { getUserPermissions } = require('./roles');
 
 const router     = express.Router();
 const JWT_SECRET  = process.env.JWT_SECRET;
@@ -93,29 +94,8 @@ router.get('/me', requireAuth, async (req, res, next) => {
     if (!rows[0]) return res.status(404).json({ error: 'User not found' });
 
     const user = rows[0];
-
-    // Load permissions
-    let permissions = [];
-    if (user.role === 'super_admin') {
-      const { rows: all } = await pool.query('SELECT module, action FROM permissions');
-      permissions = all;
-    } else if (user.role_id) {
-      const { rows: perms } = await pool.query(`
-        SELECT p.module, p.action FROM role_permissions rp
-        JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = $1
-      `, [user.role_id]);
-      permissions = perms;
-    } else {
-      const { rows: perms } = await pool.query(`
-        SELECT p.module, p.action FROM role_permissions rp
-        JOIN permissions p ON p.id = rp.permission_id
-        JOIN roles r ON r.id = rp.role_id
-        WHERE r.slug = $1 AND r.tenant_id IS NULL
-      `, [user.role]);
-      permissions = perms;
-    }
-
-    user.permissions = permissions;
+    const permResult = await getUserPermissions(user.id);
+    user.permissions = permResult.permissions || [];
     res.json(user);
   } catch (err) {
     next(err);

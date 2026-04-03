@@ -12,10 +12,13 @@
        ============================================================ */
 
     /* Override page padding for full-bleed chat layout */
+    .app { height: 100vh; overflow: hidden; }
+    .main { min-height: 0 !important; height: 100vh; overflow: hidden; }
     .page.chat-page {
       padding: 0;
       display: flex;
       height: calc(100vh - var(--topbar-h));
+      max-height: calc(100vh - var(--topbar-h));
       overflow: hidden;
     }
 

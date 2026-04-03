@@ -122,6 +122,15 @@
 <script>
 const planColors = { enterprise:'primary', pro:'info', business:'success', starter:'warning', free:'neutral' };
 
+document.addEventListener('DOMContentLoaded', function() {
+  var user = requireLogin();
+  if (!user) return;
+  document.getElementById('sidebar').innerHTML = sidebarHTML('tenants.html');
+  document.getElementById('topbar').innerHTML = topbarHTML('Tenant Management');
+  initPage('Tenant Management');
+  loadPage();
+});
+
 async function loadPage() {
   var stats = {};
   try { stats = await apiGet('/tenants/stats'); } catch(e) { console.error(e); }
@@ -295,7 +304,6 @@ document.getElementById('tenant-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
-initPage(loadPage);
 </script>
 </body>
 </html>

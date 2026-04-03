@@ -28,32 +28,28 @@
     .t-stat-value { font-size:1.4rem; font-weight:700; color:var(--text-primary); }
     .t-stat-label { font-size:0.78rem; color:var(--text-secondary); }
 
-    .tenant-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:1rem; }
+    .tenant-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:1rem; }
     .tenant-card {
       background:var(--white); border-radius:var(--radius); padding:1.5rem;
       box-shadow:var(--shadow); border-left:4px solid var(--primary); transition:var(--t);
     }
     .tenant-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-2px); }
     .tenant-card.suspended { border-left-color:var(--danger); opacity:0.7; }
-    .tenant-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+    .tenant-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem; }
     .tenant-card-name { font-size:1.1rem; font-weight:600; color:var(--text-primary); }
     .tenant-card-email { font-size:0.8rem; color:var(--text-secondary); margin-top:0.15rem; }
-    .tenant-card-meta { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin:1rem 0; }
+    .tenant-card-website { font-size:0.75rem; color:var(--primary); margin-top:0.2rem; word-break:break-all; }
+    .tenant-card-meta { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin:0.75rem 0; }
     .tenant-card-meta-item { font-size:0.8rem; }
     .tenant-card-meta-label { color:var(--text-muted); }
     .tenant-card-meta-value { font-weight:600; color:var(--text-primary); }
-    .tenant-card-actions { display:flex; gap:0.5rem; margin-top:1rem; padding-top:1rem; border-top:1px solid var(--light); }
+    .tenant-card-actions { display:flex; gap:0.5rem; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--light); }
     .tenant-card-actions .btn { flex:1; font-size:0.78rem; padding:0.4rem; }
 
-    /* Modal */
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center; }
-    .modal-overlay.open { display:flex; }
-    .modal { background:var(--white); border-radius:var(--radius); padding:2rem; width:90%; max-width:520px; max-height:90vh; overflow-y:auto; }
-    .modal h2 { font-size:1.2rem; font-weight:700; margin-bottom:1.25rem; }
-    .modal .form-group { margin-bottom:1rem; }
-    .modal label { display:block; font-size:0.82rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.35rem; }
-    .modal input, .modal select { width:100%; padding:0.6rem 0.75rem; border:1px solid var(--light-2); border-radius:var(--radius-sm); font-size:0.88rem; }
-    .modal-actions { display:flex; gap:0.75rem; margin-top:1.5rem; justify-content:flex-end; }
+    .form-section-title { font-size:0.85rem; font-weight:600; color:var(--primary); margin:1.25rem 0 0.5rem; padding-top:0.75rem; border-top:1px solid var(--light); }
+    .form-hint { font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem; }
+    .scrape-status { margin-top:1rem; padding:0.75rem; border-radius:var(--radius-sm); background:var(--info-light); font-size:0.82rem; color:var(--info-dark); display:none; }
+    .scrape-status.show { display:block; }
 
     @media (max-width:768px) {
       .tenant-stats { grid-template-columns:1fr 1fr; }
@@ -74,53 +70,85 @@
 <div class="toast-container" id="toast-container"></div>
 
 <!-- Create/Edit Modal -->
-<div class="modal-overlay" id="tenant-modal">
-  <div class="modal">
-    <h2 id="modal-title">Create Tenant</h2>
-    <input type="hidden" id="modal-tenant-id">
-    <div class="form-group">
-      <label>Business Name *</label>
-      <input type="text" id="modal-name" placeholder="Acme Corp">
+<div class="modal-overlay" id="tenantModal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <h3 id="modal-title">Create Tenant</h3>
+      <button class="modal-close" onclick="closeModal('tenantModal')">&times;</button>
     </div>
-    <div class="form-group">
-      <label>Email *</label>
-      <input type="email" id="modal-email" placeholder="admin@acme.com">
+    <div class="modal-body">
+      <input type="hidden" id="modal-tenant-id">
+
+      <div class="form-row">
+        <div class="form-group"><label>Business Name *</label><input id="modal-name" class="form-control" placeholder="Acme Corp"></div>
+        <div class="form-group"><label>Email *</label><input id="modal-email" type="email" class="form-control" placeholder="admin@acme.com"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input id="modal-phone" class="form-control" placeholder="+92 300 0000000"></div>
+        <div class="form-group"><label>Plan</label>
+          <select id="modal-plan" class="form-control">
+            <option value="starter">Starter</option>
+            <option value="business">Business</option>
+            <option value="pro">Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Product Import (Auto-Scrape)</div>
+      <div class="form-group">
+        <label>Website URL</label>
+        <input id="modal-website" class="form-control" placeholder="https://www.example.com/products">
+        <div class="form-hint">We'll scrape products, images & prices from this URL automatically</div>
+      </div>
+
+      <div class="form-section-title">META Business Integration</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>META Catalog ID</label>
+          <input id="modal-meta-catalog" class="form-control" placeholder="123456789">
+        </div>
+        <div class="form-group">
+          <label>META Access Token</label>
+          <input id="modal-meta-token" class="form-control" placeholder="EAAx...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>META Page ID</label>
+        <input id="modal-meta-page" class="form-control" placeholder="Facebook Page ID">
+        <div class="form-hint">Used for WhatsApp Business and product catalog sync</div>
+      </div>
+
+      <div class="form-group" id="modal-status-group" style="display:none">
+        <div class="form-section-title" style="border:none;margin-top:0">Admin</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select id="modal-status" class="form-control">
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>MRR ($)</label>
+            <input type="number" id="modal-mrr" class="form-control" placeholder="0" step="0.01">
+          </div>
+        </div>
+      </div>
+
+      <div class="scrape-status" id="scrapeStatus"></div>
     </div>
-    <div class="form-group">
-      <label>Phone</label>
-      <input type="text" id="modal-phone" placeholder="+1 555 000 0000">
-    </div>
-    <div class="form-group">
-      <label>Plan</label>
-      <select id="modal-plan">
-        <option value="starter">Starter</option>
-        <option value="business">Business</option>
-        <option value="pro">Pro</option>
-        <option value="enterprise">Enterprise</option>
-      </select>
-    </div>
-    <div class="form-group" id="modal-status-group" style="display:none">
-      <label>Status</label>
-      <select id="modal-status">
-        <option value="active">Active</option>
-        <option value="suspended">Suspended</option>
-        <option value="cancelled">Cancelled</option>
-      </select>
-    </div>
-    <div class="form-group" id="modal-mrr-group" style="display:none">
-      <label>MRR ($)</label>
-      <input type="number" id="modal-mrr" placeholder="0" step="0.01">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveTenant()">Save</button>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('tenantModal')">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveTenant()">Create Tenant</button>
     </div>
   </div>
 </div>
 
 <script src="shared.js"></script>
 <script>
-const planColors = { enterprise:'primary', pro:'info', business:'success', starter:'warning', free:'neutral' };
+var planColors = { enterprise:'primary', pro:'info', business:'success', starter:'warning', free:'neutral' };
 
 document.addEventListener('DOMContentLoaded', function() {
   var user = requireLogin();
@@ -128,57 +156,42 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('sidebar').innerHTML = sidebarHTML('tenants.html');
   document.getElementById('topbar').innerHTML = topbarHTML('Tenant Management');
   initPage('Tenant Management');
-  loadPage();
+  loadAll();
 });
 
-async function loadPage() {
-  var stats = {};
-  try { stats = await apiGet('/tenants/stats'); } catch(e) { console.error(e); }
-
-  var html =
-    '<div class="page-header">' +
-      '<div class="page-header-left">' +
-        '<h1>Tenant Management</h1>' +
-        '<p>Manage all businesses on the platform</p>' +
-      '</div>' +
-      '<button class="btn btn-primary" onclick="openCreateModal()">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-        'Add Tenant' +
-      '</button>' +
-    '</div>' +
-
-    '<div class="tenant-stats">' +
-      statCard('purple', 'Total', stats.total_tenants || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>') +
-      statCard('green', 'Active', stats.active_tenants || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>') +
-      statCard('blue', 'New (30d)', stats.new_this_month || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>') +
-      statCard('orange', 'Total MRR', '$' + Number(stats.total_mrr || 0).toLocaleString(), '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>') +
-    '</div>' +
-
-    '<div class="tenant-grid" id="tenant-grid"><div class="loading-spinner">Loading...</div></div>';
-
-  document.getElementById('page-body').innerHTML = html;
-  loadTenants();
-}
-
-function statCard(color, label, value, icon) {
-  return '<div class="t-stat-card">' +
-    '<div class="t-stat-icon ' + color + '">' + icon + '</div>' +
-    '<div><div class="t-stat-value">' + value + '</div><div class="t-stat-label">' + label + '</div></div>' +
-  '</div>';
-}
-
-async function loadTenants() {
+async function loadAll() {
   try {
-    var tenants = await apiGet('/tenants');
-    var grid = document.getElementById('tenant-grid');
+    var stats = {};
+    var tenants = [];
+    try { stats = await apiGet('/tenants/stats'); } catch(e) {}
+    try { tenants = await apiGet('/tenants'); } catch(e) {}
+
+    var html =
+      '<div class="page-header">' +
+        '<div class="page-header-left"><h1>Tenant Management</h1><p>Manage all businesses on the platform</p></div>' +
+        '<button class="btn btn-primary" onclick="openCreateModal()">+ Add Tenant</button>' +
+      '</div>' +
+      '<div class="tenant-stats">' +
+        tStatCard('purple', 'Total Tenants', stats.total_tenants || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>') +
+        tStatCard('green', 'Active', stats.active_tenants || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>') +
+        tStatCard('blue', 'New (30d)', stats.new_this_month || 0, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>') +
+        tStatCard('orange', 'Total MRR', '$' + Number(stats.total_mrr || 0).toLocaleString(), '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>') +
+      '</div>';
+
     if (!tenants.length) {
-      grid.innerHTML = '<div class="empty-state"><h3>No tenants yet</h3><p>Create your first tenant to get started.</p></div>';
-      return;
+      html += '<div class="empty-state"><h3>No tenants yet</h3><p>Create your first tenant to get started.</p></div>';
+    } else {
+      html += '<div class="tenant-grid">' + tenants.map(tenantCard).join('') + '</div>';
     }
-    grid.innerHTML = tenants.map(tenantCard).join('');
+
+    document.getElementById('page-body').innerHTML = html;
   } catch(e) {
-    document.getElementById('tenant-grid').innerHTML = '<p style="color:var(--danger)">Error: ' + escapeHtml(e.message) + '</p>';
+    document.getElementById('page-body').innerHTML = '<div class="empty-state"><div class="empty-icon">!</div><p>Error: ' + escapeHtml(e.message) + '</p><button class="btn btn-primary" onclick="loadAll()">Retry</button></div>';
   }
+}
+
+function tStatCard(color, label, value, icon) {
+  return '<div class="t-stat-card"><div class="t-stat-icon ' + color + '">' + icon + '</div><div><div class="t-stat-value">' + value + '</div><div class="t-stat-label">' + label + '</div></div></div>';
 }
 
 function tenantCard(t) {
@@ -186,12 +199,14 @@ function tenantCard(t) {
   var statusBadge = t.status === 'active'
     ? '<span class="badge badge-success">Active</span>'
     : '<span class="badge badge-danger">' + escapeHtml(t.status) + '</span>';
+  var websiteHtml = t.website_url ? '<div class="tenant-card-website">' + escapeHtml(t.website_url) + '</div>' : '';
 
   return '<div class="tenant-card' + (t.status !== 'active' ? ' suspended' : '') + '">' +
     '<div class="tenant-card-header">' +
       '<div>' +
         '<div class="tenant-card-name">' + escapeHtml(t.name) + '</div>' +
         '<div class="tenant-card-email">' + escapeHtml(t.email || '') + '</div>' +
+        websiteHtml +
       '</div>' +
       '<div style="display:flex;gap:0.4rem">' + planBadge + statusBadge + '</div>' +
     '</div>' +
@@ -199,14 +214,15 @@ function tenantCard(t) {
       metaItem('Phone', t.phone || '—') +
       metaItem('MRR', '$' + Number(t.mrr || 0).toLocaleString()) +
       metaItem('Created', new Date(t.created_at).toLocaleDateString()) +
-      metaItem('ID', String(t.id).slice(0,8) + '...') +
+      metaItem('Products', t.product_count || '0') +
     '</div>' +
     '<div class="tenant-card-actions">' +
       '<button class="btn btn-outline-primary" onclick="openEditModal(\'' + t.id + '\')">Edit</button>' +
+      '<button class="btn btn-outline-info" onclick="scrapeNow(\'' + t.id + '\')">Scrape</button>' +
       (t.status === 'active'
         ? '<button class="btn btn-outline-warning" onclick="toggleStatus(\'' + t.id + '\',\'suspended\')">Suspend</button>'
         : '<button class="btn btn-outline-success" onclick="toggleStatus(\'' + t.id + '\',\'active\')">Activate</button>') +
-      '<button class="btn btn-outline-danger" onclick="deleteTenant(\'' + t.id + '\',\'' + escapeHtml(t.name) + '\')">Delete</button>' +
+      '<button class="btn btn-outline-danger" onclick="deleteTenant(\'' + t.id + '\',\'' + escapeHtml(t.name).replace(/'/g,"\\'") + '\')">Delete</button>' +
     '</div>' +
   '</div>';
 }
@@ -215,6 +231,7 @@ function metaItem(label, value) {
   return '<div class="tenant-card-meta-item"><div class="tenant-card-meta-label">' + label + '</div><div class="tenant-card-meta-value">' + escapeHtml(String(value)) + '</div></div>';
 }
 
+/* ── Modal Functions ── */
 function openCreateModal() {
   document.getElementById('modal-title').textContent = 'Create Tenant';
   document.getElementById('modal-tenant-id').value = '';
@@ -222,32 +239,42 @@ function openCreateModal() {
   document.getElementById('modal-email').value = '';
   document.getElementById('modal-phone').value = '';
   document.getElementById('modal-plan').value = 'starter';
+  document.getElementById('modal-website').value = '';
+  document.getElementById('modal-meta-catalog').value = '';
+  document.getElementById('modal-meta-token').value = '';
+  document.getElementById('modal-meta-page').value = '';
   document.getElementById('modal-status-group').style.display = 'none';
-  document.getElementById('modal-mrr-group').style.display = 'none';
-  document.getElementById('tenant-modal').classList.add('open');
+  document.getElementById('saveBtn').textContent = 'Create Tenant';
+  document.getElementById('scrapeStatus').className = 'scrape-status';
+  document.getElementById('scrapeStatus').innerHTML = '';
+  openModal('tenantModal');
 }
 
 async function openEditModal(id) {
   try {
     var t = await apiGet('/tenants/' + id);
+    var settings = {};
+    try { settings = await apiGet('/tenant-settings?tenantId=' + id); } catch(e) {}
+
     document.getElementById('modal-title').textContent = 'Edit Tenant';
     document.getElementById('modal-tenant-id').value = t.id;
     document.getElementById('modal-name').value = t.name || '';
     document.getElementById('modal-email').value = t.email || '';
     document.getElementById('modal-phone').value = t.phone || '';
     document.getElementById('modal-plan').value = t.plan || 'starter';
+    document.getElementById('modal-website').value = t.website_url || settings.business_domain || '';
+    document.getElementById('modal-meta-catalog').value = settings.meta_catalog_id || '';
+    document.getElementById('modal-meta-token').value = '';
+    document.getElementById('modal-meta-page').value = settings.meta_page_id || '';
     document.getElementById('modal-status').value = t.status || 'active';
     document.getElementById('modal-mrr').value = t.mrr || '';
     document.getElementById('modal-status-group').style.display = '';
-    document.getElementById('modal-mrr-group').style.display = '';
-    document.getElementById('tenant-modal').classList.add('open');
+    document.getElementById('saveBtn').textContent = 'Save Changes';
+    document.getElementById('scrapeStatus').className = 'scrape-status';
+    openModal('tenantModal');
   } catch(e) {
     toast('Failed to load tenant: ' + e.message, 'error');
   }
-}
-
-function closeModal() {
-  document.getElementById('tenant-modal').classList.remove('open');
 }
 
 async function saveTenant() {
@@ -257,35 +284,131 @@ async function saveTenant() {
     email:  document.getElementById('modal-email').value.trim(),
     phone:  document.getElementById('modal-phone').value.trim() || null,
     plan:   document.getElementById('modal-plan').value,
+    website_url: document.getElementById('modal-website').value.trim() || null,
   };
   if (!body.name || !body.email) return toast('Name and email are required', 'error');
 
+  var metaCatalog = document.getElementById('modal-meta-catalog').value.trim();
+  var metaToken = document.getElementById('modal-meta-token').value.trim();
+  var metaPage = document.getElementById('modal-meta-page').value.trim();
+
+  var saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+
   try {
+    var tenant;
     if (id) {
       body.status = document.getElementById('modal-status').value;
       body.mrr = parseFloat(document.getElementById('modal-mrr').value) || 0;
-      await apiPut('/tenants/' + id, body);
+      tenant = await apiPut('/tenants/' + id, body);
       toast('Tenant updated', 'success');
     } else {
-      await apiPost('/tenants', body);
-      toast('Tenant created', 'success');
+      tenant = await apiPost('/tenants', body);
+      toast('Tenant created!', 'success');
     }
-    closeModal();
-    loadPage();
+
+    var tenantId = tenant.id || id;
+
+    // Save META settings to tenant_settings
+    if (metaCatalog || metaToken || metaPage || body.website_url) {
+      try {
+        var settingsBody = {};
+        if (metaCatalog) settingsBody.meta_catalog_id = metaCatalog;
+        if (metaToken) settingsBody.meta_access_token = metaToken;
+        if (metaPage) settingsBody.meta_page_id = metaPage;
+        if (body.website_url) settingsBody.business_domain = body.website_url;
+        await apiPut('/tenant-settings?tenantId=' + tenantId, settingsBody);
+      } catch(e) { console.error('Settings save:', e); }
+    }
+
+    // Auto-scrape products from website if URL provided
+    if (body.website_url && !id) {
+      showScrapeStatus('Scraping products from ' + body.website_url + '...');
+      try {
+        var scraped = await apiPost('/product-imports/scrape', { url: body.website_url });
+        if (scraped.products && scraped.products.length > 0) {
+          showScrapeStatus('Found ' + scraped.products.length + ' products. Importing...');
+          var imported = await apiPost('/product-imports/confirm?tenantId=' + tenantId, {
+            products: scraped.products,
+            source: 'website',
+            sourceUrl: body.website_url,
+          });
+          showScrapeStatus('Imported ' + imported.total_imported + ' products from website!');
+          toast(imported.total_imported + ' products auto-imported!', 'success');
+        } else {
+          showScrapeStatus('No products found on the website. You can add them manually later.');
+        }
+      } catch(e) {
+        showScrapeStatus('Scrape failed: ' + e.message + '. You can import products later from the Products page.');
+      }
+    }
+
+    // Auto-import from META if catalog provided
+    if (metaCatalog && metaToken && !id) {
+      showScrapeStatus('Fetching products from META catalog...');
+      try {
+        var metaResult = await apiPost('/product-imports/meta?tenantId=' + tenantId, {
+          catalogId: metaCatalog,
+          accessToken: metaToken,
+        });
+        if (metaResult.products && metaResult.products.length > 0) {
+          var metaImported = await apiPost('/product-imports/confirm?tenantId=' + tenantId, {
+            products: metaResult.products,
+            source: 'meta',
+          });
+          toast(metaImported.total_imported + ' products imported from META!', 'success');
+        }
+      } catch(e) {
+        console.error('META import:', e);
+      }
+    }
+
+    setTimeout(function() { closeModal('tenantModal'); loadAll(); }, 1500);
   } catch(e) {
     toast('Error: ' + e.message, 'error');
+  }
+  saveBtn.disabled = false;
+  saveBtn.textContent = id ? 'Save Changes' : 'Create Tenant';
+}
+
+function showScrapeStatus(msg) {
+  var el = document.getElementById('scrapeStatus');
+  el.className = 'scrape-status show';
+  el.innerHTML = msg;
+}
+
+/* ── Scrape Now (from card) ── */
+async function scrapeNow(tenantId) {
+  try {
+    var t = await apiGet('/tenants/' + tenantId);
+    var settings = {};
+    try { settings = await apiGet('/tenant-settings?tenantId=' + tenantId); } catch(e) {}
+    var url = t.website_url || settings.business_domain;
+    if (!url) return toast('No website URL configured for this tenant. Edit the tenant to add one.', 'error');
+
+    toast('Scraping ' + url + '...', 'info');
+    var scraped = await apiPost('/product-imports/scrape', { url: url });
+    if (!scraped.products || scraped.products.length === 0) return toast('No products found on ' + url, 'warning');
+
+    var imported = await apiPost('/product-imports/confirm?tenantId=' + tenantId, {
+      products: scraped.products,
+      source: 'website',
+      sourceUrl: url,
+    });
+    toast(imported.total_imported + ' products imported from ' + t.name + '!', 'success');
+    loadAll();
+  } catch(e) {
+    toast('Scrape failed: ' + e.message, 'error');
   }
 }
 
 async function toggleStatus(id, status) {
-  if (!confirm('Set tenant status to "' + status + '"?')) return;
   try {
     await apiPatch('/tenants/' + id + '/status', { status: status });
     toast('Status updated', 'success');
-    loadTenants();
-  } catch(e) {
-    toast('Error: ' + e.message, 'error');
-  }
+    loadAll();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
 async function deleteTenant(id, name) {
@@ -293,16 +416,9 @@ async function deleteTenant(id, name) {
   try {
     await apiDelete('/tenants/' + id);
     toast('Tenant deleted', 'success');
-    loadPage();
-  } catch(e) {
-    toast('Error: ' + e.message, 'error');
-  }
+    loadAll();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
-
-// Close modal on backdrop click
-document.getElementById('tenant-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
 
 </script>
 </body>

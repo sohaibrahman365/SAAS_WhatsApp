@@ -24,7 +24,13 @@ router.get('/stats', requireAuth, requireRole('super_admin'), async (req, res, n
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     if (req.user.role === 'super_admin') {
-      const { rows } = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
+      const { rows } = await pool.query(`
+        SELECT t.*, COUNT(p.id)::int AS product_count
+          FROM tenants t
+          LEFT JOIN products p ON p.tenant_id = t.id
+         GROUP BY t.id
+         ORDER BY t.created_at DESC
+      `);
       return res.json(rows);
     }
 
@@ -42,16 +48,16 @@ router.get('/', requireAuth, async (req, res, next) => {
 // POST /api/tenants — super_admin only
 router.post('/', requireAuth, requireRole('super_admin'), async (req, res, next) => {
   try {
-    const { name, email, phone, plan } = req.body;
+    const { name, email, phone, plan, website_url } = req.body;
     if (!name || !email) {
       return res.status(400).json({ error: 'name and email are required' });
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO tenants (name, email, phone, plan)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO tenants (name, email, phone, plan, website_url)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [name, email.toLowerCase().trim(), phone || null, plan || 'starter']
+      [name, email.toLowerCase().trim(), phone || null, plan || 'starter', website_url || null]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -78,18 +84,19 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 // Update tenant details
 router.put('/:id', requireAuth, requireRole('super_admin'), async (req, res, next) => {
   try {
-    const { name, email, phone, plan, status, mrr } = req.body;
+    const { name, email, phone, plan, status, mrr, website_url } = req.body;
     const { rows } = await pool.query(`
       UPDATE tenants SET
-        name   = COALESCE($2, name),
-        email  = COALESCE($3, email),
-        phone  = COALESCE($4, phone),
-        plan   = COALESCE($5, plan),
-        status = COALESCE($6, status),
-        mrr    = COALESCE($7, mrr)
+        name        = COALESCE($2, name),
+        email       = COALESCE($3, email),
+        phone       = COALESCE($4, phone),
+        plan        = COALESCE($5, plan),
+        status      = COALESCE($6, status),
+        mrr         = COALESCE($7, mrr),
+        website_url = COALESCE($8, website_url)
       WHERE id = $1
       RETURNING *
-    `, [req.params.id, name, email, phone, plan, status, mrr]);
+    `, [req.params.id, name, email, phone, plan, status, mrr, website_url]);
 
     if (!rows[0]) return res.status(404).json({ error: 'Tenant not found' });
     res.json(rows[0]);

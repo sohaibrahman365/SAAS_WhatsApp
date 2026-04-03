@@ -46,7 +46,7 @@ router.put('/', requireAuth, requirePermission('settings', 'edit'), async (req, 
       anthropic_api_key, ai_prompt_context, ai_model,
       n8n_webhook_url,
       business_domain, business_logo_url, business_description,
-      meta_page_id, google_analytics_id,
+      meta_page_id, meta_catalog_id, meta_access_token, google_analytics_id,
       default_language, timezone,
     } = req.body;
 
@@ -57,9 +57,9 @@ router.put('/', requireAuth, requirePermission('settings', 'edit'), async (req, 
         anthropic_api_key, ai_prompt_context, ai_model,
         n8n_webhook_url,
         business_domain, business_logo_url, business_description,
-        meta_page_id, google_analytics_id,
+        meta_page_id, meta_catalog_id, meta_access_token, google_analytics_id,
         default_language, timezone
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       ON CONFLICT (tenant_id) DO UPDATE SET
         whatsapp_api_token      = COALESCE(NULLIF($2,''), tenant_settings.whatsapp_api_token),
         whatsapp_phone_number_id = COALESCE(NULLIF($3,''), tenant_settings.whatsapp_phone_number_id),
@@ -73,9 +73,11 @@ router.put('/', requireAuth, requirePermission('settings', 'edit'), async (req, 
         business_logo_url       = COALESCE(NULLIF($11,''), tenant_settings.business_logo_url),
         business_description    = COALESCE($12, tenant_settings.business_description),
         meta_page_id            = COALESCE(NULLIF($13,''), tenant_settings.meta_page_id),
-        google_analytics_id     = COALESCE(NULLIF($14,''), tenant_settings.google_analytics_id),
-        default_language        = COALESCE(NULLIF($15,''), tenant_settings.default_language),
-        timezone                = COALESCE(NULLIF($16,''), tenant_settings.timezone),
+        meta_catalog_id         = COALESCE(NULLIF($14,''), tenant_settings.meta_catalog_id),
+        meta_access_token       = COALESCE(NULLIF($15,''), tenant_settings.meta_access_token),
+        google_analytics_id     = COALESCE(NULLIF($16,''), tenant_settings.google_analytics_id),
+        default_language        = COALESCE(NULLIF($17,''), tenant_settings.default_language),
+        timezone                = COALESCE(NULLIF($18,''), tenant_settings.timezone),
         updated_at              = NOW()
       RETURNING *
     `, [
@@ -84,7 +86,7 @@ router.put('/', requireAuth, requirePermission('settings', 'edit'), async (req, 
       anthropic_api_key, ai_prompt_context, ai_model,
       n8n_webhook_url,
       business_domain, business_logo_url, business_description,
-      meta_page_id, google_analytics_id,
+      meta_page_id, meta_catalog_id, meta_access_token, google_analytics_id,
       default_language, timezone,
     ]);
 

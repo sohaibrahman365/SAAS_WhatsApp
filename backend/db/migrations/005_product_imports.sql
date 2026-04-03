@@ -23,6 +23,9 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS source_url TEXT;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS import_id UUID REFERENCES product_imports(id);
 
+-- Website URL on tenants table
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS website_url TEXT;
+
 -- META catalog fields on tenant_settings
 ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS meta_catalog_id TEXT;
 ALTER TABLE tenant_settings ADD COLUMN IF NOT EXISTS meta_access_token TEXT;

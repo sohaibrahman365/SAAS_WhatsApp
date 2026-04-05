@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Platform Management — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .tabs { display:flex; border-bottom:2px solid var(--light-2); margin-bottom:24px; gap:4px; }
+    .tab { padding:10px 20px; cursor:pointer; font-weight:600; font-size:.9rem; color:var(--text-muted);
+           border-bottom:2px solid transparent; margin-bottom:-2px; transition:all var(--t); background:none; border-top:none; border-left:none; border-right:none; }
+    .tab:hover { color:var(--text-primary); }
+    .tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+
+    /* Plan cards */
+    .plans-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; }
+    .plan-card { background:var(--white); border:1px solid var(--light-2); border-radius:var(--radius); padding:24px; position:relative; }
+    .plan-card.enterprise { border-color:var(--primary); box-shadow:0 0 0 1px var(--primary); }
+    .plan-name { font-size:1.3rem; font-weight:700; text-transform:capitalize; margin-bottom:4px; }
+    .plan-card.enterprise .plan-name { color:var(--primary); }
+    .plan-limits-list { list-style:none; padding:0; margin:16px 0; }
+    .plan-limits-list li { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--light); font-size:.88rem; }
+    .plan-limits-list li:last-child { border-bottom:none; }
+    .plan-limits-list .label { color:var(--text-muted); }
+    .plan-limits-list .value { font-weight:600; }
+    .plan-limits-list .unlimited { color:var(--success); font-weight:600; }
+    .plan-features { margin-top:12px; padding-top:12px; border-top:1px solid var(--light); }
+    .plan-features .feat { display:flex; align-items:center; gap:6px; font-size:.82rem; padding:3px 0; }
+    .feat-yes { color:var(--success); }
+    .feat-no { color:var(--text-muted); }
+
+    .edit-limit { width:80px; padding:4px 8px; font-size:.85rem; border:1px solid var(--light-2); border-radius:var(--radius-sm);
+                  text-align:right; background:var(--light); }
+    .edit-limit:focus { border-color:var(--primary); background:var(--white); outline:none; }
+
+    /* Usage table */
+    .usage-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    .usage-table th { text-align:left; padding:10px 12px; background:var(--light); font-weight:600; font-size:.8rem;
+                      text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); border-bottom:1px solid var(--light-2); }
+    .usage-table td { padding:10px 12px; border-bottom:1px solid var(--light); }
+    .usage-table tr:hover td { background:var(--light); }
+    .usage-bar { height:6px; border-radius:3px; background:var(--light-2); width:100px; display:inline-block; vertical-align:middle; margin-left:8px; }
+    .usage-bar-fill { height:100%; border-radius:3px; background:var(--primary); }
+    .usage-bar-fill.warning { background:var(--warning); }
+    .usage-bar-fill.danger { background:var(--danger); }
+
+    /* Audit log */
+    .audit-entry { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--light); font-size:.88rem; }
+    .audit-entry:last-child { border-bottom:none; }
+    .audit-time { color:var(--text-muted); font-size:.8rem; min-width:140px; flex-shrink:0; }
+    .audit-action { font-weight:600; min-width:80px; }
+    .audit-action.create { color:var(--success); }
+    .audit-action.update { color:var(--primary); }
+    .audit-action.delete { color:var(--danger); }
+    .audit-action.login { color:var(--info-dark); }
+    .audit-action.launch { color:var(--warning-dark, #b45309); }
+    .audit-action.invite { color:#7c3aed; }
+    .audit-user { color:var(--text-muted); }
+    .audit-resource { font-weight:500; }
+    .audit-tenant { font-size:.78rem; color:var(--text-muted); background:var(--light); padding:2px 8px; border-radius:4px; }
+    .filter-row { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+    .filter-row select, .filter-row input { font-size:.85rem; padding:6px 10px; border:1px solid var(--light-2); border-radius:var(--radius-sm); }
+    .pagination { display:flex; gap:8px; margin-top:16px; justify-content:center; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page" id="page-body"><div class="loading-spinner">Loading...</div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editPlanModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header"><h3 id="editPlanTitle">Edit Plan</h3><button class="modal-close" onclick="closeModal('editPlanModal')">&times;</button></div>
+    <div class="modal-body" id="editPlanBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editPlanModal')">Cancel</button>
+      <button class="btn btn-primary" id="savePlanBtn" onclick="savePlan()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="shared.js"></script>
+<script>
+var plansData = [];
+var auditOffset = 0;
+var auditLimit = 30;
+
+async function init() {
+  var user = getUser();
+  if (!user || user.role !== 'super_admin') {
+    document.getElementById('page-body').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">🔒</div><h3>Access Denied</h3><p>Platform management is restricted to super admins.</p></div>';
+    return;
+  }
+
+  document.getElementById('page-body').innerHTML = '' +
+    '<div class="page-header">' +
+      '<div><h1 class="page-title">Platform Management</h1><p class="page-subtitle">Plan limits, usage tracking & audit trail</p></div>' +
+    '</div>' +
+    '<div class="tabs">' +
+      '<button class="tab active" onclick="switchTab(\'plans\')">Plan Limits</button>' +
+      '<button class="tab" onclick="switchTab(\'usage\')">Usage Overview</button>' +
+      '<button class="tab" onclick="switchTab(\'audit\')">Audit Trail</button>' +
+    '</div>' +
+    '<div id="tab-plans" class="tab-content active"><div class="loading-spinner">Loading...</div></div>' +
+    '<div id="tab-usage" class="tab-content"></div>' +
+    '<div id="tab-audit" class="tab-content"></div>';
+
+  loadPlans();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'usage' && !document.getElementById('tab-usage').innerHTML) loadUsage();
+  if (tab === 'audit' && !document.getElementById('tab-audit').innerHTML) loadAudit();
+}
+
+// ── Plan Limits ──────────────────────────────────────────────
+
+async function loadPlans() {
+  try {
+    plansData = await apiGet('/usage/plans');
+    renderPlans();
+  } catch (e) {
+    document.getElementById('tab-plans').innerHTML = '<div class="empty-state"><p>Failed to load plans: ' + e.message + '</p></div>';
+  }
+}
+
+function fmtLimit(val) {
+  if (val === -1) return '<span class="unlimited">Unlimited</span>';
+  return val.toLocaleString();
+}
+
+function featIcon(val) {
+  if (val) return '<span class="feat-yes">&#10003;</span>';
+  return '<span class="feat-no">&#10007;</span>';
+}
+
+var featureLabels = {
+  bi_drilldown: 'BI Drilldown',
+  crm: 'CRM',
+  bulk_messaging: 'Bulk Messaging',
+  report_export: 'Report Export',
+  custom_roles: 'Custom Roles',
+  api_access: 'API Access',
+  white_label: 'White Label',
+};
+
+function renderPlans() {
+  var html = '<div class="plans-grid">';
+  var order = ['starter', 'pro', 'business', 'enterprise'];
+  var sorted = order.map(function(p) { return plansData.find(function(d) { return d.plan === p; }); }).filter(Boolean);
+
+  sorted.forEach(function(p) {
+    var features = p.features || {};
+    var isEnterprise = p.plan === 'enterprise';
+    html += '<div class="plan-card' + (isEnterprise ? ' enterprise' : '') + '">' +
+      '<div class="plan-name">' + p.plan + '</div>' +
+      '<ul class="plan-limits-list">' +
+        '<li><span class="label">Products</span><span class="value">' + fmtLimit(p.max_products) + '</span></li>' +
+        '<li><span class="label">Customers</span><span class="value">' + fmtLimit(p.max_customers) + '</span></li>' +
+        '<li><span class="label">Campaigns / month</span><span class="value">' + fmtLimit(p.max_campaigns_mo) + '</span></li>' +
+        '<li><span class="label">Team Members</span><span class="value">' + fmtLimit(p.max_team_members) + '</span></li>' +
+        '<li><span class="label">WhatsApp msgs / day</span><span class="value">' + fmtLimit(p.max_wa_messages_day) + '</span></li>' +
+        '<li><span class="label">AI calls / day</span><span class="value">' + fmtLimit(p.max_ai_calls_day) + '</span></li>' +
+        '<li><span class="label">Data Retention</span><span class="value">' + (p.retention_days === -1 ? '<span class="unlimited">Forever</span>' : p.retention_days + ' days') + '</span></li>' +
+      '</ul>' +
+      '<div class="plan-features">' +
+        Object.keys(featureLabels).map(function(k) {
+          return '<div class="feat">' + featIcon(features[k]) + ' ' + featureLabels[k] + '</div>';
+        }).join('') +
+      '</div>' +
+      '<button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openEditPlan(\'' + p.plan + '\')">Edit Limits</button>' +
+    '</div>';
+  });
+  html += '</div>';
+  document.getElementById('tab-plans').innerHTML = html;
+}
+
+var editingPlan = null;
+
+function openEditPlan(planName) {
+  var p = plansData.find(function(d) { return d.plan === planName; });
+  if (!p) return;
+  editingPlan = planName;
+  document.getElementById('editPlanTitle').textContent = 'Edit ' + planName.charAt(0).toUpperCase() + planName.slice(1) + ' Plan';
+
+  var features = p.features || {};
+  var html = '' +
+    '<div class="form-group"><label>Max Products</label><input type="number" class="form-control" id="ep-products" value="' + p.max_products + '"><div class="form-hint">-1 = unlimited</div></div>' +
+    '<div class="form-group"><label>Max Customers</label><input type="number" class="form-control" id="ep-customers" value="' + p.max_customers + '"></div>' +
+    '<div class="form-group"><label>Campaigns per Month</label><input type="number" class="form-control" id="ep-campaigns" value="' + p.max_campaigns_mo + '"></div>' +
+    '<div class="form-group"><label>Team Members</label><input type="number" class="form-control" id="ep-team" value="' + p.max_team_members + '"></div>' +
+    '<div class="form-group"><label>WhatsApp Messages / Day</label><input type="number" class="form-control" id="ep-wa" value="' + p.max_wa_messages_day + '"></div>' +
+    '<div class="form-group"><label>AI Calls / Day</label><input type="number" class="form-control" id="ep-ai" value="' + p.max_ai_calls_day + '"></div>' +
+    '<div class="form-group"><label>Data Retention (days)</label><input type="number" class="form-control" id="ep-retention" value="' + p.retention_days + '"></div>' +
+    '<div class="form-section-title">Feature Flags</div>';
+
+  Object.keys(featureLabels).forEach(function(k) {
+    html += '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.9rem;cursor:pointer">' +
+      '<input type="checkbox" id="ep-feat-' + k + '"' + (features[k] ? ' checked' : '') + '> ' + featureLabels[k] +
+    '</label>';
+  });
+
+  document.getElementById('editPlanBody').innerHTML = html;
+  openModal('editPlanModal');
+}
+
+async function savePlan() {
+  if (!editingPlan) return;
+  var features = {};
+  Object.keys(featureLabels).forEach(function(k) {
+    features[k] = document.getElementById('ep-feat-' + k).checked;
+  });
+
+  var body = {
+    max_products: parseInt(document.getElementById('ep-products').value),
+    max_customers: parseInt(document.getElementById('ep-customers').value),
+    max_campaigns_mo: parseInt(document.getElementById('ep-campaigns').value),
+    max_team_members: parseInt(document.getElementById('ep-team').value),
+    max_wa_messages_day: parseInt(document.getElementById('ep-wa').value),
+    max_ai_calls_day: parseInt(document.getElementById('ep-ai').value),
+    retention_days: parseInt(document.getElementById('ep-retention').value),
+    features: features,
+  };
+
+  try {
+    document.getElementById('savePlanBtn').disabled = true;
+    document.getElementById('savePlanBtn').textContent = 'Saving...';
+    await apiPut('/usage/plans/' + editingPlan, body);
+    toast('Plan updated', 'success');
+    closeModal('editPlanModal');
+    loadPlans();
+  } catch (e) {
+    toast('Failed: ' + e.message, 'error');
+  } finally {
+    document.getElementById('savePlanBtn').disabled = false;
+    document.getElementById('savePlanBtn').textContent = 'Save Changes';
+  }
+}
+
+// ── Usage Overview ───────────────────────────────────────────
+
+async function loadUsage() {
+  var container = document.getElementById('tab-usage');
+  container.innerHTML = '<div class="loading-spinner">Loading...</div>';
+
+  try {
+    var data = await apiGet('/usage/all');
+    var plans = plansData.length ? plansData : await apiGet('/usage/plans');
+    var limitsMap = {};
+    plans.forEach(function(p) { limitsMap[p.plan] = p; });
+
+    if (!data.length) {
+      container.innerHTML = '<div class="empty-state"><p>No tenants found.</p></div>';
+      return;
+    }
+
+    var html = '<div class="card"><div class="card-body" style="overflow-x:auto">' +
+      '<table class="usage-table"><thead><tr>' +
+        '<th>Tenant</th><th>Plan</th><th>Status</th><th>Products</th><th>Customers</th><th>Team</th>' +
+        '<th>WA Msgs (month)</th><th>AI Calls (month)</th><th>Campaigns (month)</th>' +
+      '</tr></thead><tbody>';
+
+    data.forEach(function(t) {
+      var lim = limitsMap[t.plan] || limitsMap['starter'];
+      html += '<tr>' +
+        '<td><strong>' + (t.name || 'Unnamed') + '</strong></td>' +
+        '<td><span style="text-transform:capitalize">' + (t.plan || 'starter') + '</span></td>' +
+        '<td>' + statusBadge(t.status) + '</td>' +
+        '<td>' + usageCell(t.product_count, lim.max_products) + '</td>' +
+        '<td>' + usageCell(t.customer_count, lim.max_customers) + '</td>' +
+        '<td>' + usageCell(t.team_count, lim.max_team_members) + '</td>' +
+        '<td>' + (t.wa_messages || 0).toLocaleString() + '</td>' +
+        '<td>' + (t.ai_calls || 0).toLocaleString() + '</td>' +
+        '<td>' + usageCell(t.campaigns_created || 0, lim.max_campaigns_mo) + '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table></div></div>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<div class="empty-state"><p>Failed to load usage: ' + e.message + '</p></div>';
+  }
+}
+
+function statusBadge(s) {
+  var color = s === 'active' ? 'var(--success)' : s === 'suspended' ? 'var(--danger)' : 'var(--warning)';
+  return '<span style="font-size:.78rem;font-weight:600;padding:2px 8px;border-radius:4px;background:' + color + '22;color:' + color + '">' + (s || 'active') + '</span>';
+}
+
+function usageCell(current, max) {
+  if (max === -1) return current.toLocaleString() + ' <span style="color:var(--text-muted);font-size:.78rem">/ &infin;</span>';
+  var pct = max > 0 ? Math.round((current / max) * 100) : 0;
+  var barClass = pct >= 90 ? 'danger' : pct >= 70 ? 'warning' : '';
+  return current.toLocaleString() + ' / ' + max.toLocaleString() +
+    '<div class="usage-bar"><div class="usage-bar-fill ' + barClass + '" style="width:' + Math.min(pct, 100) + '%"></div></div>';
+}
+
+// ── Audit Trail ──────────────────────────────────────────────
+
+async function loadAudit() {
+  var container = document.getElementById('tab-audit');
+  container.innerHTML = '' +
+    '<div class="filter-row">' +
+      '<select id="audit-action-filter" onchange="reloadAudit()">' +
+        '<option value="">All Actions</option>' +
+        '<option value="login">Login</option>' +
+        '<option value="create">Create</option>' +
+        '<option value="update">Update</option>' +
+        '<option value="delete">Delete</option>' +
+        '<option value="launch">Launch</option>' +
+        '<option value="invite">Invite</option>' +
+        '<option value="bulk_send">Bulk Send</option>' +
+      '</select>' +
+      '<select id="audit-resource-filter" onchange="reloadAudit()">' +
+        '<option value="">All Resources</option>' +
+        '<option value="auth">Auth</option>' +
+        '<option value="product">Product</option>' +
+        '<option value="customer">Customer</option>' +
+        '<option value="campaign">Campaign</option>' +
+        '<option value="settings">Settings</option>' +
+        '<option value="team">Team</option>' +
+        '<option value="crm">CRM</option>' +
+      '</select>' +
+      '<button class="btn btn-secondary" onclick="reloadAudit()" style="font-size:.82rem">Refresh</button>' +
+    '</div>' +
+    '<div id="audit-list"><div class="loading-spinner">Loading...</div></div>' +
+    '<div class="pagination" id="audit-pagination"></div>';
+
+  reloadAudit();
+}
+
+async function reloadAudit() {
+  auditOffset = 0;
+  await fetchAudit();
+}
+
+async function fetchAudit() {
+  var list = document.getElementById('audit-list');
+  list.innerHTML = '<div class="loading-spinner">Loading...</div>';
+
+  try {
+    var params = '?limit=' + auditLimit + '&offset=' + auditOffset;
+    var actionEl = document.getElementById('audit-action-filter');
+    var resourceEl = document.getElementById('audit-resource-filter');
+    if (actionEl && actionEl.value) params += '&action=' + actionEl.value;
+    if (resourceEl && resourceEl.value) params += '&resource=' + resourceEl.value;
+
+    var data = await apiGet('/usage/audit/all' + params);
+
+    if (!data.length) {
+      list.innerHTML = '<div class="empty-state" style="padding:40px"><p>No audit entries found.</p></div>';
+      document.getElementById('audit-pagination').innerHTML = '';
+      return;
+    }
+
+    var html = '<div class="card"><div class="card-body">';
+    data.forEach(function(entry) {
+      var time = new Date(entry.created_at);
+      var timeStr = time.toLocaleDateString() + ' ' + time.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      html += '<div class="audit-entry">' +
+        '<span class="audit-time">' + timeStr + '</span>' +
+        '<span class="audit-action ' + entry.action + '">' + entry.action.toUpperCase() + '</span>' +
+        '<span class="audit-resource">' + entry.resource + (entry.resource_id ? ' #' + entry.resource_id.slice(0,8) : '') + '</span>' +
+        '<span class="audit-user">' + (entry.user_email || 'system') + '</span>' +
+        (entry.tenant_name ? '<span class="audit-tenant">' + entry.tenant_name + '</span>' : '') +
+      '</div>';
+    });
+    html += '</div></div>';
+    list.innerHTML = html;
+
+    // Pagination
+    var pagHtml = '';
+    if (auditOffset > 0) {
+      pagHtml += '<button class="btn btn-secondary" onclick="auditOffset-=' + auditLimit + ';fetchAudit()">Previous</button>';
+    }
+    if (data.length === auditLimit) {
+      pagHtml += '<button class="btn btn-secondary" onclick="auditOffset+=' + auditLimit + ';fetchAudit()">Next</button>';
+    }
+    document.getElementById('audit-pagination').innerHTML = pagHtml;
+  } catch (e) {
+    list.innerHTML = '<div class="empty-state"><p>Failed: ' + e.message + '</p></div>';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

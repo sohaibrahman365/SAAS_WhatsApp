@@ -4,6 +4,11 @@ const { sendTextMessage } = require('./whatsapp');
 const { sendEmail } = require('./email');
 const { generateDailySummary } = require('./reportGenerator');
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes — prevent alert storms
 
 /**
@@ -46,41 +51,58 @@ async function checkAndSendAlert(tenantId, alertType, data = {}) {
   const phones = config.notify_phones || [];
   const emails = config.notify_emails || [];
 
-  // 5. Send to all notify_phones via WhatsApp
-  for (const phone of phones) {
-    try {
-      await sendTextMessage(phone, message.text, tenantId);
-      await logAlert(tenantId, alertType, 'whatsapp', phone, message.text, 'sent');
-    } catch (err) {
-      console.error(`[alerts] WhatsApp send failed to ${phone}:`, err.message);
-      await logAlert(tenantId, alertType, 'whatsapp', phone, message.text, 'failed', err.message);
-    }
-  }
+  // 5. Dispatch to all recipients in parallel
+  await dispatchToRecipients(tenantId, alertType, message, phones, emails, data);
 
-  // 6. Send to all notify_emails via Email
-  for (const email of emails) {
-    try {
-      const subject = getAlertSubject(alertType, data);
-      const result = await sendEmail(tenantId, {
-        to: email,
-        subject,
-        text: message.text,
-        html: message.html,
-      });
-      const status = result.sent || result.stub ? 'sent' : 'failed';
-      await logAlert(tenantId, alertType, 'email', email, message.text, status, result.error);
-    } catch (err) {
-      console.error(`[alerts] Email send failed to ${email}:`, err.message);
-      await logAlert(tenantId, alertType, 'email', email, message.text, 'failed', err.message);
-    }
-  }
-
-  // 7. Update last_sent_at
+  // 6. Update last_sent_at
   await pool.query(
     `UPDATE alert_configurations SET last_sent_at = NOW(), updated_at = NOW()
       WHERE tenant_id = $1 AND alert_type = $2`,
     [tenantId, alertType]
   );
+}
+
+/**
+ * Send alert to all phones (WhatsApp) and emails in parallel.
+ * @param {string} statusPrefix — use '' for real alerts, 'test_' for test alerts
+ * @returns {Array<{channel, recipient, status, error?}>}
+ */
+async function dispatchToRecipients(tenantId, alertType, message, phones, emails, data, statusPrefix = '') {
+  const results = [];
+
+  const whatsappTasks = phones.map(async (phone) => {
+    try {
+      await sendTextMessage(phone, message.text, tenantId);
+      await logAlert(tenantId, alertType, 'whatsapp', phone, message.text, `${statusPrefix}sent`);
+      results.push({ channel: 'whatsapp', recipient: phone, status: 'sent' });
+    } catch (err) {
+      console.error(`[alerts] WhatsApp send failed to ${phone}:`, err.message);
+      await logAlert(tenantId, alertType, 'whatsapp', phone, message.text, `${statusPrefix}failed`, err.message);
+      results.push({ channel: 'whatsapp', recipient: phone, status: 'failed', error: err.message });
+    }
+  });
+
+  const subject = `${statusPrefix ? '[TEST] ' : ''}${getAlertSubject(alertType, data)}`;
+  const emailText = statusPrefix ? `[TEST ALERT]\n\n${message.text}` : message.text;
+  const emailHtml = statusPrefix
+    ? `<div style="background:#fff3cd;padding:8px 12px;margin-bottom:12px;border-radius:4px;"><strong>TEST ALERT</strong></div>${message.html}`
+    : message.html;
+
+  const emailTasks = emails.map(async (email) => {
+    try {
+      const result = await sendEmail(tenantId, { to: email, subject, text: emailText, html: emailHtml });
+      const status = result.sent || result.stub ? 'sent' : 'failed';
+      await logAlert(tenantId, alertType, 'email', email, message.text, `${statusPrefix}${status}`, result.error);
+      results.push({ channel: 'email', recipient: email, status, stub: result.stub });
+    } catch (err) {
+      console.error(`[alerts] Email send failed to ${email}:`, err.message);
+      await logAlert(tenantId, alertType, 'email', email, message.text, `${statusPrefix}failed`, err.message);
+      results.push({ channel: 'email', recipient: email, status: 'failed', error: err.message });
+    }
+  });
+
+  await Promise.all([...whatsappTasks, ...emailTasks]);
+  return results;
 }
 
 /**
@@ -94,9 +116,9 @@ function formatAlertMessage(alertType, data) {
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border-left:4px solid #ea4335;padding:16px;">
           <h3 style="color:#ea4335;margin-top:0;">Negative Sentiment Alert</h3>
-          <p><strong>Customer:</strong> ${data.customer_name || 'Unknown'} (${data.phone || 'N/A'})</p>
-          <p><strong>Campaign:</strong> ${data.campaign_name || 'N/A'}</p>
-          <p><strong>Message:</strong> "${data.response_text || ''}"</p>
+          <p><strong>Customer:</strong> ${escapeHtml(data.customer_name || 'Unknown')} (${escapeHtml(data.phone || 'N/A')})</p>
+          <p><strong>Campaign:</strong> ${escapeHtml(data.campaign_name || 'N/A')}</p>
+          <p><strong>Message:</strong> &ldquo;${escapeHtml(data.response_text || '')}&rdquo;</p>
           <p><strong>Sentiment Score:</strong> ${data.sentiment_score ?? 'N/A'}</p>
         </div>`;
       return { text, html };
@@ -107,9 +129,9 @@ function formatAlertMessage(alertType, data) {
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border-left:4px solid #fbbc04;padding:16px;">
           <h3 style="color:#fbbc04;margin-top:0;">High Priority Customer</h3>
-          <p><strong>Customer:</strong> ${data.name || 'Unknown'} (${data.phone || 'N/A'})</p>
+          <p><strong>Customer:</strong> ${escapeHtml(data.name || 'Unknown')} (${escapeHtml(data.phone || 'N/A')})</p>
           <p><strong>Priority Score:</strong> ${data.score || 'N/A'}</p>
-          ${data.context ? `<p>${data.context}</p>` : ''}
+          ${data.context ? `<p>${escapeHtml(data.context)}</p>` : ''}
         </div>`;
       return { text, html };
     }
@@ -119,7 +141,7 @@ function formatAlertMessage(alertType, data) {
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border-left:4px solid #34a853;padding:16px;">
           <h3 style="color:#34a853;margin-top:0;">Campaign Complete</h3>
-          <p><strong>Campaign:</strong> ${data.campaign_name || 'N/A'}</p>
+          <p><strong>Campaign:</strong> ${escapeHtml(data.campaign_name || 'N/A')}</p>
           <table style="border-collapse:collapse;margin:12px 0;">
             <tr><td style="padding:4px 12px 4px 0;">Sent:</td><td style="font-weight:bold;">${data.sent ?? 0}</td></tr>
             <tr><td style="padding:4px 12px 4px 0;">Delivered:</td><td style="font-weight:bold;">${data.delivered ?? 'N/A'}</td></tr>
@@ -220,38 +242,9 @@ async function sendTestAlert(tenantId, alertType) {
     message = formatAlertMessage(alertType, data);
   }
 
-  const results = [];
   const phones = config.notify_phones || [];
   const emails = config.notify_emails || [];
-
-  for (const phone of phones) {
-    try {
-      await sendTextMessage(phone, message.text, tenantId);
-      await logAlert(tenantId, alertType, 'whatsapp', phone, message.text, 'test_sent');
-      results.push({ channel: 'whatsapp', recipient: phone, status: 'sent' });
-    } catch (err) {
-      await logAlert(tenantId, alertType, 'whatsapp', phone, message.text, 'test_failed', err.message);
-      results.push({ channel: 'whatsapp', recipient: phone, status: 'failed', error: err.message });
-    }
-  }
-
-  for (const email of emails) {
-    try {
-      const subject = `[TEST] ${getAlertSubject(alertType, data)}`;
-      const result = await sendEmail(tenantId, {
-        to: email,
-        subject,
-        text: `[TEST ALERT]\n\n${message.text}`,
-        html: `<div style="background:#fff3cd;padding:8px 12px;margin-bottom:12px;border-radius:4px;"><strong>TEST ALERT</strong></div>${message.html}`,
-      });
-      const status = result.sent || result.stub ? 'sent' : 'failed';
-      await logAlert(tenantId, alertType, 'email', email, message.text, `test_${status}`, result.error);
-      results.push({ channel: 'email', recipient: email, status, stub: result.stub });
-    } catch (err) {
-      await logAlert(tenantId, alertType, 'email', email, message.text, 'test_failed', err.message);
-      results.push({ channel: 'email', recipient: email, status: 'failed', error: err.message });
-    }
-  }
+  const results = await dispatchToRecipients(tenantId, alertType, message, phones, emails, data, 'test_');
 
   return { sent: true, results };
 }

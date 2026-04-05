@@ -1,6 +1,11 @@
 // Report Generator — daily summaries for tenants and platform owner
 const pool = require('../config/db');
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 /**
  * Generate a daily summary for a single tenant.
  * Returns { text, html, data } with today's key metrics.
@@ -8,48 +13,46 @@ const pool = require('../config/db');
 async function generateDailySummary(tenantId) {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-  // Active campaigns today
-  const { rows: [campRow] } = await pool.query(
-    `SELECT COUNT(*) AS active_campaigns
-       FROM campaigns
-      WHERE tenant_id = $1
-        AND status = 'active'
-        AND DATE(sent_at) = $2`,
-    [tenantId, today]
-  );
-
-  // Messages sent today
-  const { rows: [sentRow] } = await pool.query(
-    `SELECT COUNT(*) AS messages_sent
-       FROM campaign_recipients cr
+  const [
+    { rows: [campRow] },
+    { rows: [sentRow] },
+    { rows: [replyRow] },
+    { rows: sentimentRows },
+    { rows: topCustomers },
+  ] = await Promise.all([
+    pool.query(
+      `SELECT COUNT(*) AS active_campaigns FROM campaigns
+       WHERE tenant_id = $1 AND status = 'active' AND DATE(sent_at) = $2`,
+      [tenantId, today]
+    ),
+    pool.query(
+      `SELECT COUNT(*) AS messages_sent FROM campaign_recipients cr
        JOIN campaigns c ON c.id = cr.campaign_id
-      WHERE c.tenant_id = $1
-        AND cr.message_sent = true
-        AND DATE(cr.sent_at) = $2`,
-    [tenantId, today]
-  );
-
-  // Replies received today
-  const { rows: [replyRow] } = await pool.query(
-    `SELECT COUNT(*) AS replies_received
-       FROM campaign_responses r
+       WHERE c.tenant_id = $1 AND cr.message_sent = true AND DATE(cr.sent_at) = $2`,
+      [tenantId, today]
+    ),
+    pool.query(
+      `SELECT COUNT(*) AS replies_received FROM campaign_responses r
        JOIN campaigns c ON c.id = r.campaign_id
-      WHERE c.tenant_id = $1
-        AND DATE(r.received_at) = $2`,
-    [tenantId, today]
-  );
-
-  // Sentiment breakdown
-  const { rows: sentimentRows } = await pool.query(
-    `SELECT sentiment, COUNT(*) AS cnt
-       FROM campaign_responses r
+       WHERE c.tenant_id = $1 AND DATE(r.received_at) = $2`,
+      [tenantId, today]
+    ),
+    pool.query(
+      `SELECT sentiment, COUNT(*) AS cnt FROM campaign_responses r
        JOIN campaigns c ON c.id = r.campaign_id
-      WHERE c.tenant_id = $1
-        AND DATE(r.received_at) = $2
-        AND r.ai_analyzed = true
-      GROUP BY sentiment`,
-    [tenantId, today]
-  );
+       WHERE c.tenant_id = $1 AND DATE(r.received_at) = $2 AND r.ai_analyzed = true
+       GROUP BY sentiment`,
+      [tenantId, today]
+    ),
+    pool.query(
+      `SELECT c.name, c.phone, ceh.priority_score
+       FROM customer_engagement_history ceh
+       JOIN customers c ON c.id = ceh.customer_id
+       WHERE ceh.tenant_id = $1
+       ORDER BY ceh.priority_score DESC LIMIT 3`,
+      [tenantId]
+    ),
+  ]);
 
   const sentiment = { positive: 0, neutral: 0, negative: 0 };
   for (const row of sentimentRows) {
@@ -57,17 +60,6 @@ async function generateDailySummary(tenantId) {
       sentiment[row.sentiment] = parseInt(row.cnt, 10);
     }
   }
-
-  // Top 3 customers by priority score
-  const { rows: topCustomers } = await pool.query(
-    `SELECT c.name, c.phone, ceh.priority_score
-       FROM customer_engagement_history ceh
-       JOIN customers c ON c.id = ceh.customer_id
-      WHERE ceh.tenant_id = $1
-      ORDER BY ceh.priority_score DESC
-      LIMIT 3`,
-    [tenantId]
-  );
 
   const data = {
     date: today,
@@ -103,7 +95,7 @@ function formatDailySummaryText(d) {
 function formatDailySummaryHtml(d) {
   let topRows = '';
   for (const c of d.topCustomers) {
-    topRows += `<tr><td>${c.name || 'Unknown'}</td><td>${c.phone}</td><td>${c.priority_score}</td></tr>`;
+    topRows += `<tr><td>${escapeHtml(c.name || 'Unknown')}</td><td>${escapeHtml(c.phone)}</td><td>${c.priority_score}</td></tr>`;
   }
 
   return `
@@ -141,46 +133,20 @@ function formatDailySummaryHtml(d) {
 async function generateSaasSummary() {
   const today = new Date().toISOString().slice(0, 10);
 
-  // Total active tenants
-  const { rows: [tenantRow] } = await pool.query(
-    `SELECT COUNT(DISTINCT id) AS active_tenants
-       FROM tenants
-      WHERE status = 'active'`
-  );
+  const [
+    { rows: [tenantRow] },
+    { rows: [campRow] },
+    { rows: [msgRow] },
+    { rows: [replyRow] },
+    { rows: [convRow] },
+  ] = await Promise.all([
+    pool.query(`SELECT COUNT(DISTINCT id) AS active_tenants FROM tenants WHERE status = 'active'`),
+    pool.query(`SELECT COUNT(*) AS total_campaigns FROM campaigns WHERE status = 'active' AND DATE(sent_at) = $1`, [today]),
+    pool.query(`SELECT COUNT(*) AS total_messages FROM campaign_recipients WHERE message_sent = true AND DATE(sent_at) = $1`, [today]),
+    pool.query(`SELECT COUNT(*) AS total_replies FROM campaign_responses WHERE DATE(received_at) = $1`, [today]),
+    pool.query(`SELECT COALESCE(SUM(conversion_count), 0) AS total_conversions FROM campaigns WHERE DATE(sent_at) = $1`, [today]),
+  ]);
 
-  // Total campaigns across all tenants today
-  const { rows: [campRow] } = await pool.query(
-    `SELECT COUNT(*) AS total_campaigns
-       FROM campaigns
-      WHERE status = 'active'
-        AND DATE(sent_at) = $1`,
-    [today]
-  );
-
-  // Total messages, replies, conversions today
-  const { rows: [msgRow] } = await pool.query(
-    `SELECT COUNT(*) AS total_messages
-       FROM campaign_recipients
-      WHERE message_sent = true
-        AND DATE(sent_at) = $1`,
-    [today]
-  );
-
-  const { rows: [replyRow] } = await pool.query(
-    `SELECT COUNT(*) AS total_replies
-       FROM campaign_responses
-      WHERE DATE(received_at) = $1`,
-    [today]
-  );
-
-  const { rows: [convRow] } = await pool.query(
-    `SELECT COALESCE(SUM(conversion_count), 0) AS total_conversions
-       FROM campaigns
-      WHERE DATE(sent_at) = $1`,
-    [today]
-  );
-
-  // MRR total (from tenants table or billing — use plan_price if available)
   let mrr = 0;
   try {
     const { rows: [mrrRow] } = await pool.query(
@@ -191,7 +157,7 @@ async function generateSaasSummary() {
     );
     mrr = parseFloat(mrrRow.mrr);
   } catch {
-    // plan column may not exist — that's fine
+    // plan column may not exist
   }
 
   const data = {

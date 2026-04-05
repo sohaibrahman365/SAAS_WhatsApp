@@ -73,7 +73,7 @@ router.post('/register', async (req, res, next) => {
     const { rows } = await pool.query(
       `INSERT INTO users (email, name, password_hash, role, tenant_id)
        VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name, role = EXCLUDED.role
+       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name
        RETURNING id, email, name, role, tenant_id`,
       [normalizedEmail, name, passwordHash, role, tenantId || null]
     );

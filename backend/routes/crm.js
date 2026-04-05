@@ -2,7 +2,7 @@ const express = require('express');
 const pool    = require('../config/db');
 const { requireAuth, requirePermission } = require('../middleware/auth');
 const { resolveTenantId } = require('../middleware/tenantScope');
-const { sendTextMessage }  = require('../services/whatsapp');
+const { sendTextMessage, personalizeMessage } = require('../services/whatsapp');
 
 const router = express.Router();
 
@@ -179,42 +179,29 @@ router.get('/stats', requireAuth, requirePermission('crm', 'view'), async (req, 
     const tenantId = resolveTenantId(req);
     if (!tenantId) return res.status(400).json({ error: 'No tenant assigned' });
 
-    // Total customers
-    const totalRes = await pool.query(
-      'SELECT COUNT(*) AS total FROM customers WHERE tenant_id = $1',
-      [tenantId]
-    );
-
-    // Avg priority & sentiment breakdown
-    const engRes = await pool.query(
-      `SELECT
-         COALESCE(AVG(priority_score), 0)           AS avg_priority,
-         COUNT(*) FILTER (WHERE avg_sentiment_score > 0.3)  AS positive_count,
-         COUNT(*) FILTER (WHERE avg_sentiment_score < -0.3) AS negative_count,
-         COUNT(*) FILTER (WHERE avg_sentiment_score BETWEEN -0.3 AND 0.3) AS neutral_count
-       FROM customer_engagement_history
-       WHERE tenant_id = $1`,
-      [tenantId]
-    );
-
-    // Tag counts (top 10)
-    const tagRes = await pool.query(
-      `SELECT tag, COUNT(*) AS count
-       FROM customer_tags
-       WHERE tenant_id = $1
-       GROUP BY tag
-       ORDER BY count DESC
-       LIMIT 10`,
-      [tenantId]
-    );
-
-    // VIP count
-    const vipRes = await pool.query(
-      `SELECT COUNT(*) AS count
-       FROM customer_tags
-       WHERE tenant_id = $1 AND LOWER(tag) = 'vip'`,
-      [tenantId]
-    );
+    const [totalRes, engRes, tagRes, vipRes] = await Promise.all([
+      pool.query('SELECT COUNT(*) AS total FROM customers WHERE tenant_id = $1', [tenantId]),
+      pool.query(
+        `SELECT
+           COALESCE(AVG(priority_score), 0)           AS avg_priority,
+           COUNT(*) FILTER (WHERE avg_sentiment_score > 0.3)  AS positive_count,
+           COUNT(*) FILTER (WHERE avg_sentiment_score < -0.3) AS negative_count,
+           COUNT(*) FILTER (WHERE avg_sentiment_score BETWEEN -0.3 AND 0.3) AS neutral_count
+         FROM customer_engagement_history
+         WHERE tenant_id = $1`,
+        [tenantId]
+      ),
+      pool.query(
+        `SELECT tag, COUNT(*) AS count FROM customer_tags
+         WHERE tenant_id = $1 GROUP BY tag ORDER BY count DESC LIMIT 10`,
+        [tenantId]
+      ),
+      pool.query(
+        `SELECT COUNT(*) AS count FROM customer_tags
+         WHERE tenant_id = $1 AND LOWER(tag) = 'vip'`,
+        [tenantId]
+      ),
+    ]);
 
     const eng = engRes.rows[0] || {};
     res.json({
@@ -269,24 +256,23 @@ router.get('/customers/:id', requireAuth, requirePermission('crm', 'view'), asyn
 
     const customer = custRes.rows[0];
 
-    // Tags
-    const tagRes = await pool.query(
-      'SELECT id, tag, source, created_at FROM customer_tags WHERE customer_id = $1 AND tenant_id = $2 ORDER BY created_at DESC',
-      [customerId, tenantId]
-    );
+    const [tagRes, respRes] = await Promise.all([
+      pool.query(
+        'SELECT id, tag, source, created_at FROM customer_tags WHERE customer_id = $1 AND tenant_id = $2 ORDER BY created_at DESC',
+        [customerId, tenantId]
+      ),
+      pool.query(
+        `SELECT cr.id, cr.campaign_id, cr.response_text, cr.sentiment, cr.intent,
+                cr.key_phrases, cr.suggested_reply, cr.received_at
+         FROM campaign_responses cr
+         JOIN campaign_recipients rec ON rec.id = cr.recipient_id
+         WHERE rec.customer_id = $1
+         ORDER BY cr.received_at DESC
+         LIMIT 10`,
+        [customerId]
+      ),
+    ]);
     customer.tags = tagRes.rows;
-
-    // Recent campaign responses (last 10)
-    const respRes = await pool.query(
-      `SELECT cr.id, cr.campaign_id, cr.response_text, cr.sentiment, cr.intent,
-              cr.key_phrases, cr.suggested_reply, cr.received_at
-       FROM campaign_responses cr
-       JOIN campaign_recipients rec ON rec.id = cr.recipient_id
-       WHERE rec.customer_id = $1
-       ORDER BY cr.received_at DESC
-       LIMIT 10`,
-      [customerId]
-    );
     customer.recent_responses = respRes.rows;
 
     res.json(customer);
@@ -317,23 +303,20 @@ router.post('/customers/:id/tags', requireAuth, requirePermission('crm', 'edit')
       return res.status(404).json({ error: 'Customer not found' });
     }
 
-    const inserted = [];
-    for (const tag of tags) {
-      const trimmed = tag.trim().toLowerCase();
-      if (!trimmed) continue;
-      try {
-        const { rows } = await pool.query(
-          `INSERT INTO customer_tags (tenant_id, customer_id, tag, source)
-           VALUES ($1, $2, $3, 'manual')
-           ON CONFLICT DO NOTHING
-           RETURNING *`,
-          [tenantId, customerId, trimmed]
-        );
-        if (rows[0]) inserted.push(rows[0]);
-      } catch (e) {
-        // Skip duplicates silently
-      }
+    const cleanTags = tags.map(t => t.trim().toLowerCase()).filter(Boolean);
+    if (cleanTags.length === 0) {
+      return res.status(400).json({ error: 'No valid tags provided' });
     }
+
+    // Batch insert all tags in one query
+    const values = cleanTags.map((_, i) => `($1, $2, $${i + 3}, 'manual')`).join(', ');
+    const { rows: inserted } = await pool.query(
+      `INSERT INTO customer_tags (tenant_id, customer_id, tag, source)
+       VALUES ${values}
+       ON CONFLICT DO NOTHING
+       RETURNING *`,
+      [tenantId, customerId, ...cleanTags]
+    );
 
     res.status(201).json({ added: inserted.length, tags: inserted });
   } catch (err) {
@@ -397,8 +380,7 @@ router.post('/bulk/whatsapp', requireAuth, requirePermission('crm', 'edit'), asy
         continue;
       }
       try {
-        // Replace {{customer_name}} placeholder
-        const personalizedMsg = message.replace(/\{\{customer_name\}\}/gi, cust.name || 'Customer');
+        const personalizedMsg = personalizeMessage(message, { customer_name: cust.name || 'Customer' });
         await sendTextMessage(cust.phone, personalizedMsg, tenantId);
         sent++;
         results.push({ id: cust.id, name: cust.name, status: 'sent' });

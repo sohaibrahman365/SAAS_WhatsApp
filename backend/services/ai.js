@@ -13,7 +13,7 @@ function isStubMode() {
 async function analyzeResponse(responseText, campaignContext, tenantId) {
   const creds = tenantId
     ? await getAICredentials(tenantId)
-    : { apiKey: process.env.ANTHROPIC_API_KEY, promptContext: '', model: 'claude-haiku-4-5-20250401' };
+    : { apiKey: process.env.ANTHROPIC_API_KEY, promptContext: '', model: 'claude-haiku-4-5-20251001' };
 
   const apiKey = creds.apiKey;
 
@@ -64,7 +64,7 @@ Analyze and return ONLY valid JSON (no markdown, no code fences):
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: creds.model || 'claude-haiku-4-5-20250401',
+      model: creds.model || 'claude-haiku-4-5-20251001',
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     }),

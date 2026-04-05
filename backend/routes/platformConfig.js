@@ -104,7 +104,7 @@ router.get('/health', async (req, res) => {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20250401',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 10,
           messages: [{ role: 'user', content: 'ping' }],
         }),

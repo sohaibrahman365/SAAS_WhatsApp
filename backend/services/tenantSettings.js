@@ -56,7 +56,7 @@ async function getAICredentials(tenantId) {
     sampleReplies: ts?.ai_sample_replies || '',
     webpageUrl: ts?.business_webpage_url || '',
     knowledgeBase: ts?.business_knowledge_base || '',
-    model: ts?.ai_model || 'claude-haiku-4-5-20250401',
+    model: ts?.ai_model || 'claude-haiku-4-5-20251001',
     isConfigured: !!(ts?.anthropic_api_key || process.env.ANTHROPIC_API_KEY),
   };
 }

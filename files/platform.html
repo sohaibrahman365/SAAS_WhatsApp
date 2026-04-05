@@ -93,6 +93,14 @@ var plansData = [];
 var auditOffset = 0;
 var auditLimit = 30;
 
+document.addEventListener('DOMContentLoaded', function() {
+  var user = requireLogin(); if (!user) return;
+  document.getElementById('sidebar').innerHTML = sidebarHTML('platform.html');
+  document.getElementById('topbar').innerHTML = topbarHTML('Platform');
+  initPage('Platform');
+  init();
+});
+
 async function init() {
   var user = getUser();
   if (!user || user.role !== 'super_admin') {
@@ -396,7 +404,6 @@ async function fetchAudit() {
   }
 }
 
-init();
 </script>
 </body>
 </html>

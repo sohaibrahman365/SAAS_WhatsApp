@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5a67d8;
+      --accent: #764ba2;
+      --green: #34a853;
+      --yellow: #fbbc04;
+      --red: #ea4335;
+      --blue: #4285f4;
+      --dark: #1a1a2e;
+      --gray-50: #f8f9fa;
+      --gray-100: #f1f3f5;
+      --gray-200: #e9ecef;
+      --gray-400: #adb5bd;
+      --gray-600: #6c757d;
+      --gray-800: #343a40;
+      --white: #fff;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      line-height: 1.7;
+    }
+
+    /* ── Hero ─────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #2c1654 0%, #667eea 60%, #764ba2 100%);
+      color: var(--white);
+      padding: 4rem 2rem 3rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      top: -200px; right: -100px;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      opacity: 0.85;
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 0.4rem 1.2rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: relative;
+    }
+    .hero-nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 2rem;
+      position: relative;
+    }
+    .hero-nav a {
+      color: var(--white);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .hero-nav a:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Container ────────────────── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ── Back link ────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 1.5rem 0;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    /* ── Section ──────────────────── */
+    .section {
+      margin: 2.5rem 0;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .step-num {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: var(--white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .section h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--dark);
+    }
+    .section h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin: 1.5rem 0 0.5rem;
+    }
+    .section p, .section li {
+      color: var(--gray-600);
+      font-size: 0.92rem;
+    }
+
+    /* ── Cards ────────────────────── */
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      border: 1px solid var(--gray-200);
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+    .card-accent {
+      border-left: 4px solid var(--primary);
+    }
+    .card-green { border-left-color: var(--green); }
+    .card-yellow { border-left-color: var(--yellow); }
+    .card-red { border-left-color: var(--red); }
+
+    .card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── Steps list ───────────────── */
+    .steps {
+      list-style: none;
+      counter-reset: step;
+    }
+    .steps li {
+      counter-increment: step;
+      padding: 0.6rem 0 0.6rem 2.2rem;
+      position: relative;
+      border-left: 2px solid var(--gray-200);
+      margin-left: 0.5rem;
+    }
+    .steps li:last-child { border-left-color: transparent; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: -11px; top: 0.55rem;
+      width: 20px; height: 20px;
+      background: var(--primary);
+      color: var(--white);
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .steps li strong {
+      color: var(--gray-800);
+    }
+
+    /* ── Inline code ──────────────── */
+    code {
+      background: var(--gray-100);
+      border: 1px solid var(--gray-200);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--accent);
+    }
+
+    /* ── Key-value pairs ──────────── */
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 0.3rem 1rem;
+      font-size: 0.88rem;
+      margin: 0.5rem 0;
+    }
+    .kv-grid dt {
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .kv-grid dd {
+      color: var(--gray-600);
+    }
+
+    /* ── Role table ───────────────── */
+    .role-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin: 0.75rem 0;
+    }
+    .role-table th, .role-table td {
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .role-table th {
+      background: var(--gray-50);
+      font-weight: 600;
+      color: var(--gray-800);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .role-table td { color: var(--gray-600); }
+
+    /* ── Badge ────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .badge-purple { background: #ede9fe; color: #6d28d9; }
+    .badge-green  { background: #dcfce7; color: #166534; }
+    .badge-blue   { background: #dbeafe; color: #1e40af; }
+    .badge-orange { background: #fef3c7; color: #92400e; }
+
+    /* ── Sidebar map ──────────────── */
+    .sidebar-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .sidebar-map-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+    .sidebar-map-item .icon {
+      width: 28px; height: 28px;
+      background: var(--gray-100);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Tip callout ──────────────── */
+    .tip {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+      color: #1e40af;
+    }
+    .tip-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .tip strong { color: #1e3a8a; }
+
+    .warning {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+      color: #92400e;
+    }
+
+    /* ── Divider ──────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--gray-200);
+      margin: 2.5rem 0;
+    }
+
+    /* ── Footer ──────────────────── */
+    .guide-footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--gray-400);
+      font-size: 0.8rem;
+    }
+
+    /* ── Responsive ───────────────── */
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.8rem; }
+      .sidebar-map { grid-template-columns: 1fr; }
+      .kv-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <h1>Getting Started with GeniSearch</h1>
+  <p>Your complete guide to setting up tenants, importing products, managing customers, and launching WhatsApp campaigns.</p>
+  <span class="hero-badge">WhatsApp Campaign Intelligence Platform</span>
+
+  <nav class="hero-nav">
+    <a href="#overview">Overview</a>
+    <a href="#login">1. Login</a>
+    <a href="#tenant">2. Create Tenant</a>
+    <a href="#products">3. Import Products</a>
+    <a href="#customers">4. Add Customers</a>
+    <a href="#campaigns">5. Launch Campaign</a>
+    <a href="#crm">6. CRM & Tags</a>
+    <a href="#analytics">7. Analytics</a>
+    <a href="#settings">8. Settings</a>
+    <a href="#alerts">9. Alerts</a>
+  </nav>
+</div>
+
+<div class="container">
+  <a href="index.html" class="back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back to Dashboard
+  </a>
+
+  <!-- ── Overview ────────────────────────────────────────────── -->
+  <div class="section" id="overview">
+    <h2>Platform Overview</h2>
+    <p>GeniSearch is a multi-tenant SaaS platform for WhatsApp-based customer engagement. Each tenant (business) gets their own products, customers, campaigns, and analytics — all managed from one dashboard.</p>
+
+    <div class="card card-accent">
+      <h4>How It Works</h4>
+      <p>Upload products &rarr; Import customers &rarr; Create a campaign &rarr; Send WhatsApp messages &rarr; AI analyzes replies &rarr; View analytics &amp; insights</p>
+    </div>
+
+    <h3>Navigation</h3>
+    <p>The sidebar on every page gives you quick access to all modules:</p>
+
+    <div class="sidebar-map">
+      <div class="sidebar-map-item"><div class="icon">&#x1f4ca;</div> Dashboard — Platform metrics</div>
+      <div class="sidebar-map-item"><div class="icon">&#x1f4e6;</div> Products — Product catalog</div>
+      <div class="sidebar-map-item"><div class="icon">&#x1f465;</div> Customers — Customer database</div>
+      <div class="sidebar-map-item"><div class="icon">&#x1f4cb;</div> CRM — Tags, sentiment, bulk actions</div>
+      <div class="sidebar-map-item"><div class="icon">&#x1f4e2;</div> Campaigns — Create &amp; launch</div>
+      <div class="sidebar-map-item"><div class="icon">&#x1f4ac;</div> Conversations — Chat interface</div>
+      <div class="sidebar-map-item"><div class="icon">&#x1f4c8;</div> BI Analytics — 5-level drill-down</div>
+      <div class="sidebar-map-item"><div class="icon">&#x1f4c4;</div> Reports — Export data</div>
+      <div class="sidebar-map-item"><div class="icon">&#x2699;&#xfe0f;</div> Settings — API keys &amp; config</div>
+    </div>
+
+    <h3>User Roles</h3>
+    <table class="role-table">
+      <thead>
+        <tr><th>Role</th><th>Access Level</th><th>Can Do</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-purple">Super Admin</span></td><td>Full platform</td><td>Manage all tenants, users, platform settings, master API keys</td></tr>
+        <tr><td><span class="badge badge-blue">Admin</span></td><td>Their tenant only</td><td>All operations within their business</td></tr>
+        <tr><td><span class="badge badge-green">Manager</span></td><td>Their tenant only</td><td>Campaigns, customers, products — no settings</td></tr>
+        <tr><td><span class="badge badge-orange">Analyst</span></td><td>View only</td><td>View dashboards, reports, analytics</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 1: Login ───────────────────────────────────────── -->
+  <div class="section" id="login">
+    <div class="section-header">
+      <div class="step-num">1</div>
+      <h2>Login to the Platform</h2>
+    </div>
+
+    <p>You can sign in using two methods:</p>
+
+    <div class="card">
+      <h4>Option A: Email &amp; Password</h4>
+      <ol class="steps">
+        <li>Enter your <strong>email address</strong> and <strong>password</strong></li>
+        <li>Click <strong>Log In</strong></li>
+        <li>You'll be redirected to the Dashboard</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h4>Option B: Google Sign-In</h4>
+      <ol class="steps">
+        <li>Click <strong>Sign in with Google</strong></li>
+        <li>Select your Google account</li>
+        <li>You'll be automatically logged in and redirected</li>
+      </ol>
+    </div>
+
+    <div class="tip">
+      <span class="tip-icon">&#x1f4a1;</span>
+      <div><strong>First-time Google users</strong> are automatically created with the Analyst role. Ask your Super Admin to upgrade your role if needed.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 2: Create Tenant ──────────────────────────────── -->
+  <div class="section" id="tenant">
+    <div class="section-header">
+      <div class="step-num">2</div>
+      <h2>Create a Tenant (Business)</h2>
+    </div>
+
+    <p>Each tenant is an independent business with its own products, customers, campaigns, and API keys. <span class="badge badge-purple">Super Admin</span> only.</p>
+
+    <ol class="steps">
+      <li>Go to <strong>Settings</strong> &rarr; <strong>Tenants</strong> tab</li>
+      <li>Click <strong>+ Add Tenant</strong></li>
+      <li>Fill in the details:
+        <dl class="kv-grid">
+          <dt>Business Name</dt><dd>The company name (required)</dd>
+          <dt>Email</dt><dd>Primary contact email (required)</dd>
+          <dt>Phone</dt><dd>Business phone number</dd>
+          <dt>Plan</dt><dd>Starter ($49) / Growth ($149) / Enterprise ($499)</dd>
+        </dl>
+      </li>
+      <li>Click <strong>Add Tenant</strong> to create</li>
+    </ol>
+
+    <div class="tip">
+      <span class="tip-icon">&#x1f4a1;</span>
+      <div><strong>After creating a tenant,</strong> go to the <strong>API Configuration</strong> tab to set up their WhatsApp, META, and AI credentials. Each tenant can have their own API keys, or fall back to the platform master keys.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 3: Import Products ────────────────────────────── -->
+  <div class="section" id="products">
+    <div class="section-header">
+      <div class="step-num">3</div>
+      <h2>Import Products</h2>
+    </div>
+
+    <p>You have three ways to add products to a tenant's catalog — no manual entry needed.</p>
+
+    <div class="card card-green">
+      <h4>Option A: Scrape from Website</h4>
+      <p>Automatically extract products from any e-commerce or business website.</p>
+      <ol class="steps">
+        <li>Go to <strong>Products</strong> page</li>
+        <li>Click <strong>Import</strong> &rarr; <strong>From Website</strong></li>
+        <li>Paste the website URL (e.g., <code>https://example.com/products</code>)</li>
+        <li>Click <strong>Scan</strong> — the platform will extract product names, prices, images, and descriptions</li>
+        <li>Review the preview table, uncheck any you don't want</li>
+        <li>Click <strong>Import Selected</strong> to save</li>
+      </ol>
+    </div>
+
+    <div class="card card-accent">
+      <h4>Option B: Import from META Catalog</h4>
+      <p>Pull products directly from a Facebook/Instagram product catalog.</p>
+      <ol class="steps">
+        <li>Go to <strong>Products</strong> page</li>
+        <li>Click <strong>Import</strong> &rarr; <strong>From META</strong></li>
+        <li>Enter the <strong>Catalog ID</strong> (or leave blank to use tenant settings)</li>
+        <li>Enter the <strong>Access Token</strong> (or leave blank to use tenant settings)</li>
+        <li>Click <strong>Fetch Products</strong></li>
+        <li>Review and click <strong>Import Selected</strong></li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h4>Option C: Upload Excel / CSV File</h4>
+      <p>Upload a spreadsheet with your product data.</p>
+      <ol class="steps">
+        <li>Go to <strong>Products</strong> page</li>
+        <li>Click <strong>Import</strong> &rarr; <strong>From File</strong></li>
+        <li>Drag &amp; drop your <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code> file</li>
+        <li>The platform auto-maps columns: <strong>Name</strong>, <strong>Price</strong>, <strong>Description</strong>, <strong>Category</strong>, <strong>Image URL</strong></li>
+        <li>Review the preview and click <strong>Import Selected</strong></li>
+      </ol>
+    </div>
+
+    <div class="tip">
+      <span class="tip-icon">&#x1f4a1;</span>
+      <div><strong>You can also add products manually</strong> using the <strong>+ Add Product</strong> button. Useful for one-off additions.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 4: Add Customers ──────────────────────────────── -->
+  <div class="section" id="customers">
+    <div class="section-header">
+      <div class="step-num">4</div>
+      <h2>Add Customers</h2>
+    </div>
+
+    <p>Customers are the people who will receive your WhatsApp campaigns. Each customer has a phone number (required), plus optional details like name, email, city, and demographics.</p>
+
+    <div class="card">
+      <h4>Add Customers Manually</h4>
+      <ol class="steps">
+        <li>Go to <strong>Customers</strong> page</li>
+        <li>Click <strong>+ Add Customer</strong></li>
+        <li>Fill in the details:
+          <dl class="kv-grid">
+            <dt>Phone</dt><dd>International format, e.g. +971501234567 (required)</dd>
+            <dt>Name</dt><dd>Customer name</dd>
+            <dt>Email</dt><dd>Email address</dd>
+            <dt>City / Region</dt><dd>Location for targeting</dd>
+            <dt>Age / Gender</dt><dd>Demographics for campaign segments</dd>
+            <dt>Source</dt><dd>Where they came from (Web, META, TikTok, etc.)</dd>
+          </dl>
+        </li>
+        <li>Click <strong>Add Customer</strong></li>
+      </ol>
+    </div>
+
+    <div class="warning">
+      <span class="tip-icon">&#x26a0;&#xfe0f;</span>
+      <div><strong>Phone number format matters.</strong> Use international format without spaces: <code>+971501234567</code>. This is the number WhatsApp messages will be sent to.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 5: Launch Campaign ────────────────────────────── -->
+  <div class="section" id="campaigns">
+    <div class="section-header">
+      <div class="step-num">5</div>
+      <h2>Create &amp; Launch a Campaign</h2>
+    </div>
+
+    <p>Campaigns send personalized WhatsApp messages to your customers and track their replies.</p>
+
+    <div class="card card-accent">
+      <h4>Create a Campaign</h4>
+      <ol class="steps">
+        <li>Go to <strong>Campaigns</strong> page</li>
+        <li>Click <strong>+ Create Campaign</strong></li>
+        <li>Fill in the form:
+          <dl class="kv-grid">
+            <dt>Campaign Name</dt><dd>A descriptive name (e.g., "Summer Sale 2026")</dd>
+            <dt>Product</dt><dd>Select the product this campaign promotes</dd>
+            <dt>Target Segment</dt><dd>All Customers, High Priority, New, or Inactive</dd>
+            <dt>Message Template</dt><dd>Your WhatsApp message with placeholders</dd>
+            <dt>Region / City</dt><dd>Optional geographic targeting</dd>
+          </dl>
+        </li>
+        <li>Click <strong>Create</strong> — campaign is saved as <strong>Draft</strong></li>
+      </ol>
+    </div>
+
+    <div class="card card-green">
+      <h4>Message Placeholders</h4>
+      <p>Use these in your message template — they'll be replaced with real values for each customer:</p>
+      <dl class="kv-grid">
+        <dt><code>{{customer_name}}</code></dt><dd>Customer's name</dd>
+        <dt><code>{{product_name}}</code></dt><dd>Selected product name</dd>
+        <dt><code>{{discount}}</code></dt><dd>Discount amount</dd>
+      </dl>
+      <p style="margin-top:0.5rem"><strong>Example:</strong> "Hi {{customer_name}}, check out our new {{product_name}}! Limited time offer."</p>
+    </div>
+
+    <div class="card card-yellow">
+      <h4>Launch the Campaign</h4>
+      <ol class="steps">
+        <li>Find your draft campaign in the table</li>
+        <li>Click the <strong>Launch</strong> button</li>
+        <li>Confirm in the popup — messages are sent immediately</li>
+        <li>You'll see a summary: <strong>Sent: X | Failed: Y | Total: Z</strong></li>
+        <li>Campaign status changes to <strong>Active</strong></li>
+      </ol>
+    </div>
+
+    <div class="tip">
+      <span class="tip-icon">&#x1f4a1;</span>
+      <div><strong>After sending,</strong> customer replies are automatically analyzed by Claude AI for sentiment (positive/neutral/negative), intent (interested/inquiry/order/feedback), and suggested replies.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 6: CRM ────────────────────────────────────────── -->
+  <div class="section" id="crm">
+    <div class="section-header">
+      <div class="step-num">6</div>
+      <h2>CRM — Customer Relationship Manager</h2>
+    </div>
+
+    <p>The CRM gives you a complete view of every customer with sentiment analysis, behavioral tags, priority scoring, and bulk messaging.</p>
+
+    <div class="card">
+      <h4>Filter &amp; Search Customers</h4>
+      <p>Use the filter bar to find customers by:</p>
+      <dl class="kv-grid">
+        <dt>Sentiment</dt><dd>Positive, Neutral, or Negative (based on their replies)</dd>
+        <dt>Priority</dt><dd>Low (0-39), Medium (40-69), or High (70-100)</dd>
+        <dt>Tags</dt><dd>VIP, At-Risk, Loyal, Churned, etc.</dd>
+        <dt>Search</dt><dd>Name, phone, email, city</dd>
+      </dl>
+    </div>
+
+    <div class="card card-accent">
+      <h4>Tag Customers</h4>
+      <p>Tags help you segment customers for targeted actions.</p>
+      <ol class="steps">
+        <li>Select one or more customers using checkboxes</li>
+        <li>Click <strong>Add Tags</strong> in the toolbar</li>
+        <li>Choose preset tags (VIP, At-Risk, New, Inactive, High Spender, Loyal, Price Sensitive, Churned) or type a custom tag</li>
+        <li>Click <strong>Apply Tags</strong></li>
+      </ol>
+    </div>
+
+    <div class="card card-green">
+      <h4>Send Bulk WhatsApp Messages</h4>
+      <ol class="steps">
+        <li>Select customers using checkboxes (or Select All)</li>
+        <li>Click <strong>Send WhatsApp Message</strong></li>
+        <li>Type your message (supports <code>{{customer_name}}</code> placeholder)</li>
+        <li>Click <strong>Send</strong> — messages go out to all selected customers</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h4>Priority Score</h4>
+      <p>Each customer gets an automatic priority score (1-100) based on:</p>
+      <ul style="list-style:disc;padding-left:1.5rem;margin-top:0.5rem">
+        <li>Reply rate — how often they respond</li>
+        <li>Sentiment history — positive vs negative responses</li>
+        <li>Conversion rate — purchases or actions taken</li>
+        <li>Recency — when they last engaged</li>
+      </ul>
+      <p style="margin-top:0.5rem">Color-coded: <span style="color:#34a853;font-weight:600">Green (70+)</span> &bull; <span style="color:#fbbc04;font-weight:600">Yellow (40-69)</span> &bull; <span style="color:#ea4335;font-weight:600">Red (&lt;40)</span></p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 7: Analytics ──────────────────────────────────── -->
+  <div class="section" id="analytics">
+    <div class="section-header">
+      <div class="step-num">7</div>
+      <h2>Analytics &amp; BI Dashboard</h2>
+    </div>
+
+    <p>The BI dashboard provides 5 levels of drill-down analytics. Click on any row to go deeper.</p>
+
+    <div class="card card-accent">
+      <h4>5-Level Drill-Down</h4>
+      <table class="role-table">
+        <thead>
+          <tr><th>Level</th><th>View</th><th>Key Metrics</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>1. Platform</strong></td><td>All tenants</td><td>Total tenants, campaigns, MRR, sentiment breakdown</td></tr>
+          <tr><td><strong>2. Tenant</strong></td><td>Single business</td><td>Products, customers, campaigns, reply rate</td></tr>
+          <tr><td><strong>3. Product</strong></td><td>Single product</td><td>Campaigns for this product, sentiment</td></tr>
+          <tr><td><strong>4. Campaign</strong></td><td>Single campaign</td><td>Delivery funnel, sentiment, intent, responses</td></tr>
+          <tr><td><strong>5. Response</strong></td><td>Single reply</td><td>Full AI analysis, suggested reply, customer profile</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>Delivery Funnel (Campaign Level)</h4>
+      <p>At the campaign level, you'll see a visual funnel showing:</p>
+      <p style="margin-top:0.5rem;font-weight:600;color:var(--gray-800)">
+        Sent &rarr; Delivered &rarr; Read &rarr; Replied &rarr; Converted
+      </p>
+      <p>This shows exactly where customers drop off and helps optimize your messaging.</p>
+    </div>
+
+    <h3>Reports</h3>
+    <p>Go to <strong>Reports</strong> page to generate and export data:</p>
+    <ul style="list-style:disc;padding-left:1.5rem">
+      <li><strong>Platform Overview</strong> — tenants, campaigns, messages, MRR</li>
+      <li><strong>Campaign Performance</strong> — all campaigns with metrics</li>
+      <li><strong>Customer Report</strong> — all customers with engagement data</li>
+      <li><strong>Product Report</strong> — all products with targeting info</li>
+      <li><strong>Daily Summary</strong> — today's key numbers</li>
+    </ul>
+    <p style="margin-top:0.5rem">Each report can be <strong>exported as CSV</strong>.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 8: Settings ───────────────────────────────────── -->
+  <div class="section" id="settings">
+    <div class="section-header">
+      <div class="step-num">8</div>
+      <h2>Settings &amp; Configuration</h2>
+    </div>
+
+    <p>Configure API keys and integrations for each tenant. The Settings page has multiple tabs based on your role.</p>
+
+    <div class="card card-accent">
+      <h4>API Configuration (Per Tenant)</h4>
+      <p>Each section can be expanded by clicking the accordion header:</p>
+      <table class="role-table">
+        <thead>
+          <tr><th>Integration</th><th>What It Does</th><th>Required Fields</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>WhatsApp API</strong></td><td>Send &amp; receive messages</td><td>API Token, Phone Number ID</td></tr>
+          <tr><td><strong>Claude AI</strong></td><td>Analyze customer replies</td><td>Anthropic API Key</td></tr>
+          <tr><td><strong>AI Knowledge Base</strong></td><td>Customize AI behavior</td><td>Industry, tone, sample replies</td></tr>
+          <tr><td><strong>META</strong></td><td>Facebook/Instagram catalog</td><td>Access Token, Page ID</td></tr>
+          <tr><td><strong>TikTok</strong></td><td>TikTok Shop integration</td><td>Access Token, Shop ID</td></tr>
+          <tr><td><strong>Google</strong></td><td>Google My Business, Ads</td><td>API Key, Business ID</td></tr>
+          <tr><td><strong>YouTube</strong></td><td>Channel analytics</td><td>API Key, Channel ID</td></tr>
+          <tr><td><strong>Email (SMTP)</strong></td><td>Send email reports</td><td>SMTP Host, User, Pass</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>Two-Tier API Architecture</h4>
+      <p>API keys work in a fallback chain:</p>
+      <ol class="steps">
+        <li><strong>Tenant-level keys</strong> (set in Settings &rarr; API Configuration) take priority</li>
+        <li>If not set, <strong>platform master keys</strong> (Railway environment variables) are used as fallback</li>
+        <li>If neither exists, the service runs in <strong>stub mode</strong> (logs to console, no real API calls)</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h4>Team Management</h4>
+      <ol class="steps">
+        <li>Go to <strong>Settings</strong> &rarr; <strong>Team</strong> tab</li>
+        <li>Click <strong>Invite Team Member</strong></li>
+        <li>Enter their name, email, password, and assign a role</li>
+        <li>They can now log in and access the platform based on their role permissions</li>
+      </ol>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Step 9: Alerts ─────────────────────────────────────── -->
+  <div class="section" id="alerts">
+    <div class="section-header">
+      <div class="step-num">9</div>
+      <h2>Alerts &amp; Notifications</h2>
+    </div>
+
+    <p>Get notified via WhatsApp or email when important events happen.</p>
+
+    <div class="card card-red">
+      <h4>Alert Types</h4>
+      <table class="role-table">
+        <thead>
+          <tr><th>Alert</th><th>Trigger</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Negative Sentiment</strong></td><td>A customer reply is analyzed as negative</td></tr>
+          <tr><td><strong>High Priority Customer</strong></td><td>A customer reaches a high priority score</td></tr>
+          <tr><td><strong>Campaign Complete</strong></td><td>A campaign finishes sending all messages</td></tr>
+          <tr><td><strong>Daily Summary</strong></td><td>End-of-day report with all key metrics</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>Configure Alerts</h4>
+      <p>Alerts are configured per tenant via the API. Each alert can send to multiple WhatsApp numbers and email addresses. A 5-minute cooldown prevents alert storms.</p>
+    </div>
+
+    <h3>Conversations</h3>
+    <p>The <strong>Conversations</strong> page provides a WhatsApp-style chat interface where you can:</p>
+    <ul style="list-style:disc;padding-left:1.5rem">
+      <li>View all customer conversations in real-time</li>
+      <li>See AI-suggested replies based on customer sentiment and intent</li>
+      <li>Send replies directly from the platform</li>
+      <li>Filter by: Unread, Positive, Negative, Pending</li>
+    </ul>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── Quick Reference ────────────────────────────────────── -->
+  <div class="section" id="quickref">
+    <h2>Quick Reference</h2>
+
+    <div class="card card-accent">
+      <h4>Common Workflows</h4>
+      <table class="role-table">
+        <thead>
+          <tr><th>I Want To...</th><th>Go To</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>See platform-wide metrics</td><td>Dashboard</td></tr>
+          <tr><td>Import products from a website</td><td>Products &rarr; Import &rarr; From Website</td></tr>
+          <tr><td>Import products from Facebook</td><td>Products &rarr; Import &rarr; From META</td></tr>
+          <tr><td>Send a WhatsApp campaign</td><td>Campaigns &rarr; + Create &rarr; Launch</td></tr>
+          <tr><td>Find unhappy customers</td><td>CRM &rarr; Filter: Negative sentiment</td></tr>
+          <tr><td>Tag VIP customers</td><td>CRM &rarr; Select customers &rarr; Add Tags &rarr; VIP</td></tr>
+          <tr><td>Send bulk message to a segment</td><td>CRM &rarr; Filter &rarr; Select All &rarr; Send WhatsApp</td></tr>
+          <tr><td>View campaign delivery funnel</td><td>BI Analytics &rarr; Click tenant &rarr; Click campaign</td></tr>
+          <tr><td>Read AI analysis of a reply</td><td>BI Analytics &rarr; Drill to Level 5 (Response)</td></tr>
+          <tr><td>Export customer data</td><td>Reports &rarr; Customer Report &rarr; Export CSV</td></tr>
+          <tr><td>Set up WhatsApp API for a tenant</td><td>Settings &rarr; API Configuration &rarr; WhatsApp</td></tr>
+          <tr><td>Add a team member</td><td>Settings &rarr; Team &rarr; Invite</td></tr>
+          <tr><td>Sign out</td><td>Click the arrow icon next to your name (bottom-left)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="guide-footer">
+    &copy; 2026 GeniSearch. All rights reserved.
+  </div>
+</div>
+
+</body>
+</html>

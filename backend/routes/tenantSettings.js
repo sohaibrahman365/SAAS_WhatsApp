@@ -85,6 +85,11 @@ const upsertHandler = async (req, res, next) => {
       'alert_phones', 'alert_emails',
     ]);
 
+    // Non-text fields where NULLIF(val,'') would cause type errors
+    const nonTextFields = new Set([
+      'smtp_port', 'alert_phones', 'alert_emails',
+    ]);
+
     const values = fields.map(f => {
       if (b[f] === undefined) return null;
       if (jsonbFields.has(f) && b[f] !== null) return JSON.stringify(b[f]);
@@ -94,9 +99,10 @@ const upsertHandler = async (req, res, next) => {
     const insertCols = fields.join(', ');
     const updateClauses = fields.map((f, i) => {
       const p = `$${i + 2}`;
-      return textFields.has(f)
-        ? `${f} = COALESCE(${p}, tenant_settings.${f})`
-        : `${f} = COALESCE(NULLIF(${p},''), tenant_settings.${f})`;
+      if (textFields.has(f) || nonTextFields.has(f)) {
+        return `${f} = COALESCE(${p}, tenant_settings.${f})`;
+      }
+      return `${f} = COALESCE(NULLIF(${p}::text,'')::${f === 'smtp_port' ? 'int' : 'text'}, tenant_settings.${f})`;
     }).join(',\n        ');
 
     const { rows } = await pool.query(`

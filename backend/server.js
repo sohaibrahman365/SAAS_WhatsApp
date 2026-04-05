@@ -51,8 +51,14 @@ app.use('/api/roles', require('./routes/roles').router);
 // Phase 10 — Product Imports (scrape, upload, META)
 app.use('/api/product-imports', require('./routes/productImports'));
 
+// Phase 12 — CRM (Customer Relationship Manager)
+app.use('/api/crm', require('./routes/crm'));
+
 // Phase 11 — Platform Config (super_admin master-level settings)
 app.use('/api/platform', require('./routes/platformConfig'));
+
+// Phase 13 — Alerts & Notifications
+app.use('/api/alerts', require('./routes/alerts'));
 
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {

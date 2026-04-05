@@ -218,6 +218,15 @@ router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch')
 
     await pool.query('UPDATE campaigns SET sent_count = $1 WHERE id = $2', [sent, campaign.id]);
 
+    // Trigger campaign_complete alert (fire-and-forget)
+    const { checkAndSendAlert } = require('../services/alerts');
+    checkAndSendAlert(campaign.tenant_id, 'campaign_complete', {
+      campaign_name: campaign.name,
+      sent,
+      failed,
+      total: customers.length,
+    }).catch(err => console.error('[alert]', err.message));
+
     res.json({ launched: true, sent, failed, total: customers.length });
   } catch (err) {
     next(err);

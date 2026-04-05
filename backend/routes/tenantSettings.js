@@ -28,6 +28,7 @@ router.get('/', requireAuth, requirePermission('settings', 'view'), async (req, 
       'whatsapp_api_token', 'anthropic_api_key', 'meta_access_token',
       'tiktok_access_token', 'google_api_key', 'youtube_api_key',
       'snapchat_access_token',
+      'smtp_pass', 'sendgrid_api_key',
     ];
     for (const f of sensitiveFields) {
       if (s[f]) s[f] = maskKey(s[f]);
@@ -63,6 +64,11 @@ const upsertHandler = async (req, res, next) => {
       'youtube_channel_id', 'youtube_api_key',
       'instagram_business_id',
       'snapchat_access_token', 'snapchat_ad_account_id',
+      // Email / SMTP / SendGrid
+      'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from_email', 'smtp_from_name',
+      'sendgrid_api_key',
+      // Alert defaults
+      'alert_phones', 'alert_emails',
     ];
 
     // Text fields that accept empty-string updates (free-text content)
@@ -70,7 +76,16 @@ const upsertHandler = async (req, res, next) => {
       'ai_prompt_context', 'business_description',
     ]);
 
-    const values = fields.map(f => b[f] !== undefined ? b[f] : null);
+    // JSONB fields that need JSON.stringify
+    const jsonbFields = new Set([
+      'alert_phones', 'alert_emails',
+    ]);
+
+    const values = fields.map(f => {
+      if (b[f] === undefined) return null;
+      if (jsonbFields.has(f) && b[f] !== null) return JSON.stringify(b[f]);
+      return b[f];
+    });
     const placeholders = fields.map((_, i) => `$${i + 2}`).join(',');
     const insertCols = fields.join(', ');
     const updateClauses = fields.map((f, i) => {
@@ -121,6 +136,8 @@ router.get('/status', requireAuth, requirePermission('settings', 'view'), async 
       youtube:   { configured: !!(s?.youtube_api_key),                source: s?.youtube_api_key ? 'tenant' : 'none' },
       instagram: { configured: !!(s?.instagram_business_id),          source: s?.instagram_business_id ? 'tenant' : 'none' },
       snapchat:  { configured: !!(s?.snapchat_access_token),          source: s?.snapchat_access_token ? 'tenant' : 'none' },
+      email:     { configured: !!(s?.smtp_host || s?.sendgrid_api_key || process.env.SMTP_HOST || process.env.SENDGRID_API_KEY),
+                   source: s?.smtp_host || s?.sendgrid_api_key ? 'tenant' : (process.env.SMTP_HOST || process.env.SENDGRID_API_KEY) ? 'platform' : 'none' },
     });
   } catch (err) {
     next(err);
@@ -140,6 +157,8 @@ router.delete('/key/:field', requireAuth, requirePermission('settings', 'manage_
       'youtube_channel_id', 'youtube_api_key',
       'instagram_business_id',
       'snapchat_access_token', 'snapchat_ad_account_id',
+      'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from_email', 'smtp_from_name',
+      'sendgrid_api_key',
     ];
     const field = req.params.field;
     if (!allowed.includes(field)) return res.status(400).json({ error: 'Invalid field' });

@@ -61,7 +61,7 @@ async function handleIncomingMessage(message) {
 
   // Find customer by phone
   const { rows: customers } = await pool.query(
-    'SELECT id FROM customers WHERE phone = $1 LIMIT 1',
+    'SELECT id, name FROM customers WHERE phone = $1 LIMIT 1',
     [from]
   );
   if (!customers[0]) {
@@ -115,7 +115,7 @@ async function handleIncomingMessage(message) {
   if (responseId) {
     // Fetch campaign context for AI
     const { rows: ctx } = await pool.query(
-      `SELECT c.name AS campaign_name, c.message_template, p.name AS product_name
+      `SELECT c.name AS campaign_name, c.message_template, c.tenant_id, p.name AS product_name
          FROM campaigns c LEFT JOIN products p ON p.id = c.product_id
         WHERE c.id = $1`,
       [campaignId]
@@ -126,8 +126,8 @@ async function handleIncomingMessage(message) {
       campaignName: cc.campaign_name,
       productName: cc.product_name,
       messageTemplate: cc.message_template,
-    }).then(analysis =>
-      pool.query(
+    }).then(async (analysis) => {
+      await pool.query(
         `UPDATE campaign_responses
             SET sentiment = $1, sentiment_score = $2, intent = $3,
                 key_phrases = $4, extracted_info = $5, suggested_reply = $6,
@@ -139,8 +139,20 @@ async function handleIncomingMessage(message) {
           JSON.stringify(analysis.extracted_info || {}),
           analysis.suggested_reply, analysis.confidence, responseId,
         ]
-      )
-    ).catch(err => console.error(`[ai:auto] Failed for response ${responseId}:`, err.message));
+      );
+
+      // Trigger negative sentiment alert
+      if (analysis.sentiment === 'negative' && cc.tenant_id) {
+        const { checkAndSendAlert } = require('../services/alerts');
+        checkAndSendAlert(cc.tenant_id, 'negative_sentiment', {
+          customer_name: customers[0]?.name || from,
+          phone: from,
+          campaign_name: cc.campaign_name,
+          response_text: text,
+          sentiment_score: analysis.sentiment_score,
+        }).catch(err => console.error('[alert]', err.message));
+      }
+    }).catch(err => console.error(`[ai:auto] Failed for response ${responseId}:`, err.message));
   }
 }
 

@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    /* ── Filter bar ── */
+    .filter-bar {
+      display:flex; flex-wrap:wrap; align-items:flex-end; gap:0.75rem;
+      padding:1rem 1.25rem;
+    }
+    .filter-group { display:flex; flex-direction:column; gap:0.3rem; }
+    .filter-group label {
+      font-size:0.7rem; font-weight:600; text-transform:uppercase;
+      letter-spacing:0.04em; color:var(--text-secondary);
+    }
+    .filter-group input,
+    .filter-group select {
+      padding:0.45rem 0.7rem; border:1px solid var(--light-2); border-radius:var(--radius-sm);
+      font-size:0.82rem; background:var(--white); color:var(--text-primary);
+      transition:var(--t);
+    }
+    .filter-group input:focus,
+    .filter-group select:focus {
+      outline:none; border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(var(--primary-rgb),0.1);
+    }
+    .filter-group input { width:160px; }
+    .filter-group .priority-range { display:flex; align-items:center; gap:0.3rem; }
+    .filter-group .priority-range input { width:70px; text-align:center; }
+    .filter-group .priority-range span { color:var(--text-muted); font-size:0.8rem; }
+
+    /* ── Tag pills in filter ── */
+    .tag-filter-pills { display:flex; flex-wrap:wrap; gap:0.35rem; max-width:320px; }
+    .tag-filter-pill {
+      display:inline-flex; align-items:center; gap:0.25rem;
+      padding:0.25rem 0.6rem; border-radius:var(--radius-xl);
+      font-size:0.72rem; font-weight:600; cursor:pointer; user-select:none;
+      border:1.5px solid var(--primary); color:var(--primary); background:transparent;
+      transition:var(--t);
+    }
+    .tag-filter-pill:hover { background:var(--primary-light); }
+    .tag-filter-pill.active { background:var(--primary); color:var(--white); }
+
+    /* ── Bulk action bar ── */
+    .bulk-bar {
+      display:none; align-items:center; gap:0.75rem;
+      padding:0.75rem 1.25rem; background:var(--primary-light);
+      border:1px solid rgba(var(--primary-rgb),0.15);
+      border-radius:var(--radius); margin-bottom:0.75rem;
+    }
+    .bulk-bar.visible { display:flex; }
+    .bulk-bar .bulk-count { font-weight:600; font-size:0.85rem; color:var(--primary-dark); }
+
+    /* ── Customer table extras ── */
+    .customer-name-cell { display:flex; flex-direction:column; }
+    .customer-name-cell .name { font-weight:600; color:var(--text-primary); }
+    .customer-name-cell .email { font-size:0.72rem; color:var(--text-muted); }
+
+    .priority-badge {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:36px; height:24px; border-radius:var(--radius-sm);
+      font-size:0.75rem; font-weight:700; color:var(--white);
+    }
+    .priority-high   { background:var(--success); }
+    .priority-medium { background:var(--warning); color:var(--text-primary); }
+    .priority-low    { background:var(--danger); }
+
+    .tag-pills { display:flex; flex-wrap:wrap; gap:0.25rem; }
+    .tag-pill {
+      display:inline-block; padding:0.15rem 0.5rem; border-radius:var(--radius-xl);
+      font-size:0.65rem; font-weight:600; background:var(--primary-light); color:var(--primary);
+    }
+    .tag-pill.tag-vip       { background:#FFF3CD; color:#856404; }
+    .tag-pill.tag-at-risk   { background:var(--danger-light); color:var(--danger); }
+    .tag-pill.tag-loyal     { background:var(--success-light); color:var(--success-dark); }
+
+    .action-btns { display:flex; gap:0.35rem; }
+
+    /* ── Pagination ── */
+    .pagination {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1rem 1.25rem; border-top:1px solid var(--light-2);
+    }
+    .pagination-info { font-size:0.82rem; color:var(--text-secondary); }
+    .pagination-btns { display:flex; gap:0.5rem; }
+
+    /* ── Modals ── */
+    .modal-lg { max-width:720px; }
+
+    /* ── Detail tabs ── */
+    .detail-tabs { display:flex; border-bottom:1px solid var(--light-2); margin-bottom:1rem; }
+    .detail-tab {
+      padding:0.6rem 1.25rem; font-size:0.85rem; font-weight:500;
+      color:var(--text-secondary); cursor:pointer; border-bottom:2px solid transparent;
+      transition:var(--t);
+    }
+    .detail-tab:hover { color:var(--text-primary); }
+    .detail-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+
+    .detail-panel { display:none; }
+    .detail-panel.active { display:block; }
+
+    /* ── Info grid ── */
+    .info-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;
+    }
+    .info-item label { display:block; font-size:0.7rem; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:0.15rem; }
+    .info-item span { font-size:0.9rem; color:var(--text-primary); }
+
+    /* ── Engagement metrics ── */
+    .eng-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:0.75rem; }
+    .eng-card {
+      padding:1rem; border-radius:var(--radius-sm); border:1px solid var(--light-2);
+      text-align:center;
+    }
+    .eng-card .eng-val { font-size:1.3rem; font-weight:700; color:var(--text-primary); }
+    .eng-card .eng-label { font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-top:0.15rem; }
+
+    /* ── Response history ── */
+    .response-item {
+      padding:0.75rem 0; border-bottom:1px solid var(--light-2);
+    }
+    .response-item:last-child { border-bottom:none; }
+    .response-meta { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem; }
+    .response-meta .date { font-size:0.72rem; color:var(--text-muted); }
+    .response-text { font-size:0.85rem; color:var(--text-primary); }
+    .response-phrases { margin-top:0.3rem; display:flex; flex-wrap:wrap; gap:0.25rem; }
+    .response-phrases .phrase-pill {
+      font-size:0.65rem; padding:0.1rem 0.45rem; border-radius:var(--radius-xl);
+      background:var(--info-light); color:var(--info-dark);
+    }
+
+    /* ── Tag modal ── */
+    .tag-options { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem; }
+    .tag-option {
+      padding:0.4rem 0.9rem; border-radius:var(--radius-xl); font-size:0.8rem;
+      font-weight:500; cursor:pointer; border:1.5px solid var(--primary);
+      color:var(--primary); background:transparent; transition:var(--t);
+    }
+    .tag-option:hover { background:var(--primary-light); }
+    .tag-option.selected { background:var(--primary); color:var(--white); }
+
+    /* ── Detail tags with remove ── */
+    .detail-tags { display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:0.75rem; }
+    .detail-tag {
+      display:inline-flex; align-items:center; gap:0.3rem;
+      padding:0.2rem 0.6rem; border-radius:var(--radius-xl);
+      font-size:0.72rem; font-weight:600; background:var(--primary-light); color:var(--primary);
+    }
+    .detail-tag .remove-tag {
+      cursor:pointer; font-size:0.85rem; line-height:1; opacity:0.6;
+      transition:var(--t);
+    }
+    .detail-tag .remove-tag:hover { opacity:1; color:var(--danger); }
+
+    /* ── Checkbox in table ── */
+    table input[type="checkbox"] {
+      width:16px; height:16px; accent-color:var(--primary); cursor:pointer;
+    }
+
+    /* ── WhatsApp modal textarea ── */
+    .wa-textarea {
+      width:100%; min-height:120px; padding:0.7rem; border:1px solid var(--light-2);
+      border-radius:var(--radius-sm); font-size:0.85rem; font-family:inherit;
+      resize:vertical; line-height:1.5;
+    }
+    .wa-textarea:focus {
+      outline:none; border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(var(--primary-rgb),0.1);
+    }
+    .placeholder-hint {
+      font-size:0.72rem; color:var(--text-muted); margin-top:0.3rem;
+    }
+
+    /* ── Sentiment bar ── */
+    .sentiment-bar { display:flex; height:6px; border-radius:3px; overflow:hidden; margin-top:0.5rem; }
+    .sentiment-bar .seg-pos { background:var(--success); }
+    .sentiment-bar .seg-neu { background:var(--warning); }
+    .sentiment-bar .seg-neg { background:var(--danger); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page" id="page-body"><div class="loading-spinner">Loading...</div></div>
+  </div>
+</div>
+
+<!-- WhatsApp Bulk Modal -->
+<div class="modal-overlay" id="waModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Send WhatsApp Message</h3>
+      <button class="modal-close" onclick="closeModal('waModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+        Sending to <strong id="waSendCount">0</strong> selected customers.
+      </p>
+      <textarea id="waMessage" class="wa-textarea" placeholder="Type your message here..."></textarea>
+      <div class="placeholder-hint">Use <code>{{customer_name}}</code> to personalize with the customer's name.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('waModal')">Cancel</button>
+      <button class="btn btn-success" id="waSendBtn" onclick="sendBulkWhatsApp()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send Messages
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Tag Modal -->
+<div class="modal-overlay" id="tagModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Tags</h3>
+      <button class="modal-close" onclick="closeModal('tagModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+        Adding tags to <strong id="tagTargetCount">0</strong> customer(s).
+      </p>
+      <div class="tag-options" id="tagOptions">
+        <button class="tag-option" data-tag="vip">VIP</button>
+        <button class="tag-option" data-tag="at-risk">At-Risk</button>
+        <button class="tag-option" data-tag="new">New</button>
+        <button class="tag-option" data-tag="inactive">Inactive</button>
+        <button class="tag-option" data-tag="high_spender">High Spender</button>
+        <button class="tag-option" data-tag="loyal">Loyal</button>
+        <button class="tag-option" data-tag="price_sensitive">Price Sensitive</button>
+        <button class="tag-option" data-tag="churned">Churned</button>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Custom Tag</label>
+        <div style="display:flex;gap:0.5rem;">
+          <input id="customTagInput" class="form-control" placeholder="e.g. wholesale" style="flex:1;">
+          <button class="btn btn-outline-primary btn-sm" onclick="addCustomTag()">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('tagModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitTags()">Apply Tags</button>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="detailName">Customer</h3>
+      <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
+    </div>
+    <div class="modal-body" id="detailBody">
+      <div class="detail-tabs" id="detailTabs">
+        <div class="detail-tab active" data-dtab="info">Info</div>
+        <div class="detail-tab" data-dtab="engagement">Engagement</div>
+        <div class="detail-tab" data-dtab="history">History</div>
+      </div>
+      <div id="detailPanelInfo" class="detail-panel active"></div>
+      <div id="detailPanelEngagement" class="detail-panel"></div>
+      <div id="detailPanelHistory" class="detail-panel"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="shared.js"></script>
+<script>
+/* ============================================================
+   CRM PAGE
+   ============================================================ */
+
+let currentUser  = null;
+let customers    = [];
+let selectedIds  = new Set();
+let allTags      = [];
+let stats        = {};
+let currentPage  = 1;
+let totalPages   = 1;
+let totalCustomers = 0;
+const PAGE_LIMIT = 50;
+
+// Tag modal state
+let tagTargetIds = [];
+let selectedTags = new Set();
+
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireLogin();
+  if (!currentUser) return;
+  document.getElementById('sidebar').innerHTML = sidebarHTML('crm.html');
+  document.getElementById('topbar').innerHTML  = topbarHTML('CRM');
+  initPage('CRM');
+
+  renderPageShell();
+  loadData();
+});
+
+/* ── Render static page shell ── */
+function renderPageShell() {
+  document.getElementById('page-body').innerHTML = `
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Customer Relationship Manager</h1>
+        <p>Manage customers, track engagement, and send targeted WhatsApp messages.</p>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-outline" onclick="exportCustomers()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card border-primary">
+        <div class="stat-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div class="stat-info"><div class="stat-label">Total Customers</div><div class="stat-value" id="statTotal">--</div></div>
+      </div>
+      <div class="stat-card border-accent">
+        <div class="stat-icon teal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="stat-info"><div class="stat-label">Avg Priority Score</div><div class="stat-value" id="statPriority">--</div></div>
+      </div>
+      <div class="stat-card border-danger">
+        <div class="stat-icon red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <div class="stat-info"><div class="stat-label">Negative Sentiment</div><div class="stat-value" id="statNegative">--</div></div>
+      </div>
+      <div class="stat-card border-warning">
+        <div class="stat-icon orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div class="stat-info"><div class="stat-label">VIP Customers</div><div class="stat-value" id="statVip">--</div></div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" id="filterSearch" placeholder="Name, phone, email...">
+        </div>
+        <div class="filter-group">
+          <label>Sentiment</label>
+          <select id="filterSentiment">
+            <option value="">All</option>
+            <option value="positive">Positive</option>
+            <option value="neutral">Neutral</option>
+            <option value="negative">Negative</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Priority Range</label>
+          <div class="priority-range">
+            <input type="number" id="filterPriorityMin" placeholder="0" min="0" max="100">
+            <span>to</span>
+            <input type="number" id="filterPriorityMax" placeholder="100" min="0" max="100">
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>City</label>
+          <input type="text" id="filterCity" placeholder="e.g. Karachi">
+        </div>
+        <div class="filter-group" style="align-self:flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="applyFilters()">Apply</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearFilters()" style="margin-left:0.3rem;">Clear</button>
+        </div>
+      </div>
+      <div style="padding:0 1.25rem 0.75rem;">
+        <label style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-secondary);display:block;margin-bottom:0.3rem;">Tags</label>
+        <div class="tag-filter-pills" id="tagFilterPills">
+          <span style="font-size:0.75rem;color:var(--text-muted);">Loading tags...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Action Bar -->
+    <div class="bulk-bar" id="bulkBar">
+      <span class="bulk-count"><span id="bulkCount">0</span> selected</span>
+      <button class="btn btn-success btn-sm" onclick="openWhatsAppModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send WhatsApp
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openBulkTagModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Add Tag
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+    </div>
+
+    <!-- Customer Table -->
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:36px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>City</th>
+              <th>Sentiment</th>
+              <th>Priority</th>
+              <th>Tags</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="customerTableBody">
+            <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="pagination-info" id="paginationInfo">--</div>
+        <div class="pagination-btns">
+          <button class="btn btn-outline btn-sm" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
+          <button class="btn btn-outline btn-sm" id="nextBtn" onclick="nextPage()" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ── Load data ── */
+async function loadData() {
+  try {
+    const [statsData, tagsData] = await Promise.all([
+      apiGet('/crm/stats'),
+      apiGet('/crm/tags'),
+    ]);
+    stats   = statsData;
+    allTags = tagsData;
+
+    renderStats();
+    renderTagFilters();
+    await loadCustomers();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+function renderStats() {
+  document.getElementById('statTotal').textContent    = fmtNum(stats.total_customers);
+  document.getElementById('statPriority').textContent  = (stats.avg_priority || 0).toFixed(1);
+
+  // Negative sentiment percentage
+  const totalEng = (stats.positive_count || 0) + (stats.neutral_count || 0) + (stats.negative_count || 0);
+  const negPct   = totalEng > 0 ? ((stats.negative_count / totalEng) * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('statNegative').textContent = negPct;
+  document.getElementById('statVip').textContent      = fmtNum(stats.vip_count);
+}
+
+function renderTagFilters() {
+  const container = document.getElementById('tagFilterPills');
+  if (!allTags || allTags.length === 0) {
+    container.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">No tags yet</span>';
+    return;
+  }
+  container.innerHTML = allTags.map(function(t) {
+    return '<button class="tag-filter-pill" data-tag="' + escapeHtml(t.tag) + '" onclick="toggleTagFilter(this)">'
+      + escapeHtml(t.tag) + ' <span style="opacity:0.6;">(' + t.count + ')</span></button>';
+  }).join('');
+}
+
+/* ── Load customers with current filters ── */
+async function loadCustomers() {
+  const params = new URLSearchParams();
+  params.set('page', currentPage);
+  params.set('limit', PAGE_LIMIT);
+
+  const search = (document.getElementById('filterSearch') || {}).value;
+  if (search) params.set('search', search);
+
+  const sentiment = (document.getElementById('filterSentiment') || {}).value;
+  if (sentiment) params.set('sentiment', sentiment);
+
+  const pMin = (document.getElementById('filterPriorityMin') || {}).value;
+  if (pMin !== '' && pMin !== undefined) params.set('priority_min', pMin);
+
+  const pMax = (document.getElementById('filterPriorityMax') || {}).value;
+  if (pMax !== '' && pMax !== undefined) params.set('priority_max', pMax);
+
+  const city = (document.getElementById('filterCity') || {}).value;
+  if (city) params.set('city', city);
+
+  // Active tag filters
+  const activeTags = [];
+  document.querySelectorAll('.tag-filter-pill.active').forEach(function(el) {
+    activeTags.push(el.dataset.tag);
+  });
+  if (activeTags.length > 0) params.set('tags', activeTags.join(','));
+
+  try {
+    const data = await apiGet('/crm/customers?' + params.toString());
+    customers      = data.customers;
+    totalCustomers = data.total;
+    totalPages     = Math.ceil(data.total / PAGE_LIMIT) || 1;
+    currentPage    = data.page;
+
+    renderTable();
+    renderPagination();
+  } catch (err) {
+    toast(err.message, 'error');
+    document.getElementById('customerTableBody').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--danger);">Failed to load customers</td></tr>';
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('customerTableBody');
+
+  if (!customers || customers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No customers found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = customers.map(function(c) {
+    const checked = selectedIds.has(c.id) ? ' checked' : '';
+
+    // Sentiment badge
+    let sentLabel, sentClass;
+    const score = parseFloat(c.avg_sentiment_score) || 0;
+    if (score > 0.3) { sentLabel = 'Positive'; sentClass = 'badge-success'; }
+    else if (score < -0.3) { sentLabel = 'Negative'; sentClass = 'badge-danger'; }
+    else { sentLabel = 'Neutral'; sentClass = 'badge-warning'; }
+
+    // Priority badge
+    const pri = parseFloat(c.priority_score) || 0;
+    let priClass;
+    if (pri >= 70)     priClass = 'priority-high';
+    else if (pri >= 40) priClass = 'priority-medium';
+    else                priClass = 'priority-low';
+
+    // Tags
+    const tags = (c.tags || []);
+    const tagHtml = tags.slice(0, 4).map(function(t) {
+      let cls = 'tag-pill';
+      if (t === 'vip') cls += ' tag-vip';
+      else if (t === 'at-risk') cls += ' tag-at-risk';
+      else if (t === 'loyal') cls += ' tag-loyal';
+      return '<span class="' + cls + '">' + escapeHtml(t) + '</span>';
+    }).join('');
+    const moreTag = tags.length > 4 ? '<span class="tag-pill">+' + (tags.length - 4) + '</span>' : '';
+
+    return '<tr>' +
+      '<td><input type="checkbox" data-id="' + c.id + '" onchange="toggleSelect(this)"' + checked + '></td>' +
+      '<td><div class="customer-name-cell"><span class="name">' + escapeHtml(c.name || 'Unknown') + '</span><span class="email">' + escapeHtml(c.email || '-') + '</span></div></td>' +
+      '<td>' + escapeHtml(c.phone || '-') + '</td>' +
+      '<td>' + escapeHtml(c.city || '-') + '</td>' +
+      '<td><span class="badge ' + sentClass + '">' + sentLabel + '</span></td>' +
+      '<td><span class="priority-badge ' + priClass + '">' + Math.round(pri) + '</span></td>' +
+      '<td><div class="tag-pills">' + tagHtml + moreTag + '</div></td>' +
+      '<td><div class="action-btns">' +
+        '<button class="btn btn-ghost btn-sm" onclick="viewCustomer(' + c.id + ')" title="View">View</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="openSingleTagModal(' + c.id + ')" title="Tag">Tag</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderPagination() {
+  const start = totalCustomers === 0 ? 0 : (currentPage - 1) * PAGE_LIMIT + 1;
+  const end   = Math.min(currentPage * PAGE_LIMIT, totalCustomers);
+  document.getElementById('paginationInfo').textContent =
+    'Showing ' + start + '-' + end + ' of ' + fmtNum(totalCustomers);
+
+  document.getElementById('prevBtn').disabled = currentPage <= 1;
+  document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+}
+
+/* ── Filters ── */
+function applyFilters() {
+  currentPage = 1;
+  selectedIds.clear();
+  updateBulkBar();
+  loadCustomers();
+}
+
+function clearFilters() {
+  document.getElementById('filterSearch').value      = '';
+  document.getElementById('filterSentiment').value   = '';
+  document.getElementById('filterPriorityMin').value = '';
+  document.getElementById('filterPriorityMax').value = '';
+  document.getElementById('filterCity').value        = '';
+  document.querySelectorAll('.tag-filter-pill.active').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  applyFilters();
+}
+
+function toggleTagFilter(el) {
+  el.classList.toggle('active');
+}
+
+/* ── Pagination ── */
+function prevPage() {
+  if (currentPage > 1) { currentPage--; loadCustomers(); }
+}
+function nextPage() {
+  if (currentPage < totalPages) { currentPage++; loadCustomers(); }
+}
+
+/* ── Selection ── */
+function toggleSelect(cb) {
+  const id = parseInt(cb.dataset.id, 10);
+  if (cb.checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  updateBulkBar();
+}
+
+function toggleSelectAll(cb) {
+  customers.forEach(function(c) {
+    if (cb.checked) selectedIds.add(c.id);
+    else selectedIds.delete(c.id);
+  });
+  document.querySelectorAll('#customerTableBody input[type="checkbox"]').forEach(function(el) {
+    el.checked = cb.checked;
+  });
+  updateBulkBar();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  document.querySelectorAll('#customerTableBody input[type="checkbox"]').forEach(function(el) {
+    el.checked = false;
+  });
+  var selectAll = document.getElementById('selectAll');
+  if (selectAll) selectAll.checked = false;
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  var bar = document.getElementById('bulkBar');
+  if (selectedIds.size > 0) {
+    bar.classList.add('visible');
+    document.getElementById('bulkCount').textContent = selectedIds.size;
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+/* ── WhatsApp Bulk ── */
+function openWhatsAppModal() {
+  if (selectedIds.size === 0) { toast('Select customers first', 'warning'); return; }
+  document.getElementById('waSendCount').textContent = selectedIds.size;
+  document.getElementById('waMessage').value = '';
+  openModal('waModal');
+}
+
+async function sendBulkWhatsApp() {
+  var msg = document.getElementById('waMessage').value.trim();
+  if (!msg) { toast('Please enter a message', 'warning'); return; }
+
+  var btn = document.getElementById('waSendBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    var result = await apiPost('/crm/bulk/whatsapp', {
+      customerIds: Array.from(selectedIds),
+      message: msg,
+    });
+    toast('Sent: ' + result.sent + ', Failed: ' + result.failed, result.failed > 0 ? 'warning' : 'success');
+    closeModal('waModal');
+    clearSelection();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Messages';
+  }
+}
+
+/* ── Tag Modal ── */
+function openBulkTagModal() {
+  if (selectedIds.size === 0) { toast('Select customers first', 'warning'); return; }
+  tagTargetIds = Array.from(selectedIds);
+  document.getElementById('tagTargetCount').textContent = tagTargetIds.length;
+  selectedTags.clear();
+  resetTagOptions();
+  openModal('tagModal');
+}
+
+function openSingleTagModal(customerId) {
+  tagTargetIds = [customerId];
+  document.getElementById('tagTargetCount').textContent = '1';
+  selectedTags.clear();
+  resetTagOptions();
+  openModal('tagModal');
+}
+
+function resetTagOptions() {
+  document.querySelectorAll('#tagOptions .tag-option').forEach(function(el) {
+    el.classList.remove('selected');
+  });
+  document.getElementById('customTagInput').value = '';
+
+  // Attach click handlers
+  document.querySelectorAll('#tagOptions .tag-option').forEach(function(el) {
+    el.onclick = function() {
+      el.classList.toggle('selected');
+      if (el.classList.contains('selected')) {
+        selectedTags.add(el.dataset.tag);
+      } else {
+        selectedTags.delete(el.dataset.tag);
+      }
+    };
+  });
+}
+
+function addCustomTag() {
+  var input = document.getElementById('customTagInput');
+  var val = input.value.trim().toLowerCase();
+  if (!val) return;
+
+  // Check if already exists
+  var existing = document.querySelector('#tagOptions .tag-option[data-tag="' + val + '"]');
+  if (existing) {
+    existing.classList.add('selected');
+    selectedTags.add(val);
+  } else {
+    var btn = document.createElement('button');
+    btn.className = 'tag-option selected';
+    btn.dataset.tag = val;
+    btn.textContent = val;
+    btn.onclick = function() {
+      btn.classList.toggle('selected');
+      if (btn.classList.contains('selected')) selectedTags.add(val);
+      else selectedTags.delete(val);
+    };
+    document.getElementById('tagOptions').appendChild(btn);
+    selectedTags.add(val);
+  }
+  input.value = '';
+}
+
+async function submitTags() {
+  if (selectedTags.size === 0) { toast('Select at least one tag', 'warning'); return; }
+
+  var tagsArray = Array.from(selectedTags);
+  var succeeded = 0;
+  var failed    = 0;
+
+  for (var i = 0; i < tagTargetIds.length; i++) {
+    try {
+      await apiPost('/crm/customers/' + tagTargetIds[i] + '/tags', { tags: tagsArray });
+      succeeded++;
+    } catch (err) {
+      failed++;
+    }
+  }
+
+  toast('Tags applied to ' + succeeded + ' customer(s)' + (failed > 0 ? ', ' + failed + ' failed' : ''), failed > 0 ? 'warning' : 'success');
+  closeModal('tagModal');
+  clearSelection();
+
+  // Reload tags and customers
+  try {
+    allTags = await apiGet('/crm/tags');
+    renderTagFilters();
+  } catch (e) { /* ignore */ }
+  loadCustomers();
+}
+
+/* ── Customer Detail Modal ── */
+async function viewCustomer(id) {
+  openModal('detailModal');
+  document.getElementById('detailName').textContent = 'Loading...';
+  document.getElementById('detailPanelInfo').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);">Loading...</div>';
+  document.getElementById('detailPanelEngagement').innerHTML = '';
+  document.getElementById('detailPanelHistory').innerHTML = '';
+
+  // Reset tabs
+  document.querySelectorAll('#detailTabs .detail-tab').forEach(function(tab, idx) {
+    tab.classList.toggle('active', idx === 0);
+  });
+  document.getElementById('detailPanelInfo').classList.add('active');
+  document.getElementById('detailPanelEngagement').classList.remove('active');
+  document.getElementById('detailPanelHistory').classList.remove('active');
+
+  try {
+    var c = await apiGet('/crm/customers/' + id);
+    document.getElementById('detailName').textContent = c.name || 'Customer #' + c.id;
+
+    // Info tab
+    var tagsHtml = (c.tags || []).map(function(t) {
+      return '<span class="detail-tag">' + escapeHtml(t.tag) +
+        ' <span class="remove-tag" onclick="removeTag(' + c.id + ', \'' + escapeHtml(t.tag) + '\')">&times;</span></span>';
+    }).join('');
+
+    document.getElementById('detailPanelInfo').innerHTML =
+      '<div class="info-grid">' +
+        '<div class="info-item"><label>Name</label><span>' + escapeHtml(c.name || '-') + '</span></div>' +
+        '<div class="info-item"><label>Phone</label><span>' + escapeHtml(c.phone || '-') + '</span></div>' +
+        '<div class="info-item"><label>Email</label><span>' + escapeHtml(c.email || '-') + '</span></div>' +
+        '<div class="info-item"><label>City</label><span>' + escapeHtml(c.city || '-') + '</span></div>' +
+        '<div class="info-item"><label>Region</label><span>' + escapeHtml(c.region || '-') + '</span></div>' +
+        '<div class="info-item"><label>Country</label><span>' + escapeHtml(c.country || '-') + '</span></div>' +
+        '<div class="info-item"><label>Gender</label><span>' + escapeHtml(c.gender || '-') + '</span></div>' +
+        '<div class="info-item"><label>Age</label><span>' + (c.age || '-') + '</span></div>' +
+        '<div class="info-item"><label>Source</label><span>' + escapeHtml(c.source || '-') + '</span></div>' +
+        '<div class="info-item"><label>First Contact</label><span>' + fmtDate(c.first_contact_date) + '</span></div>' +
+      '</div>' +
+      '<div style="margin-top:1rem;">' +
+        '<label style="font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Tags</label>' +
+        '<div class="detail-tags">' + (tagsHtml || '<span style="font-size:0.8rem;color:var(--text-muted);">No tags</span>') + '</div>' +
+      '</div>';
+
+    // Engagement tab
+    var pri = parseFloat(c.priority_score) || 0;
+    var priClass;
+    if (pri >= 70) priClass = 'priority-high';
+    else if (pri >= 40) priClass = 'priority-medium';
+    else priClass = 'priority-low';
+
+    var totalResp = (parseInt(c.positive_responses)||0) + (parseInt(c.neutral_responses)||0) + (parseInt(c.negative_responses)||0);
+    var posPct = totalResp > 0 ? ((c.positive_responses / totalResp) * 100) : 0;
+    var neuPct = totalResp > 0 ? ((c.neutral_responses / totalResp) * 100) : 0;
+    var negPct = totalResp > 0 ? ((c.negative_responses / totalResp) * 100) : 0;
+
+    document.getElementById('detailPanelEngagement').innerHTML =
+      '<div class="eng-grid">' +
+        '<div class="eng-card"><div class="eng-val"><span class="priority-badge ' + priClass + '" style="width:auto;padding:0.2rem 0.7rem;font-size:1rem;">' + Math.round(pri) + '</span></div><div class="eng-label">Priority Score</div></div>' +
+        '<div class="eng-card"><div class="eng-val">' + fmtPct(c.reply_rate) + '</div><div class="eng-label">Reply Rate</div></div>' +
+        '<div class="eng-card"><div class="eng-val">' + fmtPct(c.conversion_rate) + '</div><div class="eng-label">Conversion Rate</div></div>' +
+        '<div class="eng-card"><div class="eng-val">' + fmtNum(c.total_campaigns_targeted) + '</div><div class="eng-label">Campaigns Targeted</div></div>' +
+        '<div class="eng-card"><div class="eng-val">' + fmtNum(c.total_messages_received) + '</div><div class="eng-label">Messages Received</div></div>' +
+        '<div class="eng-card"><div class="eng-val">' + fmtNum(c.total_conversions) + '</div><div class="eng-label">Conversions</div></div>' +
+      '</div>' +
+      '<div style="margin-top:1rem;">' +
+        '<label style="font-size:0.7rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:0.3rem;">Sentiment Breakdown</label>' +
+        '<div style="display:flex;gap:1rem;font-size:0.82rem;margin-bottom:0.4rem;">' +
+          '<span style="color:var(--success);">Positive: ' + (c.positive_responses || 0) + '</span>' +
+          '<span style="color:var(--warning-dark);">Neutral: ' + (c.neutral_responses || 0) + '</span>' +
+          '<span style="color:var(--danger);">Negative: ' + (c.negative_responses || 0) + '</span>' +
+        '</div>' +
+        '<div class="sentiment-bar">' +
+          '<div class="seg-pos" style="width:' + posPct + '%;"></div>' +
+          '<div class="seg-neu" style="width:' + neuPct + '%;"></div>' +
+          '<div class="seg-neg" style="width:' + negPct + '%;"></div>' +
+        '</div>' +
+        '<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">Last engagement: ' + fmtDate(c.last_engagement_date) + '</div>' +
+      '</div>';
+
+    // History tab
+    var responses = c.recent_responses || [];
+    if (responses.length === 0) {
+      document.getElementById('detailPanelHistory').innerHTML =
+        '<div style="text-align:center;padding:2rem;color:var(--text-muted);">No campaign responses yet</div>';
+    } else {
+      document.getElementById('detailPanelHistory').innerHTML = responses.map(function(r) {
+        var sentBadge = sentimentBadge(r.sentiment);
+        var intentBadge = r.intent ? '<span class="badge badge-info">' + escapeHtml(r.intent) + '</span>' : '';
+        var phrases = (r.key_phrases || []).map(function(p) {
+          return '<span class="phrase-pill">' + escapeHtml(p) + '</span>';
+        }).join('');
+
+        return '<div class="response-item">' +
+          '<div class="response-meta">' + sentBadge + intentBadge + '<span class="date">' + fmtDateTime(r.received_at) + '</span></div>' +
+          '<div class="response-text">' + escapeHtml(r.response_text || '') + '</div>' +
+          (phrases ? '<div class="response-phrases">' + phrases + '</div>' : '') +
+          (r.suggested_reply ? '<div style="margin-top:0.3rem;font-size:0.75rem;color:var(--text-muted);">Suggested: ' + escapeHtml(r.suggested_reply) + '</div>' : '') +
+        '</div>';
+      }).join('');
+    }
+
+    // Tab switching
+    initDetailTabs();
+
+  } catch (err) {
+    document.getElementById('detailName').textContent = 'Error';
+    document.getElementById('detailPanelInfo').innerHTML =
+      '<div style="text-align:center;padding:2rem;color:var(--danger);">' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+function initDetailTabs() {
+  document.querySelectorAll('#detailTabs .detail-tab').forEach(function(tab) {
+    tab.onclick = function() {
+      document.querySelectorAll('#detailTabs .detail-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      var target = tab.dataset.dtab;
+      document.getElementById('detailPanelInfo').classList.toggle('active', target === 'info');
+      document.getElementById('detailPanelEngagement').classList.toggle('active', target === 'engagement');
+      document.getElementById('detailPanelHistory').classList.toggle('active', target === 'history');
+    };
+  });
+}
+
+/* ── Remove tag from detail ── */
+async function removeTag(customerId, tag) {
+  try {
+    await apiDelete('/crm/customers/' + customerId + '/tags/' + encodeURIComponent(tag));
+    toast('Tag removed', 'success');
+    viewCustomer(customerId); // Refresh detail
+    loadCustomers(); // Refresh table
+    // Refresh tags
+    allTags = await apiGet('/crm/tags');
+    renderTagFilters();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+/* ── Export (simple CSV) ── */
+function exportCustomers() {
+  if (!customers || customers.length === 0) {
+    toast('No customers to export', 'warning');
+    return;
+  }
+
+  var headers = ['Name', 'Phone', 'Email', 'City', 'Region', 'Priority Score', 'Sentiment Score', 'Reply Rate', 'Tags'];
+  var rows = customers.map(function(c) {
+    return [
+      c.name || '',
+      c.phone || '',
+      c.email || '',
+      c.city || '',
+      c.region || '',
+      c.priority_score || 0,
+      c.avg_sentiment_score || 0,
+      c.reply_rate || 0,
+      (c.tags || []).join('; '),
+    ].map(function(v) {
+      return '"' + String(v).replace(/"/g, '""') + '"';
+    }).join(',');
+  });
+
+  var csv = headers.join(',') + '\n' + rows.join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'crm_customers_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export downloaded', 'success');
+}
+
+/* ── Keyboard: Enter to apply filters ── */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target.closest('.filter-bar')) {
+    applyFilters();
+  }
+});
+</script>
+</body>
+</html>

@@ -150,6 +150,58 @@
       font-size: 0.78rem;
       color: #9CA3AF;
     }
+
+    .lp-divider {
+      display: flex;
+      align-items: center;
+      margin: 1.5rem 0;
+      gap: 0.75rem;
+    }
+    .lp-divider::before,
+    .lp-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #E2E6EA;
+    }
+    .lp-divider span {
+      font-size: 0.78rem;
+      color: #9CA3AF;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .google-btn {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: #fff;
+      color: #3c4043;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+    .google-btn:hover {
+      background: #f8f9fa;
+      border-color: #c6c6c6;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .google-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .google-btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -178,10 +230,18 @@
       <button type="submit" class="lp-btn" id="loginBtn">Log In</button>
     </form>
 
+    <div class="lp-divider"><span>or</span></div>
+
+    <button type="button" class="google-btn" id="googleBtn" disabled>
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Sign in with Google
+    </button>
+
     <div class="lp-footer">&copy; 2026 GeniSearch. All rights reserved.</div>
   </div>
 </div>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const API_BASE = 'https://saaswhatsapp.up.railway.app/api';
 
@@ -200,13 +260,15 @@ function setAuth(token, user) {
   if (getAuth().token) window.location.href = 'index.html';
 })();
 
-var form     = document.getElementById('loginForm');
-var errorEl  = document.getElementById('loginError');
-var loginBtn = document.getElementById('loginBtn');
+var form      = document.getElementById('loginForm');
+var errorEl   = document.getElementById('loginError');
+var loginBtn  = document.getElementById('loginBtn');
+var googleBtn = document.getElementById('googleBtn');
 
 function showError(msg) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
 function hideError() { errorEl.classList.remove('visible'); }
 
+// ── Email / password login ──────────────────────────────────────────────
 form.addEventListener('submit', async function(e) {
   e.preventDefault();
   hideError();
@@ -237,6 +299,71 @@ form.addEventListener('submit', async function(e) {
     loginBtn.textContent = 'Log In';
   }
 });
+
+// ── Google Sign-In ──────────────────────────────────────────────────────
+async function handleGoogleCredential(response) {
+  hideError();
+  googleBtn.disabled = true;
+  googleBtn.textContent = 'Signing in...';
+
+  try {
+    var res = await fetch(API_BASE + '/auth/google/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Google sign-in failed');
+
+    setAuth(data.token, data.user);
+    window.location.href = 'index.html';
+  } catch (err) {
+    showError(err.message || 'Google sign-in failed. Please try again.');
+    googleBtn.disabled = false;
+    googleBtn.innerHTML =
+      '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Sign in with Google';
+  }
+}
+
+// Fetch the Google Client ID from the backend, then initialize GIS
+(async function initGoogleSignIn() {
+  try {
+    var res = await fetch(API_BASE + '/auth/google/client-id');
+    if (!res.ok) return; // Google OAuth not configured — button stays disabled
+
+    var data = await res.json();
+    if (!data.clientId) return;
+
+    // Wait for the GIS script to load
+    function waitForGoogle(cb, retries) {
+      if (typeof google !== 'undefined' && google.accounts) return cb();
+      if (retries <= 0) return;
+      setTimeout(function() { waitForGoogle(cb, retries - 1); }, 200);
+    }
+
+    waitForGoogle(function() {
+      google.accounts.id.initialize({
+        client_id: data.clientId,
+        callback: handleGoogleCredential,
+      });
+
+      // Enable the custom button and wire it to the GIS prompt
+      googleBtn.disabled = false;
+      googleBtn.addEventListener('click', function() {
+        google.accounts.id.prompt(function(notification) {
+          // If One Tap is dismissed or unavailable, fall back to the popup
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            google.accounts.id.prompt(); // second attempt
+          }
+        });
+      });
+    }, 25); // retry up to 5 seconds
+  } catch (e) {
+    // Silently fail — Google button stays disabled
+    console.warn('Google Sign-In init failed:', e);
+  }
+})();
 </script>
 </body>
 </html>

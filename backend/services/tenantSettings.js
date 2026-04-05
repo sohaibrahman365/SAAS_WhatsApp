@@ -116,6 +116,30 @@ async function getYouTubeCredentials(tenantId) {
   };
 }
 
+// Get email/SMTP credentials for a tenant (falls back to platform env vars)
+async function getEmailCredentials(tenantId) {
+  const ts = await getTenantSettings(tenantId);
+  return {
+    smtpHost: ts?.smtp_host || process.env.SMTP_HOST,
+    smtpPort: ts?.smtp_port || process.env.SMTP_PORT || 587,
+    smtpUser: ts?.smtp_user || process.env.SMTP_USER,
+    smtpPass: ts?.smtp_pass || process.env.SMTP_PASS,
+    fromEmail: ts?.smtp_from_email || process.env.SMTP_FROM_EMAIL || 'noreply@genisearch.com',
+    fromName: ts?.smtp_from_name || process.env.SMTP_FROM_NAME || 'GeniSearch',
+    sendgridApiKey: ts?.sendgrid_api_key || process.env.SENDGRID_API_KEY,
+    isConfigured: !!(ts?.smtp_host || ts?.sendgrid_api_key || process.env.SMTP_HOST || process.env.SENDGRID_API_KEY),
+  };
+}
+
+// Get default alert recipients from tenant_settings
+async function getAlertConfig(tenantId) {
+  const ts = await getTenantSettings(tenantId);
+  return {
+    phones: ts?.alert_phones || [],
+    emails: ts?.alert_emails || [],
+  };
+}
+
 module.exports = {
   getTenantSettings,
   clearCache,
@@ -126,4 +150,6 @@ module.exports = {
   getTikTokCredentials,
   getGoogleCredentials,
   getYouTubeCredentials,
+  getEmailCredentials,
+  getAlertConfig,
 };

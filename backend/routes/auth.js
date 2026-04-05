@@ -10,7 +10,11 @@ const router     = express.Router();
 const JWT_SECRET  = process.env.JWT_SECRET;
 const JWT_EXPIRES = '7d';
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_CALLBACK_URL
+);
 
 function makeToken(user) {
   return jwt.sign(
@@ -263,8 +267,8 @@ router.get('/google/callback', async (req, res, next) => {
     const jwtToken = makeToken(user);
 
     // Redirect to frontend with token in URL hash
-    const frontendBase = process.env.FRONTEND_URL || 'https://ozgroup.github.io/SAAS_WhatsApp';
-    res.redirect(`${frontendBase}/index.html#token=${jwtToken}`);
+    const frontendBase = process.env.FRONTEND_URL || 'https://sohaibrahman365.github.io/SAAS_WhatsApp';
+    res.redirect(`${frontendBase}/login.html#token=${jwtToken}`);
   } catch (err) {
     next(err);
   }

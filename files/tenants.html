@@ -364,7 +364,13 @@ async function saveTenant() {
         var settingsBody = {};
         if (metaCatalog) settingsBody.meta_catalog_id = metaCatalog;
         if (metaToken) settingsBody.meta_access_token = metaToken;
-        if (metaPage) settingsBody.meta_page_id = metaPage;
+        // Use hidden meta_page field if set by auto-discovery, otherwise extract from FB URL
+        if (metaPage) {
+          settingsBody.meta_page_id = metaPage;
+        } else if (fbUrl) {
+          var pageSlug = fbUrl.replace(/https?:\/\/(www\.)?facebook\.com\//i, '').replace(/\/+$/, '');
+          if (pageSlug) settingsBody.meta_page_id = pageSlug;
+        }
         if (body.website_url) settingsBody.business_domain = body.website_url;
         settingsBody.ai_reply_tone = aiTone;
         if (aiIndustry) settingsBody.ai_industry = aiIndustry;

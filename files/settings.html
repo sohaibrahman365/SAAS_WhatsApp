@@ -214,6 +214,7 @@ async function renderSettings() {
     if (isSuperAdmin) {
       tenantsTab = '<button class="tab" data-tab="tenants">Tenants</button>';
     }
+    const platformTab = isSuperAdmin ? '<button class="tab" data-tab="platform">Platform Master</button>' : '';
 
     page.innerHTML =
       '<div class="page-header"><div class="page-header-left"><h1>Settings</h1></div></div>' +
@@ -222,6 +223,7 @@ async function renderSettings() {
         '<div class="tabs">' +
           '<button class="tab active" data-tab="profile">Profile</button>' +
           '<button class="tab" data-tab="api">API Configuration</button>' +
+          platformTab +
           teamTab +
           tenantsTab +
         '</div>' +
@@ -254,6 +256,9 @@ async function renderSettings() {
         '<!-- API Configuration Tab -->' +
         '<div data-panel="api" style="display:none" id="apiPanel"><div class="loading-spinner">Loading configuration...</div></div>' +
 
+        '<!-- Platform Master Tab -->' +
+        (isSuperAdmin ? '<div data-panel="platform" style="display:none" id="platformPanel"><div class="loading-spinner">Loading platform config...</div></div>' : '') +
+
         '<!-- Team Tab -->' +
         (isAdmin ? '<div data-panel="team" style="display:none" id="teamPanel"><div class="loading-spinner">Loading team...</div></div>' : '') +
 
@@ -270,6 +275,7 @@ async function renderSettings() {
     if (isSuperAdmin) {
       loadTenantsList();
       loadTenants();
+      loadPlatformConfig();
     }
     if (isAdmin) {
       loadTeam();
@@ -315,9 +321,15 @@ async function loadApiConfig(tenantId) {
 
     tenantSettingsData = settings || {};
 
-    const wa = statusData.whatsapp || statusData.wa || { configured: false, stub_mode: true, source: 'none' };
-    const ai = statusData.ai || statusData.claude || { configured: false, stub_mode: true, source: 'none' };
-    const n8n = statusData.n8n || statusData.webhooks || { configured: false, stub_mode: true, source: 'none' };
+    const wa = statusData.whatsapp || { configured: false, source: 'none' };
+    const ai = statusData.ai || { configured: false, source: 'none' };
+    const n8n = statusData.n8n || statusData.webhooks || { configured: false, source: 'none' };
+    const meta = statusData.meta || { configured: false, source: 'none' };
+    const tiktok = statusData.tiktok || { configured: false, source: 'none' };
+    const google = statusData.google || { configured: false, source: 'none' };
+    const youtube = statusData.youtube || { configured: false, source: 'none' };
+    const instagram = statusData.instagram || { configured: false, source: 'none' };
+    const snapchat = statusData.snapchat || { configured: false, source: 'none' };
 
     // Tenant selector for super_admin
     let tenantSelector = '';
@@ -355,6 +367,16 @@ async function loadApiConfig(tenantId) {
           '<div class="mt-2">' + (n8n.configured ? '<span class="badge badge-success badge-dot">Connected</span>' : '<span class="badge badge-warning badge-dot">Stub Mode</span>') + '</div>' +
           sourceBadge(n8n.source) +
         '</div></div>' +
+      '</div>' +
+
+      // Social media status row
+      '<div class="grid-3 mb-3" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">' +
+        statusMini('META', meta, '&#127760;') +
+        statusMini('TikTok', tiktok, '&#127916;') +
+        statusMini('Google', google, '&#128270;') +
+        statusMini('YouTube', youtube, '&#9654;&#65039;') +
+        statusMini('Instagram', instagram, '&#128247;') +
+        statusMini('Snapchat', snapchat, '&#128123;') +
       '</div>';
 
     // Configuration form (accordions)
@@ -487,6 +509,83 @@ async function loadApiConfig(tenantId) {
             '</div></div>' +
           '</div>' +
 
+          // META / Facebook / Instagram
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>META (Facebook / Instagram)</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">Connect your Facebook Page and Instagram Business account. The META access token is used for product catalog import, page insights, and Instagram messaging.</p>' +
+              '<div class="form-group"><label>META Access Token</label>' + passwordInput('cfgMetaToken', 'Facebook/Meta access token', s.meta_access_token) + '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Facebook Page ID</label><input id="cfgMetaPageId" class="form-control" placeholder="e.g. 123456789" value="' + escapeHtml(s.meta_page_id || '') + '"></div>' +
+                '<div class="form-group"><label>META Catalog ID</label><input id="cfgMetaCatalogId" class="form-control" placeholder="Product catalog ID" value="' + escapeHtml(s.meta_catalog_id || '') + '"></div>' +
+              '</div>' +
+              '<div class="form-group"><label>Instagram Business ID</label><input id="cfgInstaId" class="form-control" placeholder="Instagram business account ID" value="' + escapeHtml(s.instagram_business_id || '') + '"></div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveMeta()">Save META Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+          // TikTok
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>TikTok Shop</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">Connect your TikTok Shop to sync product catalogs and track ad performance via the TikTok pixel.</p>' +
+              '<div class="form-group"><label>TikTok Access Token</label>' + passwordInput('cfgTikTokToken', 'TikTok API access token', s.tiktok_access_token) + '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>TikTok Shop ID</label><input id="cfgTikTokShop" class="form-control" placeholder="Your TikTok Shop ID" value="' + escapeHtml(s.tiktok_shop_id || '') + '"></div>' +
+                '<div class="form-group"><label>TikTok Pixel ID</label><input id="cfgTikTokPixel" class="form-control" placeholder="Ad tracking pixel" value="' + escapeHtml(s.tiktok_pixel_id || '') + '"></div>' +
+              '</div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveTikTok()">Save TikTok Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+          // Google Business / Ads
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>Google Business / Ads</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">Connect Google services for business reviews, ad campaigns, and analytics tracking.</p>' +
+              '<div class="form-group"><label>Google API Key</label>' + passwordInput('cfgGoogleKey', 'Google API key', s.google_api_key) + '</div>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>Google My Business ID</label><input id="cfgGoogleBiz" class="form-control" placeholder="GMB location ID" value="' + escapeHtml(s.google_my_business_id || '') + '"></div>' +
+                '<div class="form-group"><label>Google Ads Customer ID</label><input id="cfgGoogleAds" class="form-control" placeholder="e.g. 123-456-7890" value="' + escapeHtml(s.google_ads_customer_id || '') + '"></div>' +
+              '</div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveGoogle()">Save Google Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+          // YouTube
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>YouTube</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">Link your YouTube channel for product video analytics and content syndication.</p>' +
+              '<div class="form-row">' +
+                '<div class="form-group"><label>YouTube Channel ID</label><input id="cfgYtChannel" class="form-control" placeholder="e.g. UCxxxxxxxxxx" value="' + escapeHtml(s.youtube_channel_id || '') + '"></div>' +
+                '<div class="form-group"><label>YouTube API Key</label>' + passwordInput('cfgYtKey', 'YouTube Data API key', s.youtube_api_key) + '</div>' +
+              '</div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveYouTube()">Save YouTube Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
+          // Snapchat
+          '<div class="accordion">' +
+            '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+              '<span>Snapchat Ads</span>' + chevronSVG +
+            '</div>' +
+            '<div class="accordion-body"><div class="accordion-content">' +
+              '<p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">Connect your Snapchat Ads account for cross-platform ad campaign management.</p>' +
+              '<div class="form-group"><label>Snapchat Access Token</label>' + passwordInput('cfgSnapToken', 'Snapchat API token', s.snapchat_access_token) + '</div>' +
+              '<div class="form-group"><label>Snapchat Ad Account ID</label><input id="cfgSnapAdAcct" class="form-control" placeholder="Ad account ID" value="' + escapeHtml(s.snapchat_ad_account_id || '') + '"></div>' +
+              '<div class="section-save"><button class="btn btn-primary" onclick="saveSnapchat()">Save Snapchat Settings</button></div>' +
+            '</div></div>' +
+          '</div>' +
+
         '</div>' +
       '</div>';
 
@@ -495,6 +594,12 @@ async function loadApiConfig(tenantId) {
   } catch (e) {
     panel.innerHTML = '<div class="empty-state"><p>' + escapeHtml(e.message) + '</p><button class="btn btn-primary mt-2" onclick="loadApiConfig()">Retry</button></div>';
   }
+}
+
+/* ── Mini status card for social integrations ── */
+function statusMini(label, data, icon) {
+  const dot = data.configured ? '<span class="badge badge-success badge-dot" style="font-size:.65rem">On</span>' : '<span class="badge badge-warning badge-dot" style="font-size:.65rem">Off</span>';
+  return '<div class="card" style="padding:12px;text-align:center"><div style="font-size:1.4rem;margin-bottom:4px">' + icon + '</div><div style="font-weight:600;font-size:.82rem">' + label + '</div><div style="margin-top:4px">' + dot + '</div></div>';
 }
 
 function onTenantSwitch() {
@@ -607,6 +712,217 @@ async function saveBusinessInfo() {
     await apiPatch('/tenant-settings' + buildTenantParam(), body);
     toast('Business info saved', 'success');
     loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+/* ── Social Media Save Handlers ── */
+
+async function saveMeta() {
+  const body = {};
+  const token = getField('cfgMetaToken');
+  const page = getField('cfgMetaPageId');
+  const catalog = getField('cfgMetaCatalogId');
+  const insta = getField('cfgInstaId');
+  if (token !== undefined) body.meta_access_token = token;
+  if (page !== undefined) body.meta_page_id = page;
+  if (catalog !== undefined) body.meta_catalog_id = catalog;
+  if (insta !== undefined) body.instagram_business_id = insta;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('META settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function saveTikTok() {
+  const body = {};
+  const token = getField('cfgTikTokToken');
+  const shop = getField('cfgTikTokShop');
+  const pixel = getField('cfgTikTokPixel');
+  if (token !== undefined) body.tiktok_access_token = token;
+  if (shop !== undefined) body.tiktok_shop_id = shop;
+  if (pixel !== undefined) body.tiktok_pixel_id = pixel;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('TikTok settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function saveGoogle() {
+  const body = {};
+  const key = getField('cfgGoogleKey');
+  const biz = getField('cfgGoogleBiz');
+  const ads = getField('cfgGoogleAds');
+  if (key !== undefined) body.google_api_key = key;
+  if (biz !== undefined) body.google_my_business_id = biz;
+  if (ads !== undefined) body.google_ads_customer_id = ads;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('Google settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function saveYouTube() {
+  const body = {};
+  const channel = getField('cfgYtChannel');
+  const key = getField('cfgYtKey');
+  if (channel !== undefined) body.youtube_channel_id = channel;
+  if (key !== undefined) body.youtube_api_key = key;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('YouTube settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function saveSnapchat() {
+  const body = {};
+  const token = getField('cfgSnapToken');
+  const acct = getField('cfgSnapAdAcct');
+  if (token !== undefined) body.snapchat_access_token = token;
+  if (acct !== undefined) body.snapchat_ad_account_id = acct;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    await apiPatch('/tenant-settings' + buildTenantParam(), body);
+    toast('Snapchat settings saved', 'success');
+    loadApiConfig(selectedTenantId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+/* ============================================================
+   PLATFORM MASTER CONFIG (super_admin only)
+   ============================================================ */
+
+async function loadPlatformConfig() {
+  const panel = document.getElementById('platformPanel');
+  if (!panel) return;
+
+  try {
+    const [config, health] = await Promise.all([
+      apiGet('/platform/config'),
+      apiGet('/platform/health').catch(() => ({ checks: {} })),
+    ]);
+
+    const m = config.master;
+    const c = health.checks || {};
+
+    function envRow(label, data, healthKey) {
+      const dot = data.set || data.configured
+        ? '<span class="badge badge-success badge-dot">Set</span>'
+        : '<span class="badge badge-danger badge-dot">Missing</span>';
+      const val = data.value || '';
+      let healthDot = '';
+      if (healthKey && c[healthKey]) {
+        const h = c[healthKey];
+        healthDot = h.status === 'ok'
+          ? ' <span class="badge badge-success" style="font-size:.65rem">Live</span>'
+          : h.status === 'not_configured'
+            ? ''
+            : ' <span class="badge badge-danger" style="font-size:.65rem">Error</span>';
+      }
+      return '<tr><td class="fw-600">' + escapeHtml(label) + '</td><td>' + dot + healthDot + '</td><td style="font-family:monospace;font-size:.8rem;color:var(--text-secondary)">' + escapeHtml(val) + '</td></tr>';
+    }
+
+    const masterTable =
+      '<div class="card mb-3">' +
+        '<div class="card-header"><h3>Master-Level Integrations (Platform .env)</h3></div>' +
+        '<div class="card-body">' +
+          '<p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:1rem">These are <strong>SaaS platform-level</strong> API keys. You (the platform owner) pay for these. All tenants share these unless they provide their own override.</p>' +
+          '<div class="table-wrap"><table>' +
+            '<thead><tr><th>Service</th><th>Status</th><th>Value</th></tr></thead>' +
+            '<tbody>' +
+              envRow('Database', m.database, null) +
+              envRow('JWT Auth', m.auth, null) +
+              envRow('Anthropic API Key', m.anthropic, 'anthropic') +
+              envRow('WhatsApp Token', m.whatsapp.token, 'whatsapp') +
+              envRow('WhatsApp Phone ID', m.whatsapp.phoneNumberId, null) +
+              envRow('WhatsApp Webhook Verify', m.whatsapp.webhookVerify, null) +
+              envRow('n8n Webhook URL', m.n8n, 'n8n') +
+              envRow('Google OAuth Client ID', m.google_oauth.clientId, null) +
+              envRow('CORS Origin', m.cors, null) +
+            '</tbody>' +
+          '</table></div>' +
+        '</div>' +
+      '</div>';
+
+    // Runtime env updater
+    const envForm =
+      '<div class="card mb-3">' +
+        '<div class="card-header"><h3>Update Master Keys (Runtime)</h3></div>' +
+        '<div class="card-body">' +
+          '<p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:1rem">Update platform-level API keys at runtime. <strong>For persistence across deploys</strong>, also set these on Railway.</p>' +
+          '<div class="form-group"><label>Anthropic API Key</label>' + passwordInput('platAnthropic', 'sk-ant-api03-...', '') + '</div>' +
+          '<div class="form-row">' +
+            '<div class="form-group"><label>WhatsApp API Token</label>' + passwordInput('platWaToken', 'WhatsApp Cloud API token', '') + '</div>' +
+            '<div class="form-group"><label>WhatsApp Phone Number ID</label><input id="platWaPhone" class="form-control" placeholder="e.g. 1234567890"></div>' +
+          '</div>' +
+          '<div class="form-group"><label>n8n Webhook URL</label><input id="platN8n" class="form-control" placeholder="https://your-n8n.example.com/webhook/..."></div>' +
+          '<div class="form-group"><label>CORS Origin</label><input id="platCors" class="form-control" placeholder="https://yourfrontend.github.io" value="' + escapeHtml(m.cors.value || '') + '"></div>' +
+          '<div class="section-save"><button class="btn btn-primary" onclick="savePlatformEnv()">Update Runtime Config</button> <button class="btn btn-secondary" onclick="testPlatformHealth()">Test Connections</button></div>' +
+        '</div>' +
+      '</div>';
+
+    // Tenant integrations reference
+    const tenantRef =
+      '<div class="card">' +
+        '<div class="card-header"><h3>Tenant-Level Integrations (Each Business)</h3></div>' +
+        '<div class="card-body">' +
+          '<p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:1rem">Each tenant connects their own accounts via <strong>Settings > API Configuration</strong>. These are managed per-tenant, not at the platform level.</p>' +
+          '<div class="table-wrap"><table>' +
+            '<thead><tr><th>Integration</th><th>Fields</th><th>Purpose</th></tr></thead>' +
+            '<tbody>' +
+              config.tenant_integrations.map(function(t) {
+                return '<tr><td class="fw-600">' + escapeHtml(t.label) + '</td><td style="font-family:monospace;font-size:.78rem">' + t.fields.join(', ') + '</td><td style="font-size:.82rem;color:var(--text-secondary)">' + escapeHtml(t.note) + '</td></tr>';
+              }).join('') +
+            '</tbody>' +
+          '</table></div>' +
+        '</div>' +
+      '</div>';
+
+    panel.innerHTML = masterTable + envForm + tenantRef;
+
+  } catch (e) {
+    panel.innerHTML = '<div class="empty-state"><p>' + escapeHtml(e.message) + '</p><button class="btn btn-primary mt-2" onclick="loadPlatformConfig()">Retry</button></div>';
+  }
+}
+
+async function savePlatformEnv() {
+  const body = {};
+  const ak = getField('platAnthropic');
+  const waT = getField('platWaToken');
+  const waP = getField('platWaPhone');
+  const n8n = getField('platN8n');
+  const cors = getField('platCors');
+  if (ak) body.ANTHROPIC_API_KEY = ak;
+  if (waT) body.WHATSAPP_API_TOKEN = waT;
+  if (waP) body.WHATSAPP_PHONE_NUMBER_ID = waP;
+  if (n8n) body.N8N_WEBHOOK_URL = n8n;
+  if (cors) body.CORS_ORIGIN = cors;
+  if (Object.keys(body).length === 0) { toast('No changes to save', 'warning'); return; }
+  try {
+    const result = await apiPut('/platform/env', body);
+    toast('Updated: ' + result.updated.join(', ') + '. Remember to set on Railway for persistence.', 'success');
+    loadPlatformConfig();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function testPlatformHealth() {
+  toast('Testing connections...', 'info');
+  try {
+    const health = await apiGet('/platform/health');
+    const checks = health.checks || {};
+    let msg = '';
+    for (const [key, val] of Object.entries(checks)) {
+      msg += key + ': ' + val.status + (val.name ? ' (' + val.name + ')' : '') + '  ';
+    }
+    toast(msg || 'Health check complete', checks.anthropic?.status === 'ok' ? 'success' : 'warning');
+    loadPlatformConfig();
   } catch (e) { toast(e.message, 'error'); }
 }
 

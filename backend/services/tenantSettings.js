@@ -71,10 +71,59 @@ async function getWebhookCredentials(tenantId) {
   };
 }
 
+// Get META/Facebook credentials for a tenant
+async function getMetaCredentials(tenantId) {
+  const ts = await getTenantSettings(tenantId);
+  return {
+    accessToken: ts?.meta_access_token || '',
+    pageId: ts?.meta_page_id || '',
+    catalogId: ts?.meta_catalog_id || '',
+    instagramBusinessId: ts?.instagram_business_id || '',
+    isConfigured: !!(ts?.meta_access_token),
+  };
+}
+
+// Get TikTok credentials for a tenant
+async function getTikTokCredentials(tenantId) {
+  const ts = await getTenantSettings(tenantId);
+  return {
+    accessToken: ts?.tiktok_access_token || '',
+    shopId: ts?.tiktok_shop_id || '',
+    pixelId: ts?.tiktok_pixel_id || '',
+    isConfigured: !!(ts?.tiktok_access_token),
+  };
+}
+
+// Get Google credentials for a tenant
+async function getGoogleCredentials(tenantId) {
+  const ts = await getTenantSettings(tenantId);
+  return {
+    apiKey: ts?.google_api_key || '',
+    myBusinessId: ts?.google_my_business_id || '',
+    adsCustomerId: ts?.google_ads_customer_id || '',
+    analyticsId: ts?.google_analytics_id || '',
+    isConfigured: !!(ts?.google_api_key || ts?.google_my_business_id),
+  };
+}
+
+// Get YouTube credentials for a tenant
+async function getYouTubeCredentials(tenantId) {
+  const ts = await getTenantSettings(tenantId);
+  return {
+    channelId: ts?.youtube_channel_id || '',
+    apiKey: ts?.youtube_api_key || '',
+    isConfigured: !!(ts?.youtube_api_key),
+  };
+}
+
 module.exports = {
   getTenantSettings,
   clearCache,
   getWhatsAppCredentials,
   getAICredentials,
   getWebhookCredentials,
+  getMetaCredentials,
+  getTikTokCredentials,
+  getGoogleCredentials,
+  getYouTubeCredentials,
 };

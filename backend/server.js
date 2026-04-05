@@ -51,6 +51,9 @@ app.use('/api/roles', require('./routes/roles').router);
 // Phase 10 — Product Imports (scrape, upload, META)
 app.use('/api/product-imports', require('./routes/productImports'));
 
+// Phase 11 — Platform Config (super_admin master-level settings)
+app.use('/api/platform', require('./routes/platformConfig'));
+
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

@@ -2,6 +2,8 @@ const express = require('express');
 const pool    = require('../config/db');
 const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 const { resolveTenantId } = require('../middleware/tenantScope');
+const { enforceCustomerLimit } = require('../middleware/planLimits');
+const { auditAction } = require('../middleware/audit');
 
 const router = express.Router();
 
@@ -29,7 +31,7 @@ router.get('/', requireAuth, requirePermission('customers', 'view'), async (req,
 });
 
 // POST /api/customers
-router.post('/', requireAuth, requirePermission('customers', 'create'), async (req, res, next) => {
+router.post('/', requireAuth, requirePermission('customers', 'create'), enforceCustomerLimit, auditAction('create', 'customer'), async (req, res, next) => {
   try {
     const tenantId = resolveTenantId(req) || req.body.tenantId;
     if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });

@@ -60,6 +60,9 @@ app.use('/api/platform', require('./routes/platformConfig'));
 // Phase 13 — Alerts & Notifications
 app.use('/api/alerts', require('./routes/alerts'));
 
+// Phase 14 — Usage, Plan Limits & Audit Trail
+app.use('/api/usage', require('./routes/usage'));
+
 // ── 404 ───────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

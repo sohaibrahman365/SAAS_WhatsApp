@@ -1,6 +1,7 @@
 const express = require('express');
 const pool    = require('../config/db');
 const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
+const { requireFeature } = require('../middleware/planLimits');
 
 const router = express.Router();
 
@@ -126,7 +127,7 @@ router.get('/tenant/:tenantId/dashboard', requireAuth, requirePermission('analyt
 // Level 3 — Product Dashboard
 // GET /api/bi/product/:productId/dashboard
 // ═══════════════════════════════════════════════════════════════
-router.get('/product/:productId/dashboard', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
+router.get('/product/:productId/dashboard', requireAuth, requirePermission('analytics', 'view'), requireFeature('bi_drilldown'), async (req, res, next) => {
   try {
     const { rows: products } = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.productId]);
     if (!products[0]) return res.status(404).json({ error: 'Product not found' });
@@ -166,7 +167,7 @@ router.get('/product/:productId/dashboard', requireAuth, requirePermission('anal
 // Level 4 — Campaign Dashboard
 // GET /api/bi/campaign/:campaignId/dashboard
 // ═══════════════════════════════════════════════════════════════
-router.get('/campaign/:campaignId/dashboard', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
+router.get('/campaign/:campaignId/dashboard', requireAuth, requirePermission('analytics', 'view'), requireFeature('bi_drilldown'), async (req, res, next) => {
   try {
     const { rows: campaigns } = await pool.query(
       `SELECT c.*, p.name AS product_name
@@ -242,7 +243,7 @@ router.get('/campaign/:campaignId/dashboard', requireAuth, requirePermission('an
 // Level 5 — Response Detail
 // GET /api/bi/response/:responseId
 // ═══════════════════════════════════════════════════════════════
-router.get('/response/:responseId', requireAuth, requirePermission('analytics', 'view'), async (req, res, next) => {
+router.get('/response/:responseId', requireAuth, requirePermission('analytics', 'view'), requireFeature('bi_drilldown'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
       SELECT crp.*,

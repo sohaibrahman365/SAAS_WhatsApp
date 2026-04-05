@@ -3,6 +3,9 @@ const pool    = require('../config/db');
 const { requireAuth, requirePermission } = require('../middleware/auth');
 const { resolveTenantId } = require('../middleware/tenantScope');
 const { sendTextMessage, personalizeMessage } = require('../services/whatsapp');
+const { requireFeature, enforceMessageLimit } = require('../middleware/planLimits');
+const { auditAction } = require('../middleware/audit');
+const { incrementUsage } = require('../services/planLimits');
 
 const router = express.Router();
 
@@ -349,7 +352,7 @@ router.delete('/customers/:id/tags/:tag', requireAuth, requirePermission('crm', 
 });
 
 // ── POST /api/crm/bulk/whatsapp — Bulk WhatsApp send ──
-router.post('/bulk/whatsapp', requireAuth, requirePermission('crm', 'edit'), async (req, res, next) => {
+router.post('/bulk/whatsapp', requireAuth, requirePermission('crm', 'edit'), requireFeature('bulk_messaging'), enforceMessageLimit, auditAction('bulk_send', 'crm'), async (req, res, next) => {
   try {
     const tenantId = resolveTenantId(req);
     if (!tenantId) return res.status(400).json({ error: 'No tenant assigned' });
@@ -387,6 +390,13 @@ router.post('/bulk/whatsapp', requireAuth, requirePermission('crm', 'edit'), asy
       } catch (e) {
         failed++;
         results.push({ id: cust.id, name: cust.name, status: 'failed', error: e.message });
+      }
+    }
+
+    // Track usage
+    if (sent > 0) {
+      for (let i = 0; i < sent; i++) {
+        incrementUsage(tenantId, 'wa_messages').catch(() => {});
       }
     }
 

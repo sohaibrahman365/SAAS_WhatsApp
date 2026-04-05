@@ -4,6 +4,8 @@ const pool    = require('../config/db');
 const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 const { resolveTenantId } = require('../middleware/tenantScope');
 const { ROLES, ASSIGNABLE_ROLES } = require('../constants/roles');
+const { enforceTeamLimit } = require('../middleware/planLimits');
+const { auditAction } = require('../middleware/audit');
 
 const router = express.Router();
 
@@ -50,7 +52,7 @@ router.get('/', requireAuth, requirePermission('team', 'view'), async (req, res,
 
 // ── POST /api/team/invite ───────────────────────────────────
 // Invite a new team member to the tenant
-router.post('/invite', requireAuth, requirePermission('team', 'invite'), async (req, res, next) => {
+router.post('/invite', requireAuth, requirePermission('team', 'invite'), enforceTeamLimit, auditAction('invite', 'team'), async (req, res, next) => {
   try {
     const tenantId = resolveTenantId(req);
     if (!tenantId) return res.status(400).json({ error: 'No tenant context' });

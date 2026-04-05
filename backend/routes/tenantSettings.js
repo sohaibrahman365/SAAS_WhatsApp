@@ -3,6 +3,7 @@ const pool    = require('../config/db');
 const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 const { resolveTenantId } = require('../middleware/tenantScope');
 const { clearCache } = require('../services/tenantSettings');
+const { auditAction } = require('../middleware/audit');
 
 const router = express.Router();
 
@@ -120,8 +121,8 @@ const upsertHandler = async (req, res, next) => {
     next(err);
   }
 };
-router.put('/', requireAuth, requirePermission('settings', 'edit'), upsertHandler);
-router.patch('/', requireAuth, requirePermission('settings', 'edit'), upsertHandler);
+router.put('/', requireAuth, requirePermission('settings', 'edit'), auditAction('update', 'settings'), upsertHandler);
+router.patch('/', requireAuth, requirePermission('settings', 'edit'), auditAction('update', 'settings'), upsertHandler);
 
 // ── GET /api/tenant-settings/status ─────────────────────────
 // Quick status check: which integrations are configured for this tenant?

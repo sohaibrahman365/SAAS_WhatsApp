@@ -5,6 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const pool    = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { getUserPermissions } = require('./roles');
+const { logAudit } = require('../middleware/audit');
 
 const router     = express.Router();
 const JWT_SECRET  = process.env.JWT_SECRET;
@@ -46,6 +47,8 @@ router.post('/login', async (req, res, next) => {
     if (!valid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    logAudit({ tenantId: user.tenant_id, userId: user.id, userEmail: user.email, action: 'login', resource: 'auth', details: { method: 'password' }, req });
 
     res.json({
       token: makeToken(user),
@@ -191,6 +194,8 @@ router.post('/google/token', async (req, res, next) => {
       email: payload.email,
       name: payload.name || payload.email,
     });
+
+    logAudit({ tenantId: user.tenant_id, userId: user.id, userEmail: user.email, action: 'login', resource: 'auth', details: { method: 'google' }, req });
 
     res.json({
       token: makeToken(user),

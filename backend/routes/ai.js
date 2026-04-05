@@ -2,6 +2,9 @@ const express = require('express');
 const pool    = require('../config/db');
 const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 const { analyzeResponse, isStubMode } = require('../services/ai');
+const { enforceAILimit } = require('../middleware/planLimits');
+const { incrementUsage } = require('../services/planLimits');
+const { resolveTenantId } = require('../middleware/tenantScope');
 
 const router = express.Router();
 
@@ -15,7 +18,7 @@ router.get('/status', requireAuth, requirePermission('ai', 'view'), (req, res) =
 
 // POST /api/ai/analyze — manually analyze a text
 // Body: { text, campaignId? }
-router.post('/analyze', requireAuth, requirePermission('ai', 'analyze'), async (req, res, next) => {
+router.post('/analyze', requireAuth, requirePermission('ai', 'analyze'), enforceAILimit, async (req, res, next) => {
   try {
     const { text, campaignId } = req.body;
     if (!text) return res.status(400).json({ error: 'text is required' });
@@ -39,6 +42,8 @@ router.post('/analyze', requireAuth, requirePermission('ai', 'analyze'), async (
     }
 
     const analysis = await analyzeResponse(text, campaignContext);
+    const tenantId = resolveTenantId(req);
+    if (tenantId) incrementUsage(tenantId, 'ai_calls').catch(() => {});
     res.json({ stub: isStubMode(), analysis });
   } catch (err) {
     next(err);
@@ -46,7 +51,7 @@ router.post('/analyze', requireAuth, requirePermission('ai', 'analyze'), async (
 });
 
 // POST /api/ai/analyze-response/:responseId — analyze an existing campaign_response row
-router.post('/analyze-response/:responseId', requireAuth, requirePermission('ai', 'analyze'), async (req, res, next) => {
+router.post('/analyze-response/:responseId', requireAuth, requirePermission('ai', 'analyze'), enforceAILimit, async (req, res, next) => {
   try {
     const { rows: responses } = await pool.query(
       `SELECT cr.response_text, cr.campaign_id,
@@ -99,7 +104,7 @@ router.post('/analyze-response/:responseId', requireAuth, requirePermission('ai'
 });
 
 // POST /api/ai/bulk-analyze/:campaignId — analyze all unanalyzed responses for a campaign
-router.post('/bulk-analyze/:campaignId', requireAuth, requirePermission('ai', 'analyze'), async (req, res, next) => {
+router.post('/bulk-analyze/:campaignId', requireAuth, requirePermission('ai', 'analyze'), enforceAILimit, async (req, res, next) => {
   try {
     const { rows: responses } = await pool.query(
       `SELECT cr.id, cr.response_text, c.name AS campaign_name, c.message_template, p.name AS product_name

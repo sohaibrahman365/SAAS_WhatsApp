@@ -3,6 +3,9 @@ const pool    = require('../config/db');
 const { requireAuth, requireRole, requirePermission } = require('../middleware/auth');
 const { resolveTenantId } = require('../middleware/tenantScope');
 const { sendTextMessage, personalizeMessage } = require('../services/whatsapp');
+const { enforceCampaignLimit, enforceMessageLimit } = require('../middleware/planLimits');
+const { auditAction } = require('../middleware/audit');
+const { incrementUsage } = require('../services/planLimits');
 
 const router = express.Router();
 
@@ -30,7 +33,7 @@ router.get('/', requireAuth, requirePermission('campaigns', 'view'), async (req,
 });
 
 // POST /api/campaigns
-router.post('/', requireAuth, requirePermission('campaigns', 'create'), async (req, res, next) => {
+router.post('/', requireAuth, requirePermission('campaigns', 'create'), enforceCampaignLimit, auditAction('create', 'campaign'), async (req, res, next) => {
   try {
     const tenantId = resolveTenantId(req) || req.body.tenantId;
     if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
@@ -132,7 +135,7 @@ router.patch('/:id/status', requireAuth, requirePermission('campaigns', 'edit'),
 
 // POST /api/campaigns/:id/launch
 // Finds all matching customers, sends WhatsApp messages, creates recipient rows
-router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch'), async (req, res, next) => {
+router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch'), enforceMessageLimit, auditAction('launch', 'campaign', { getResourceId: (req) => req.params.id }), async (req, res, next) => {
   try {
     const tenantId = resolveTenantId(req);
 
@@ -217,6 +220,14 @@ router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch')
     }
 
     await pool.query('UPDATE campaigns SET sent_count = $1 WHERE id = $2', [sent, campaign.id]);
+
+    // Track usage (fire-and-forget)
+    if (sent > 0) {
+      for (let i = 0; i < sent; i++) {
+        incrementUsage(campaign.tenant_id, 'wa_messages').catch(() => {});
+      }
+      incrementUsage(campaign.tenant_id, 'campaigns_created').catch(() => {});
+    }
 
     // Trigger campaign_complete alert (fire-and-forget)
     const { checkAndSendAlert } = require('../services/alerts');

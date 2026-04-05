@@ -371,7 +371,7 @@ async function saveTenant() {
         if (aiPrompt) settingsBody.ai_prompt_context = aiPrompt;
         if (aiSamples) settingsBody.ai_sample_replies = aiSamples;
         await apiPut('/tenant-settings?tenantId=' + tenantId, settingsBody);
-      } catch(e) { console.error('Settings save:', e); }
+      } catch(e) { toast('Settings save failed: ' + e.message, 'error'); }
     }
 
     // Run website scrape + META discovery in parallel (they're independent)

@@ -54,6 +54,8 @@ const upsertHandler = async (req, res, next) => {
     const fields = [
       'whatsapp_api_token', 'whatsapp_phone_number_id', 'whatsapp_verify_token', 'whatsapp_business_name',
       'anthropic_api_key', 'ai_prompt_context', 'ai_model',
+      'ai_reply_tone', 'ai_industry', 'ai_target_audience', 'ai_sample_replies',
+      'ai_business_semantics', 'business_webpage_url', 'business_knowledge_base',
       'n8n_webhook_url',
       'business_domain', 'business_logo_url', 'business_description',
       'meta_page_id', 'meta_catalog_id', 'meta_access_token', 'google_analytics_id',
@@ -74,6 +76,8 @@ const upsertHandler = async (req, res, next) => {
     // Text fields that accept empty-string updates (free-text content)
     const textFields = new Set([
       'ai_prompt_context', 'business_description',
+      'ai_sample_replies', 'ai_business_semantics', 'business_knowledge_base',
+      'ai_target_audience',
     ]);
 
     // JSONB fields that need JSON.stringify

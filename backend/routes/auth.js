@@ -60,9 +60,10 @@ router.post('/login', async (req, res, next) => {
 });
 
 // POST /api/auth/register — create account and set password
+// New tenants: pass businessName to auto-create a tenant and become its admin
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, password, name, tenantId } = req.body;
+    const { email, password, name, tenantId, businessName } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'email, password, and name are required' });
     }
@@ -75,14 +76,30 @@ router.post('/register', async (req, res, next) => {
 
     const isSuperAdmin =
       normalizedEmail === (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase();
-    const role = isSuperAdmin ? 'super_admin' : tenantId ? 'admin' : 'analyst';
+
+    let effectiveTenantId = tenantId || null;
+    let role = isSuperAdmin ? 'super_admin' : tenantId ? 'admin' : 'analyst';
+
+    // Auto-create tenant for new business signups
+    if (!isSuperAdmin && !tenantId && businessName) {
+      const { rows: tenantRows } = await pool.query(
+        `INSERT INTO tenants (name, email, plan, status)
+         VALUES ($1, $2, 'starter', 'active')
+         ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+         RETURNING id`,
+        [businessName.trim(), normalizedEmail]
+      );
+      effectiveTenantId = tenantRows[0].id;
+      role = 'admin';
+    }
 
     const { rows } = await pool.query(
       `INSERT INTO users (email, name, password_hash, role, tenant_id)
        VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name
+       ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name,
+         role = EXCLUDED.role, tenant_id = COALESCE(EXCLUDED.tenant_id, users.tenant_id)
        RETURNING id, email, name, role, tenant_id`,
-      [normalizedEmail, name, passwordHash, role, tenantId || null]
+      [normalizedEmail, name, passwordHash, role, effectiveTenantId]
     );
 
     res.status(201).json({

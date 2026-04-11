@@ -291,7 +291,7 @@ form.addEventListener('submit', async function(e) {
     if (!res.ok) throw new Error(data.error || 'Invalid credentials');
 
     setAuth(data.token, data.user);
-    window.location.href = 'index.html';
+    redirectAfterLogin(data.user);
   } catch (err) {
     showError(err.message || 'Login failed. Please check your credentials.');
     loginBtn.disabled = false;
@@ -308,8 +308,9 @@ form.addEventListener('submit', async function(e) {
     if (token) {
       try {
         var payload = JSON.parse(atob(token.split('.')[1]));
-        setAuth(token, { id: payload.userId, email: payload.email, name: payload.email, role: payload.role, tenantId: payload.tenantId });
-        window.location.href = 'index.html';
+        var user = { id: payload.userId, email: payload.email, name: payload.email, role: payload.role, tenantId: payload.tenantId };
+        setAuth(token, user);
+        redirectAfterLogin(user);
       } catch (e) {
         showError('Google sign-in failed — invalid token');
       }
@@ -317,6 +318,25 @@ form.addEventListener('submit', async function(e) {
     history.replaceState(null, '', window.location.pathname);
   }
 })();
+
+function redirectAfterLogin(user) {
+  if (user.role === 'super_admin') {
+    window.location.href = 'index.html';
+    return;
+  }
+  // Check onboarding status for tenant users
+  fetch(API_BASE + '/auth/onboarding-status', {
+    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('gs_token') }
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.needsOnboarding) {
+      window.location.href = 'onboarding.html';
+    } else {
+      window.location.href = 'index.html';
+    }
+  }).catch(function() {
+    window.location.href = 'index.html';
+  });
+}
 </script>
 </body>
 </html>

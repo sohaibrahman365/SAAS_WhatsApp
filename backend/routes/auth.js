@@ -152,16 +152,37 @@ async function findOrCreateGoogleUser({ googleId, email, name }) {
     return linked.rows[0];
   }
 
-  // 3. Brand-new user — default to analyst role, no password
+  // 3. Brand-new user — auto-create tenant + make them admin
   const isSuperAdmin =
     normalizedEmail === (process.env.SUPER_ADMIN_EMAIL || '').toLowerCase();
-  const role = isSuperAdmin ? 'super_admin' : 'analyst';
 
-  const created = await pool.query(
-    `INSERT INTO users (email, name, google_id, role, auth_provider)
-     VALUES ($1, $2, $3, $4, 'google')
+  if (isSuperAdmin) {
+    // Super admin — no tenant, platform-level user
+    const created = await pool.query(
+      `INSERT INTO users (email, name, google_id, role, auth_provider)
+       VALUES ($1, $2, $3, 'super_admin', 'google')
+       RETURNING *`,
+      [normalizedEmail, name, googleId]
+    );
+    return created.rows[0];
+  }
+
+  // Regular user — auto-create a tenant for them
+  const tenantName = name.split(' ')[0] + "'s Business";
+  const { rows: tenantRows } = await pool.query(
+    `INSERT INTO tenants (name, email, plan, status)
+     VALUES ($1, $2, 'starter', 'active')
      RETURNING *`,
-    [normalizedEmail, name, googleId, role]
+    [tenantName, normalizedEmail]
+  );
+  const tenant = tenantRows[0];
+
+  // Create user as admin of the new tenant
+  const created = await pool.query(
+    `INSERT INTO users (email, name, google_id, role, tenant_id, auth_provider)
+     VALUES ($1, $2, $3, 'admin', $4, 'google')
+     RETURNING *`,
+    [normalizedEmail, name, googleId, tenant.id]
   );
   return created.rows[0];
 }
@@ -274,6 +295,54 @@ router.get('/google/callback', async (req, res, next) => {
     // Redirect to frontend with token in URL hash
     const frontendBase = process.env.FRONTEND_URL || 'https://sohaibrahman365.github.io/SAAS_WhatsApp';
     res.redirect(`${frontendBase}/login.html#token=${jwtToken}`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/onboarding-status — check if tenant needs setup
+router.get('/onboarding-status', requireAuth, async (req, res, next) => {
+  try {
+    const tenantId = req.user.tenantId;
+    if (!tenantId) return res.json({ needsOnboarding: false, role: req.user.role });
+
+    const { rows: settings } = await pool.query(
+      'SELECT * FROM tenant_settings WHERE tenant_id = $1', [tenantId]
+    );
+    const { rows: tenant } = await pool.query(
+      'SELECT * FROM tenants WHERE id = $1', [tenantId]
+    );
+
+    const t = tenant[0] || {};
+    const s = settings[0] || {};
+
+    // Check what's been configured
+    const steps = {
+      business_name: !!(t.name && !t.name.endsWith("'s Business")),
+      industry: !!s.ai_industry,
+      whatsapp: !!(s.whatsapp_api_token),
+      products: false,
+      customers: false,
+    };
+
+    // Check if they have products/customers
+    const [prodCount, custCount] = await Promise.all([
+      pool.query('SELECT COUNT(*)::int AS c FROM products WHERE tenant_id = $1', [tenantId]),
+      pool.query('SELECT COUNT(*)::int AS c FROM customers WHERE tenant_id = $1', [tenantId]),
+    ]);
+    steps.products = prodCount.rows[0].c > 0;
+    steps.customers = custCount.rows[0].c > 0;
+
+    const completedSteps = Object.values(steps).filter(Boolean).length;
+    const needsOnboarding = completedSteps < 2; // at least business name + industry
+
+    res.json({
+      needsOnboarding,
+      steps,
+      completedSteps,
+      totalSteps: Object.keys(steps).length,
+      tenantName: t.name,
+    });
   } catch (err) {
     next(err);
   }

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set Up Your Business — GeniSearch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body { background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%); min-height: 100vh; }
+    .onboard-wrap { max-width:640px; margin:0 auto; padding:40px 20px; }
+    .onboard-header { text-align:center; margin-bottom:32px; }
+    .onboard-logo { width:48px; height:48px; background:linear-gradient(135deg, #667eea, #764ba2); border-radius:10px;
+                    display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:1.4rem; margin-bottom:12px; }
+    .onboard-title { font-size:1.6rem; font-weight:700; color:var(--text-primary); }
+    .onboard-sub { color:var(--text-muted); font-size:.9rem; margin-top:4px; }
+
+    .step-progress { display:flex; gap:8px; margin-bottom:32px; }
+    .step-dot { flex:1; height:4px; border-radius:2px; background:var(--light-2); transition:background .3s; }
+    .step-dot.active { background:var(--primary); }
+    .step-dot.done { background:var(--success); }
+
+    .step-card { background:var(--white); border-radius:var(--radius); padding:32px; box-shadow:0 2px 12px rgba(0,0,0,.06);
+                 display:none; animation:fadeIn .3s ease; }
+    .step-card.active { display:block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    .step-num { display:inline-block; width:28px; height:28px; background:var(--primary); color:#fff; border-radius:50%;
+                text-align:center; line-height:28px; font-size:.82rem; font-weight:700; margin-bottom:12px; }
+    .step-title { font-size:1.15rem; font-weight:700; margin-bottom:4px; }
+    .step-desc { color:var(--text-muted); font-size:.88rem; margin-bottom:20px; }
+
+    .form-group { margin-bottom:16px; }
+    .form-group label { display:block; font-size:.82rem; font-weight:600; margin-bottom:6px; color:var(--text-primary); }
+    .form-control { width:100%; padding:10px 12px; font-size:.9rem; border:1px solid var(--light-2); border-radius:var(--radius-sm);
+                    font-family:inherit; outline:none; transition:border .2s; }
+    .form-control:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(102,126,234,.1); }
+    textarea.form-control { resize:vertical; min-height:80px; }
+    select.form-control { appearance:auto; }
+
+    .btn-row { display:flex; gap:12px; margin-top:24px; justify-content:flex-end; }
+    .btn { padding:10px 24px; border-radius:var(--radius-sm); font-size:.9rem; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:all .2s; }
+    .btn-primary { background:var(--primary); color:#fff; }
+    .btn-primary:hover { opacity:.9; }
+    .btn-secondary { background:var(--light); color:var(--text-primary); border:1px solid var(--light-2); }
+    .btn-skip { background:none; color:var(--text-muted); border:none; font-size:.85rem; }
+    .btn-skip:hover { color:var(--text-primary); }
+
+    .success-screen { text-align:center; padding:48px 24px; }
+    .success-icon { font-size:3rem; margin-bottom:16px; }
+    .success-title { font-size:1.4rem; font-weight:700; margin-bottom:8px; }
+    .success-sub { color:var(--text-muted); font-size:.9rem; margin-bottom:24px; }
+
+    .form-hint { font-size:.78rem; color:var(--text-muted); margin-top:4px; }
+    .optional { font-size:.75rem; color:var(--text-muted); font-weight:400; }
+  </style>
+</head>
+<body>
+<div class="onboard-wrap">
+  <div class="onboard-header">
+    <div class="onboard-logo">G</div>
+    <div class="onboard-title">Welcome to GeniSearch</div>
+    <div class="onboard-sub">Let's set up your business in a few quick steps</div>
+  </div>
+
+  <div class="step-progress" id="stepProgress">
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+
+  <!-- Step 1: Business Info -->
+  <div class="step-card active" id="step1">
+    <div class="step-num">1</div>
+    <div class="step-title">Your Business</div>
+    <div class="step-desc">Tell us about your business so we can personalize your experience.</div>
+
+    <div class="form-group">
+      <label>Business Name *</label>
+      <input type="text" class="form-control" id="ob-name" placeholder="e.g. Wise Market Pakistan">
+    </div>
+    <div class="form-group">
+      <label>Industry *</label>
+      <input type="text" class="form-control" id="ob-industry" placeholder="e.g. E-commerce, Healthcare, Fashion">
+    </div>
+    <div class="form-group">
+      <label>Website URL <span class="optional">(optional)</span></label>
+      <input type="url" class="form-control" id="ob-website" placeholder="https://www.example.com">
+    </div>
+    <div class="form-group">
+      <label>Business Description <span class="optional">(optional)</span></label>
+      <textarea class="form-control" id="ob-desc" placeholder="What does your business do? This helps the AI understand your context."></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="nextStep(1)">Continue</button>
+    </div>
+  </div>
+
+  <!-- Step 2: AI Configuration -->
+  <div class="step-card" id="step2">
+    <div class="step-num">2</div>
+    <div class="step-title">AI Agent Setup</div>
+    <div class="step-desc">Configure how the AI responds to your customers' WhatsApp messages.</div>
+
+    <div class="form-group">
+      <label>Reply Tone</label>
+      <select class="form-control" id="ob-tone">
+        <option value="professional">Professional</option>
+        <option value="friendly">Friendly</option>
+        <option value="casual">Casual</option>
+        <option value="formal">Formal</option>
+        <option value="enthusiastic">Enthusiastic</option>
+        <option value="empathetic">Empathetic</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>AI Instructions <span class="optional">(optional)</span></label>
+      <textarea class="form-control" id="ob-prompt" placeholder="e.g. Always greet by name, mention free delivery over PKR 5000, upsell accessories..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Sample Replies <span class="optional">(optional)</span></label>
+      <textarea class="form-control" id="ob-samples" placeholder="Paste example replies your agent should emulate..."></textarea>
+      <div class="form-hint">These teach the AI your brand's voice and style.</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="prevStep(2)">Back</button>
+      <button class="btn btn-primary" onclick="nextStep(2)">Continue</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Connect Channels -->
+  <div class="step-card" id="step3">
+    <div class="step-num">3</div>
+    <div class="step-title">Connect Your Channels</div>
+    <div class="step-desc">Add your API keys to start sending messages. You can skip this and add them later in Settings.</div>
+
+    <div class="form-group">
+      <label>WhatsApp API Token <span class="optional">(optional)</span></label>
+      <input type="text" class="form-control" id="ob-wa-token" placeholder="From Meta Business Suite">
+      <div class="form-hint">Your own WhatsApp Business API token. Without this, the platform's shared number will be used.</div>
+    </div>
+    <div class="form-group">
+      <label>WhatsApp Phone Number ID <span class="optional">(optional)</span></label>
+      <input type="text" class="form-control" id="ob-wa-phone" placeholder="e.g. 123456789012345">
+    </div>
+    <div class="form-group">
+      <label>Facebook Page URL <span class="optional">(optional)</span></label>
+      <input type="text" class="form-control" id="ob-fb-url" placeholder="https://www.facebook.com/yourbusiness">
+    </div>
+    <div class="form-group">
+      <label>META Access Token <span class="optional">(optional)</span></label>
+      <input type="text" class="form-control" id="ob-meta-token" placeholder="EAAx... (for product catalog import)">
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="prevStep(3)">Back</button>
+      <button class="btn btn-skip" onclick="finishOnboarding()">Skip for now</button>
+      <button class="btn btn-primary" onclick="finishOnboarding()">Finish Setup</button>
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div class="step-card" id="stepDone">
+    <div class="success-screen">
+      <div class="success-icon">&#10003;</div>
+      <div class="success-title">You're All Set!</div>
+      <div class="success-sub">Your business is ready. Start by adding products and customers.</div>
+      <button class="btn btn-primary" onclick="window.location.href='index.html'" style="font-size:1rem;padding:12px 32px">
+        Go to Dashboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+var API_BASE = 'https://saaswhatsapp.up.railway.app/api';
+var token = localStorage.getItem('gs_token');
+var user = JSON.parse(localStorage.getItem('gs_user') || 'null');
+
+if (!token || !user) window.location.href = 'login.html';
+
+var currentStep = 1;
+
+function updateProgress() {
+  var dots = document.querySelectorAll('.step-dot');
+  dots.forEach(function(d, i) {
+    d.className = 'step-dot';
+    if (i + 1 < currentStep) d.classList.add('done');
+    if (i + 1 === currentStep) d.classList.add('active');
+  });
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step-card').forEach(function(c) { c.classList.remove('active'); });
+  var el = document.getElementById('step' + n);
+  if (el) el.classList.add('active');
+  currentStep = n;
+  updateProgress();
+}
+
+function nextStep(from) {
+  if (from === 1) {
+    var name = document.getElementById('ob-name').value.trim();
+    var industry = document.getElementById('ob-industry').value.trim();
+    if (!name) { alert('Please enter your business name'); return; }
+    if (!industry) { alert('Please enter your industry'); return; }
+  }
+  showStep(from + 1);
+}
+
+function prevStep(to) {
+  showStep(to - 1);
+}
+
+async function apiCall(path, method, body) {
+  var res = await fetch(API_BASE + path, {
+    method: method,
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return res.json();
+}
+
+async function finishOnboarding() {
+  var btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Setting up...';
+
+  try {
+    // Step 1: Update tenant name + website
+    var tenantBody = {
+      name: document.getElementById('ob-name').value.trim(),
+      website_url: document.getElementById('ob-website').value.trim() || null,
+    };
+    await apiCall('/tenants/' + user.tenantId, 'PUT', tenantBody);
+
+    // Step 2+3: Save settings
+    var settings = {};
+    var industry = document.getElementById('ob-industry').value.trim();
+    var desc = document.getElementById('ob-desc').value.trim();
+    var tone = document.getElementById('ob-tone').value;
+    var prompt = document.getElementById('ob-prompt').value.trim();
+    var samples = document.getElementById('ob-samples').value.trim();
+    var waToken = document.getElementById('ob-wa-token').value.trim();
+    var waPhone = document.getElementById('ob-wa-phone').value.trim();
+    var fbUrl = document.getElementById('ob-fb-url').value.trim();
+    var metaToken = document.getElementById('ob-meta-token').value.trim();
+
+    if (industry) settings.ai_industry = industry;
+    if (desc) settings.business_description = desc;
+    if (tenantBody.website_url) settings.business_domain = tenantBody.website_url;
+    settings.ai_reply_tone = tone;
+    if (prompt) settings.ai_prompt_context = prompt;
+    if (samples) settings.ai_sample_replies = samples;
+    if (waToken) settings.whatsapp_api_token = waToken;
+    if (waPhone) settings.whatsapp_phone_number_id = waPhone;
+    if (metaToken) settings.meta_access_token = metaToken;
+    if (fbUrl) {
+      var pageSlug = fbUrl.replace(/https?:\/\/(www\.)?facebook\.com\//i, '').replace(/\/+$/, '');
+      if (pageSlug) settings.meta_page_id = pageSlug;
+    }
+
+    await apiCall('/tenant-settings', 'PUT', settings);
+
+    // Show success
+    document.querySelectorAll('.step-card').forEach(function(c) { c.classList.remove('active'); });
+    document.getElementById('stepDone').classList.add('active');
+    document.querySelector('.step-progress').style.display = 'none';
+  } catch (e) {
+    alert('Setup failed: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Finish Setup';
+  }
+}
+</script>
+</body>
+</html>

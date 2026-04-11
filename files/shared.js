@@ -40,7 +40,15 @@ function requireLogin() {
     window.location.href = 'login.html';
     return null;
   }
-  return getUser();
+  const user = getUser();
+  // Check onboarding for tenant users (not super_admin, not on onboarding page already)
+  const page = location.pathname.split('/').pop() || '';
+  if (user && user.role !== 'super_admin' && user.tenantId && page !== 'onboarding.html') {
+    apiGet('/auth/onboarding-status').then(function(data) {
+      if (data.needsOnboarding) window.location.href = 'onboarding.html';
+    }).catch(function() {});
+  }
+  return user;
 }
 
 /* ============================================================

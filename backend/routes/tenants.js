@@ -82,17 +82,25 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 
 // ── PUT /api/tenants/:id ─────────────────────────────────────
 // Update tenant details
-router.put('/:id', requireAuth, requireRole('super_admin'), async (req, res, next) => {
+router.put('/:id', requireAuth, async (req, res, next) => {
   try {
+    // Allow super_admin OR admin of their own tenant
+    if (req.user.role !== 'super_admin' && req.user.tenantId !== req.params.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const { name, email, phone, plan, status, mrr, website_url } = req.body;
+
+    // Non-super_admin can only update name and website_url
+    const isSuperAdmin = req.user.role === 'super_admin';
     const { rows } = await pool.query(`
       UPDATE tenants SET
         name        = COALESCE($2, name),
-        email       = COALESCE($3, email),
-        phone       = COALESCE($4, phone),
-        plan        = COALESCE($5, plan),
-        status      = COALESCE($6, status),
-        mrr         = COALESCE($7, mrr),
+        email       = ${isSuperAdmin ? 'COALESCE($3, email)' : 'email'},
+        phone       = ${isSuperAdmin ? 'COALESCE($4, phone)' : 'COALESCE($4, phone)'},
+        plan        = ${isSuperAdmin ? 'COALESCE($5, plan)' : 'plan'},
+        status      = ${isSuperAdmin ? 'COALESCE($6, status)' : 'status'},
+        mrr         = ${isSuperAdmin ? 'COALESCE($7, mrr)' : 'mrr'},
         website_url = COALESCE($8, website_url)
       WHERE id = $1
       RETURNING *

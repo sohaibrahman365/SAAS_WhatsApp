@@ -4,7 +4,7 @@
 
 const { getWhatsAppCredentials } = require('./tenantSettings');
 
-const API_VERSION = 'v19.0';
+const API_VERSION = process.env.WHATSAPP_API_VERSION || 'v25.0';
 
 function isStubMode() {
   const token = process.env.WHATSAPP_API_TOKEN;

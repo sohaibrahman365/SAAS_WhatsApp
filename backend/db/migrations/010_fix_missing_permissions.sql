@@ -17,8 +17,9 @@ INSERT INTO permissions (module, action, description) VALUES
   -- Settings extras (used by tenantSettings.js)
   ('settings', 'edit', 'Edit tenant settings'),
   ('settings', 'manage_api_keys', 'Add or remove API keys'),
-  -- Team extras (used by roles.js)
-  ('team', 'edit_role', 'Create, edit, and delete roles')
+  -- Team extras (used by roles.js and team.js)
+  ('team', 'edit_role', 'Create, edit, and delete roles'),
+  ('team', 'remove', 'Remove team members')
 ON CONFLICT (module, action) DO NOTHING;
 
 -- Grant all new permissions to the admin role

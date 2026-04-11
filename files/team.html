@@ -294,6 +294,7 @@ function renderPage(list) {
       actionsHtml =
         '<div class="action-btns">' +
           '<button class="btn-toggle" onclick="toggleStatus(\'' + m.id + '\', \'' + status + '\')">' + toggleLabel + '</button>' +
+          '<button class="btn-toggle" onclick="resetPassword(\'' + m.id + '\', \'' + escapeHtml(name) + '\')">Reset Pwd</button>' +
           '<button class="btn-remove" onclick="removeMember(\'' + m.id + '\', \'' + escapeHtml(name) + '\')">Remove</button>' +
         '</div>';
     }
@@ -426,6 +427,18 @@ async function toggleStatus(memberId, currentStatus) {
     await apiPatch('/team/' + memberId + '/status', { status: newStatus });
     toast('Member ' + (newStatus === 'active' ? 'activated' : 'suspended'), 'success');
     loadTeam();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function resetPassword(memberId, name) {
+  var newPwd = prompt('Enter new password for ' + name + ' (min 8 characters):');
+  if (!newPwd) return;
+  if (newPwd.length < 8) { toast('Password must be at least 8 characters', 'error'); return; }
+  try {
+    await apiPatch('/team/' + memberId + '/password', { password: newPwd });
+    toast('Password updated for ' + name, 'success');
   } catch (e) {
     toast(e.message, 'error');
   }

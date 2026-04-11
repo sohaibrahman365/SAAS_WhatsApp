@@ -174,6 +174,38 @@ router.patch('/:userId/status', requireAuth, requirePermission('team', 'edit_rol
   }
 });
 
+// ── PATCH /api/team/:userId/password ────────────────────────
+// Reset a team member's password (admin/super_admin only)
+router.patch('/:userId/password', requireAuth, requirePermission('team', 'manage'), async (req, res, next) => {
+  try {
+    const tenantId = resolveTenantId(req);
+    const { userId } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+
+    let query = 'UPDATE users SET password_hash = $1 WHERE id = $2';
+    const params = [hash, userId];
+
+    if (req.user.role !== 'super_admin') {
+      query += ' AND tenant_id = $3';
+      params.push(tenantId);
+    }
+
+    query += ' RETURNING id, name, email';
+    const { rows } = await pool.query(query, params);
+
+    if (!rows[0]) return res.status(404).json({ error: 'User not found in your tenant' });
+    res.json({ message: 'Password updated', user: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── DELETE /api/team/:userId ────────────────────────────────
 // Remove a team member
 router.delete('/:userId', requireAuth, requirePermission('team', 'remove'), async (req, res, next) => {

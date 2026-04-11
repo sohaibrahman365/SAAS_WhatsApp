@@ -13,7 +13,7 @@ DECLARE
   r RECORD;
 BEGIN
   FOR r IN
-    SELECT slug, MIN(id) AS keep_id
+    SELECT slug, MIN(id::text)::uuid AS keep_id
     FROM roles
     WHERE tenant_id IS NULL AND is_system = TRUE
     GROUP BY slug

@@ -152,7 +152,7 @@ function showLaunch(id,name) { launchId=id; document.getElementById('launchBody'
 
 async function doLaunch() {
   document.getElementById('launchBtn').disabled=true; document.getElementById('launchBtn').textContent='Launching...';
-  try { const r = await apiPost('/campaigns/'+launchId+'/launch',{}); document.getElementById('launchBody').innerHTML='<div style="text-align:center"><div style="font-size:2rem">&#127881;</div><h3>Launched!</h3><p>Sent: <strong>'+r.sent+'</strong> | Failed: <strong>'+r.failed+'</strong> | Total: <strong>'+r.total+'</strong></p></div>'; document.getElementById('launchFoot').innerHTML='<button class="btn btn-primary" onclick="closeModal(\'launchModal\');loadCampaigns()">Done</button>'; toast('Launched!','success'); }
+  try { const r = await apiPost('/campaigns/'+launchId+'/launch',{}); var errMsg = r.error ? '<p style="color:var(--danger);font-size:0.85rem;margin-top:0.5rem">Error: '+escapeHtml(r.error)+'</p>' : ''; document.getElementById('launchBody').innerHTML='<div style="text-align:center"><div style="font-size:2rem">&#127881;</div><h3>Launched!</h3><p>Sent: <strong>'+r.sent+'</strong> | Failed: <strong>'+r.failed+'</strong> | Total: <strong>'+r.total+'</strong></p>'+errMsg+'</div>'; document.getElementById('launchFoot').innerHTML='<button class="btn btn-primary" onclick="closeModal(\'launchModal\');loadCampaigns()">Done</button>'; toast('Launched!','success'); }
   catch(e) { toast(e.message,'error'); document.getElementById('launchBtn').disabled=false; document.getElementById('launchBtn').textContent='Launch Now'; }
 }
 

@@ -239,7 +239,7 @@ router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch')
       [campaign.id]
     );
 
-    let sent = 0, failed = 0;
+    let sent = 0, failed = 0, lastError = null;
 
     for (const customer of customers) {
       try {
@@ -249,7 +249,7 @@ router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch')
           discount:      '',
         });
 
-        const result     = await sendTextMessage(customer.phone, message);
+        const result     = await sendTextMessage(customer.phone, message, campaign.tenant_id);
         const waMessageId = result.messages?.[0]?.id || null;
 
         await pool.query(
@@ -265,6 +265,8 @@ router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch')
       } catch (err) {
         console.error(`[campaigns:launch] Failed for ${customer.phone}:`, err.message);
         failed++;
+        // Store last error for response
+        if (!lastError) lastError = err.message;
       }
     }
 
@@ -287,7 +289,7 @@ router.post('/:id/launch', requireAuth, requirePermission('campaigns', 'launch')
       total: customers.length,
     }).catch(err => console.error('[alert]', err.message));
 
-    res.json({ launched: true, sent, failed, total: customers.length });
+    res.json({ launched: true, sent, failed, total: customers.length, error: lastError });
   } catch (err) {
     next(err);
   }

@@ -45,6 +45,32 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><h3>Edit Customer</h3><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
+    <div class="modal-body">
+      <form id="editCustForm">
+        <input type="hidden" id="eId">
+        <div class="form-group"><label>Phone * (international)</label><input id="ePhone" class="form-control" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Name</label><input id="eName" class="form-control"></div>
+          <div class="form-group"><label>Email</label><input id="eEmail" class="form-control" type="email"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Age</label><input id="eAge" type="number" class="form-control"></div>
+          <div class="form-group"><label>Gender</label><select id="eGender" class="form-control"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>City</label><input id="eCity" class="form-control"></div>
+          <div class="form-group"><label>Region</label><input id="eRegion" class="form-control"></div>
+        </div>
+        <div class="form-group"><label>Country</label><input id="eCountry" class="form-control"></div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button><button class="btn btn-primary" onclick="submitEditCustomer()">Save Changes</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="detailModal">
   <div class="modal" style="max-width:700px">
     <div class="modal-header"><h3 id="detailTitle">Customer Detail</h3><button class="modal-close" onclick="closeModal('detailModal')">&times;</button></div>
@@ -78,7 +104,7 @@ function renderCustomers(list) {
 
   let rows = '';
   list.forEach(c => {
-    rows += '<tr><td class="fw-600">'+escapeHtml(c.name||'-')+'</td><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.email||'-')+'</td><td>'+escapeHtml(c.city||'-')+'</td><td>'+escapeHtml(c.region||'-')+'</td><td><span class="badge badge-neutral">'+escapeHtml(c.source||'web_search')+'</span></td><td>'+fmtDate(c.created_at)+'</td><td><button class="btn btn-secondary btn-sm" onclick="viewCustomer(\''+c.phone+'\',\''+escapeHtml(c.name||'Customer')+'\')">View</button></td></tr>';
+    rows += '<tr><td class="fw-600">'+escapeHtml(c.name||'-')+'</td><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.email||'-')+'</td><td>'+escapeHtml(c.city||'-')+'</td><td>'+escapeHtml(c.region||'-')+'</td><td><span class="badge badge-neutral">'+escapeHtml(c.source||'web_search')+'</span></td><td>'+fmtDate(c.created_at)+'</td><td style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="showEditCustomer(\''+c.id+'\')">Edit</button><button class="btn btn-secondary btn-sm" onclick="viewCustomer(\''+c.phone+'\',\''+escapeHtml(c.name||'Customer')+'\')">View</button><button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger-light)" onclick="deleteCustomer(\''+c.id+'\',\''+escapeHtml(c.name||'Customer').replace(/'/g,"\\'")+'\')">Del</button></td></tr>';
   });
 
   p.innerHTML = `
@@ -102,6 +128,43 @@ async function submitCustomer() {
   const body = { phone, name:document.getElementById('cName').value.trim()||undefined, email:document.getElementById('cEmail').value.trim()||undefined, age:parseInt(document.getElementById('cAge').value)||undefined, gender:document.getElementById('cGender').value||undefined, city:document.getElementById('cCity').value.trim()||undefined, region:document.getElementById('cRegion').value.trim()||undefined, country:document.getElementById('cCountry').value.trim()||undefined, source:document.getElementById('cSource').value };
   const t=document.getElementById('cTenant'); if(t.value) body.tenantId=t.value;
   try { await apiPost('/customers',body); toast('Customer added!','success'); closeModal('addModal'); document.getElementById('custForm').reset(); loadCustomers(); } catch(e) { toast(e.message,'error'); }
+}
+
+async function showEditCustomer(id) {
+  try {
+    const c = await apiGet('/customers/' + id);
+    document.getElementById('eId').value = c.id;
+    document.getElementById('ePhone').value = c.phone || '';
+    document.getElementById('eName').value = c.name || '';
+    document.getElementById('eEmail').value = c.email || '';
+    document.getElementById('eAge').value = c.age || '';
+    document.getElementById('eGender').value = c.gender || '';
+    document.getElementById('eCity').value = c.city || '';
+    document.getElementById('eRegion').value = c.region || '';
+    document.getElementById('eCountry').value = c.country || '';
+    openModal('editModal');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function submitEditCustomer() {
+  const id = document.getElementById('eId').value;
+  const body = {
+    phone: document.getElementById('ePhone').value.trim(),
+    name: document.getElementById('eName').value.trim() || null,
+    email: document.getElementById('eEmail').value.trim() || null,
+    age: parseInt(document.getElementById('eAge').value) || null,
+    gender: document.getElementById('eGender').value || null,
+    city: document.getElementById('eCity').value.trim() || null,
+    region: document.getElementById('eRegion').value.trim() || null,
+    country: document.getElementById('eCountry').value.trim() || null
+  };
+  if (!body.phone) { toast('Phone required', 'error'); return; }
+  try { await apiPut('/customers/' + id, body); toast('Customer updated!', 'success'); closeModal('editModal'); loadCustomers(); } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteCustomer(id, name) {
+  if (!confirm('Delete customer ' + name + '? This cannot be undone.')) return;
+  try { await apiDelete('/customers/' + id); toast('Customer deleted', 'success'); loadCustomers(); } catch(e) { toast(e.message, 'error'); }
 }
 
 async function viewCustomer(phone, name) {

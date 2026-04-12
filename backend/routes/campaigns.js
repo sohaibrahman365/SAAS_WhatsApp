@@ -105,6 +105,55 @@ router.get('/:id', requireAuth, requirePermission('campaigns', 'view'), async (r
   }
 });
 
+// PUT /api/campaigns/:id — edit campaign details (only draft/scheduled)
+router.put('/:id', requireAuth, requirePermission('campaigns', 'edit'), auditAction('update', 'campaign', { getResourceId: (req) => req.params.id }), async (req, res, next) => {
+  try {
+    const tenantId = resolveTenantId(req);
+    const { name, message_template, product_id, target_segment, region, country, city } = req.body;
+
+    // Only allow editing draft/scheduled campaigns
+    const check = tenantId
+      ? await pool.query('SELECT status FROM campaigns WHERE id = $1 AND tenant_id = $2', [req.params.id, tenantId])
+      : await pool.query('SELECT status FROM campaigns WHERE id = $1', [req.params.id]);
+
+    if (!check.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
+    if (!['draft', 'scheduled'].includes(check.rows[0].status)) {
+      return res.status(400).json({ error: 'Can only edit draft or scheduled campaigns' });
+    }
+
+    const sets = [];
+    const params = [];
+    let idx = 1;
+
+    if (name !== undefined)             { sets.push('name = $' + idx++); params.push(name); }
+    if (message_template !== undefined)  { sets.push('message_template = $' + idx++); params.push(message_template); }
+    if (product_id !== undefined)        { sets.push('product_id = $' + idx++); params.push(product_id || null); }
+    if (target_segment !== undefined)    { sets.push('target_segment = $' + idx++); params.push(target_segment); }
+    if (region !== undefined)            { sets.push('region = $' + idx++); params.push(region || null); }
+    if (country !== undefined)           { sets.push('country = $' + idx++); params.push(country || null); }
+    if (city !== undefined)              { sets.push('city = $' + idx++); params.push(city || null); }
+
+    if (sets.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+    sets.push('updated_at = NOW()');
+
+    let query = 'UPDATE campaigns SET ' + sets.join(', ') + ' WHERE id = $' + idx++;
+    params.push(req.params.id);
+
+    if (tenantId) {
+      query += ' AND tenant_id = $' + idx++;
+      params.push(tenantId);
+    }
+
+    query += ' RETURNING *';
+    const { rows } = await pool.query(query, params);
+    if (!rows[0]) return res.status(404).json({ error: 'Campaign not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // PATCH /api/campaigns/:id/status — update status (e.g. draft → active → completed)
 router.patch('/:id/status', requireAuth, requirePermission('campaigns', 'edit'), async (req, res, next) => {
   try {

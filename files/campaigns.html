@@ -39,6 +39,29 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header"><h3>Edit Campaign</h3><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
+    <div class="modal-body">
+      <form id="editForm">
+        <input type="hidden" id="eId">
+        <div class="form-group"><label>Campaign Name *</label><input id="eName" class="form-control" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Product</label><select id="eProduct" class="form-control"><option value="">Select product...</option></select></div>
+          <div class="form-group"><label>Segment</label><select id="eSegment" class="form-control"><option value="all">All Customers</option><option value="high_priority">High Priority</option><option value="new">New</option><option value="inactive">Inactive</option></select></div>
+        </div>
+        <div class="form-group"><label>Message Template</label><textarea id="eMsg" class="form-control" rows="3"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Region</label><input id="eRegion" class="form-control"></div>
+          <div class="form-group"><label>Country</label><input id="eCountry" class="form-control"></div>
+        </div>
+        <div class="form-group"><label>City</label><input id="eCity" class="form-control"></div>
+      </form>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button><button class="btn btn-primary" onclick="submitEdit()">Save Changes</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="launchModal">
   <div class="modal">
     <div class="modal-header"><h3>Launch Campaign</h3><button class="modal-close" onclick="closeModal('launchModal')">&times;</button></div>
@@ -76,8 +99,9 @@ function renderCampaigns(list) {
   list.forEach(c => {
     const canLaunch = ['draft','scheduled'].includes(c.status);
     const launch = canLaunch ? '<button class="btn btn-success btn-sm" onclick="showLaunch(\''+c.id+'\',\''+escapeHtml(c.name).replace(/'/g,"\\'")+'\')">Launch</button>' : '';
+    const edit = canLaunch ? '<button class="btn btn-secondary btn-sm" onclick="showEdit(\''+c.id+'\')">Edit</button>' : '';
     const opts = ['draft','active','paused','completed'].map(s => '<option value="'+s+'" '+(s===c.status?'selected':'')+'>'+s+'</option>').join('');
-    rows += '<tr><td class="fw-600">'+escapeHtml(c.name)+'</td><td>'+statusBadge(c.status)+'</td><td>'+fmtNum(c.sent_count)+'</td><td>'+fmtNum(c.reply_count)+'</td><td>'+fmtNum(c.conversion_count)+'</td><td>'+fmtDate(c.created_at)+'</td><td style="display:flex;gap:6px;align-items:center"><a href="bi.html?campaign='+c.id+'" class="btn btn-secondary btn-sm">View</a>'+launch+'<select class="form-control" style="width:auto;padding:3px 6px;font-size:.75rem" onchange="chgStatus(\''+c.id+'\',this.value)">'+opts+'</select></td></tr>';
+    rows += '<tr><td class="fw-600">'+escapeHtml(c.name)+'</td><td>'+statusBadge(c.status)+'</td><td>'+fmtNum(c.sent_count)+'</td><td>'+fmtNum(c.reply_count)+'</td><td>'+fmtNum(c.conversion_count)+'</td><td>'+fmtDate(c.created_at)+'</td><td style="display:flex;gap:6px;align-items:center"><a href="bi.html?campaign='+c.id+'" class="btn btn-secondary btn-sm">View</a>'+edit+launch+'<select class="form-control" style="width:auto;padding:3px 6px;font-size:.75rem" onchange="chgStatus(\''+c.id+'\',this.value)">'+opts+'</select></td></tr>';
   });
   p.innerHTML = '<div class="page-header"><div class="page-header-left"><h1>Campaigns</h1><p>'+list.length+' campaigns</p></div><div class="page-header-actions"><input class="form-control" placeholder="Search..." style="width:220px" oninput="filterC(this.value)"><button class="btn btn-primary" onclick="openModal(\'createModal\')">+ Create Campaign</button></div></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Status</th><th>Sent</th><th>Replies</th><th>Conversions</th><th>Created</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
@@ -89,6 +113,39 @@ async function submitCampaign() {
   const body = { name, product_id:document.getElementById('cProduct').value||undefined, message_template:document.getElementById('cMsg').value.trim()||undefined, target_segment:document.getElementById('cSegment').value, region:document.getElementById('cRegion').value.trim()||undefined, country:document.getElementById('cCountry').value.trim()||undefined, city:document.getElementById('cCity').value.trim()||undefined };
   const t=document.getElementById('cTenant'); if(t.value) body.tenantId=t.value;
   try { await apiPost('/campaigns',body); toast('Created!','success'); closeModal('createModal'); document.getElementById('campaignForm').reset(); loadCampaigns(); } catch(e) { toast(e.message,'error'); }
+}
+
+async function showEdit(id) {
+  try {
+    const c = await apiGet('/campaigns/' + id);
+    document.getElementById('eId').value = c.id;
+    document.getElementById('eName').value = c.name || '';
+    document.getElementById('eMsg').value = c.message_template || '';
+    document.getElementById('eRegion').value = c.region || '';
+    document.getElementById('eCountry').value = c.country || '';
+    document.getElementById('eCity').value = c.city || '';
+    // Populate product dropdown
+    const eProd = document.getElementById('eProduct');
+    eProd.innerHTML = '<option value="">Select product...</option>';
+    try { const prods = await apiGet('/products'); prods.forEach(p => eProd.innerHTML += '<option value="'+p.id+'"'+(p.id===c.product_id?' selected':'')+'>'+escapeHtml(p.name)+'</option>'); } catch(e){}
+    if (c.target_segment) document.getElementById('eSegment').value = c.target_segment;
+    openModal('editModal');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function submitEdit() {
+  const id = document.getElementById('eId').value;
+  const body = {
+    name: document.getElementById('eName').value.trim(),
+    message_template: document.getElementById('eMsg').value.trim(),
+    product_id: document.getElementById('eProduct').value || null,
+    target_segment: document.getElementById('eSegment').value,
+    region: document.getElementById('eRegion').value.trim() || null,
+    country: document.getElementById('eCountry').value.trim() || null,
+    city: document.getElementById('eCity').value.trim() || null
+  };
+  if (!body.name) { toast('Name required', 'error'); return; }
+  try { await apiPut('/campaigns/' + id, body); toast('Campaign updated!', 'success'); closeModal('editModal'); loadCampaigns(); } catch(e) { toast(e.message, 'error'); }
 }
 
 function showLaunch(id,name) { launchId=id; document.getElementById('launchBody').innerHTML='<p>Launch <strong>'+escapeHtml(name)+'</strong>?</p><p class="text-muted">Messages will be sent to all matching customers.</p>'; document.getElementById('launchBtn').disabled=false; document.getElementById('launchBtn').textContent='Launch Now'; openModal('launchModal'); }

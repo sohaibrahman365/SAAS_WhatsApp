@@ -105,27 +105,27 @@ ON CONFLICT (module, action) DO NOTHING;
 -- Admin role (all permissions)
 INSERT INTO roles (tenant_id, name, slug, description, is_system)
 VALUES (NULL, 'Admin', 'admin', 'Full access to all features', TRUE)
-ON CONFLICT (tenant_id, slug) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Manager role
 INSERT INTO roles (tenant_id, name, slug, description, is_system)
 VALUES (NULL, 'Manager', 'manager', 'Can manage products, customers, campaigns, and view analytics', TRUE)
-ON CONFLICT (tenant_id, slug) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Analyst role
 INSERT INTO roles (tenant_id, name, slug, description, is_system)
 VALUES (NULL, 'Analyst', 'analyst', 'View-only access to dashboards and reports', TRUE)
-ON CONFLICT (tenant_id, slug) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Campaign Manager role
 INSERT INTO roles (tenant_id, name, slug, description, is_system)
 VALUES (NULL, 'Campaign Manager', 'campaign_manager', 'Manage campaigns and view conversations', TRUE)
-ON CONFLICT (tenant_id, slug) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Viewer role
 INSERT INTO roles (tenant_id, name, slug, description, is_system)
 VALUES (NULL, 'Viewer', 'viewer', 'Read-only access to dashboards', TRUE)
-ON CONFLICT (tenant_id, slug) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- ══════════════════════════════════════════════════════════════
 -- SEED: Assign permissions to default roles
